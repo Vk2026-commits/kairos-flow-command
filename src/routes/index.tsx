@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import campusMap from "@/assets/campus-map.jpg";
+import { MapPanel } from "@/components/MapPanel";
 
 export const Route = createFileRoute("/")({
   head: () => ({
