@@ -95,6 +95,22 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const [annotateOff, setAnnotateOff] = useState({ x: 0, y: 0 });
   const [playbackOff, setPlaybackOff] = useState({ x: 0, y: 0 });
 
+  // Fullscreen (presentation) mode — map fills the viewport.
+  const [fullscreen, setFullscreen] = useState(false);
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFullscreen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fullscreen]);
+
+  function collapsePanel(setOpen: (v: boolean) => void, setOff: (p: { x: number; y: number }) => void) {
+    setOff({ x: 0, y: 0 }); // snap chip back inside the map
+    setOpen(false);
+  }
+
   function makeDragHandlers(
     off: { x: number; y: number },
     setOff: (p: { x: number; y: number }) => void,
@@ -112,10 +128,32 @@ export function MapPanel({ service, onServiceChange }: Props) {
           __drag?: { x: number; y: number; ox: number; oy: number };
         };
         if (!el.__drag) return;
-        setOff({
-          x: el.__drag.ox + e.clientX - el.__drag.x,
-          y: el.__drag.oy + e.clientY - el.__drag.y,
-        });
+        let nx = el.__drag.ox + e.clientX - el.__drag.x;
+        let ny = el.__drag.oy + e.clientY - el.__drag.y;
+        // Clamp so the dragged panel stays inside the map surface.
+        const surface = surfaceRef.current?.getBoundingClientRect();
+        // Find the panel wrapper (nearest positioned ancestor with a translate transform).
+        const panel = el.closest<HTMLElement>("[data-drag-panel]");
+        if (surface && panel) {
+          const pr = panel.getBoundingClientRect();
+          // Current panel top-left in viewport coords when offset applied:
+          const curLeft = pr.left;
+          const curTop = pr.top;
+          // Convert requested delta into new absolute pos, then clamp.
+          const deltaX = nx - el.__drag.ox;
+          const deltaY = ny - el.__drag.oy;
+          const newLeft = curLeft + (deltaX - (off.x - el.__drag.ox));
+          const newTop = curTop + (deltaY - (off.y - el.__drag.oy));
+          const minLeft = surface.left + 4;
+          const maxLeft = surface.right - pr.width - 4;
+          const minTop = surface.top + 4;
+          const maxTop = surface.bottom - pr.height - 4;
+          if (newLeft < minLeft) nx += minLeft - newLeft;
+          if (newLeft > maxLeft) nx -= newLeft - maxLeft;
+          if (newTop < minTop) ny += minTop - newTop;
+          if (newTop > maxTop) ny -= newTop - maxTop;
+        }
+        setOff({ x: nx, y: ny });
       },
       onPointerUp: (e: React.PointerEvent<HTMLElement>) => {
         const el = e.currentTarget as HTMLElement & { __drag?: unknown };
