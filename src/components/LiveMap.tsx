@@ -91,6 +91,7 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
   const mapInst = useRef<google.maps.Map | null>(null);
   const svInst = useRef<google.maps.StreetViewPanorama | null>(null);
   const markerInst = useRef<google.maps.Marker | null>(null);
+  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
 
