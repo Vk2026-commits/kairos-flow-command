@@ -9,6 +9,7 @@ import {
   BadgeCheck, Activity, Award, Timer, TrendingUp, Zap, Eye, HeartHandshake,
 } from "lucide-react";
 import { MapPanel } from "@/components/MapPanel";
+import { useLiveOps, formatCycle } from "@/hooks/use-live-ops";
 
 export const Route = createFileRoute("/presentation")({
   head: () => ({
