@@ -813,6 +813,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
           </button>
 
         </div>
+        )}
       </div>
 
       {/* Service selector */}
