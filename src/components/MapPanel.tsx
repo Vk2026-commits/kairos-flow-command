@@ -816,11 +816,30 @@ export function MapPanel({ service, onServiceChange }: Props) {
         onClick={onSurfaceClick}
         onMouseMove={onSurfaceMove}
         onDoubleClick={finishPath}
-        className={`relative flex-1 min-h-0 overflow-hidden ${tool ? "cursor-crosshair" : ""}`}
+        onPointerDown={onSurfacePointerDown}
+        onPointerMove={onSurfacePointerMove}
+        onPointerUp={onSurfacePointerUp}
+        onPointerCancel={onSurfacePointerUp}
+        className={`relative flex-1 min-h-0 overflow-hidden ${
+          tool ? "cursor-crosshair" : imgZoom > 1 && base !== "live" ? (panDrag.current ? "cursor-grabbing" : "cursor-grab") : ""
+        }`}
       >
+        <div
+          ref={contentRef}
+          className="absolute inset-0"
+          style={
+            base === "live"
+              ? undefined
+              : {
+                  transform: `translate(${imgPan.x}%, ${imgPan.y}%) scale(${imgZoom})`,
+                  transformOrigin: "center",
+                  transition: panDrag.current ? "none" : "transform 150ms ease-out",
+                }
+          }
+        >
         {base === "live" ? (
           <div className="absolute inset-0">
-            <LiveMap mapType={liveMapType} streetView={streetView} />
+            <LiveMap ref={liveMapRef} mapType={liveMapType} streetView={streetView} />
           </div>
         ) : (
           <>
