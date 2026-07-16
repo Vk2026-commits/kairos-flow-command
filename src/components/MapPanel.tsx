@@ -391,21 +391,59 @@ export function MapPanel({ service, onServiceChange }: Props) {
               />
             ))}
 
-          {/* Saved annotations */}
-          {visibleAnnotations.map((a) => {
-            if (a.kind === "closure") return null;
-            return (
-              <path
-                key={a.id}
-                d={pathD(a.points)}
-                stroke={TOOL_COLORS[a.kind]}
-                strokeWidth="0.9"
-                fill="none"
-                markerEnd={`url(#arr-${a.kind})`}
-                className="flow-dash"
-              />
-            );
-          })}
+          {/* Saved annotations (path-based). During playback, reveal based on progress. */}
+          {(() => {
+            const playbackIds = playing || progress > 0
+              ? new Set(playbackSeq.map((a) => a.id))
+              : null;
+            return visibleAnnotations.map((a) => {
+              if (a.kind === "closure") return null;
+              // Playback overrides normal render for arrows in the sequence.
+              if (playbackIds?.has(a.id)) return null;
+              return (
+                <path
+                  key={a.id}
+                  d={pathD(a.points)}
+                  stroke={TOOL_COLORS[a.kind]}
+                  strokeWidth="0.9"
+                  fill="none"
+                  markerEnd={`url(#arr-${a.kind})`}
+                  className="flow-dash"
+                />
+              );
+            });
+          })()}
+
+          {/* Playback layer: reveal arrows in saved order. */}
+          {(playing || progress > 0) &&
+            playbackSeq.map((a, i) => {
+              const isDone = i < Math.floor(progress);
+              const isCurrent = i === Math.floor(progress);
+              const frac = isCurrent ? progress - Math.floor(progress) : 0;
+              const hidden = !isDone && !isCurrent;
+              if (hidden) return null;
+              const reveal = isDone ? 1 : frac;
+              return (
+                <path
+                  key={`pb-${a.id}`}
+                  d={pathD(a.points)}
+                  stroke={TOOL_COLORS[a.kind]}
+                  strokeWidth="1.1"
+                  fill="none"
+                  markerEnd={reveal > 0.95 ? `url(#arr-${a.kind})` : undefined}
+                  pathLength={100}
+                  strokeDasharray="100 100"
+                  strokeDashoffset={100 - 100 * reveal}
+                  style={{
+                    filter: isCurrent
+                      ? `drop-shadow(0 0 2px ${TOOL_COLORS[a.kind]})`
+                      : undefined,
+                    transition: playing ? "none" : "stroke-dashoffset 200ms",
+                  }}
+                />
+              );
+            })}
+
 
           {/* Draft */}
           {tool && tool !== "closure" && draft.length > 0 && (
