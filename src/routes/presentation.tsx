@@ -725,6 +725,7 @@ function Slide11FirstTouch() {
 
 /* SLIDE 12 — Command Center */
 function Slide12Command() {
+  const live = useLiveOps();
   const modules = [
     { i: MonitorPlay, l: "Supervisor Dashboard" }, { i: MapIcon, l: "Vehicle Tracking" },
     { i: AlertTriangle, l: "Incident Mgmt" }, { i: Radio, l: "Communications" },
