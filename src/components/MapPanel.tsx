@@ -85,6 +85,11 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const [draft, setDraft] = useState<Pt[]>([]);
   const [cursor, setCursor] = useState<Pt | null>(null);
 
+  // Panel visibility — collapse to get panels out of the way while drawing.
+  const [layersOpen, setLayersOpen] = useState(true);
+  const [annotateOpen, setAnnotateOpen] = useState(true);
+  const [playbackOpen, setPlaybackOpen] = useState(true);
+
   // Playback state — animates ingress/egress/shuttle arrows in saved order.
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
