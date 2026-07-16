@@ -1025,13 +1025,73 @@ export function MapPanel({ service, onServiceChange }: Props) {
               </span>
             </div>
           ))}
+        </div>
+        {/* /transformed content wrapper */}
 
-        {/* Site label — small overlay inside the map */}
+        {/* Site label — small overlay inside the map, unaffected by zoom */}
         <div className="absolute bottom-3 left-3 z-10 bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 pointer-events-none">
           <p className="text-[9px] font-mono text-slate-500 uppercase">Site</p>
           <p className="text-xs font-bold text-white">Wheeler Ave Baptist Church</p>
         </div>
+
+        {/* ============ Compact floating map toolbar ============ */}
+        <div
+          className="absolute top-3 right-3 z-20 flex flex-col gap-1 rounded-lg border border-white/10 bg-surface/85 backdrop-blur-xl p-1 shadow-lg"
+          onClick={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {(
+            [
+              { key: "in", label: "+", title: "Zoom in", onClick: zoomIn },
+              { key: "out", label: "−", title: "Zoom out", onClick: zoomOut },
+              { key: "reset", label: "⟳", title: "Reset view", onClick: resetView },
+              {
+                key: "layers",
+                label: "☰",
+                title: layersOpen ? "Hide layers" : "Show layers",
+                active: layersOpen,
+                onClick: () => setLayersOpen((v) => !v),
+              },
+              {
+                key: "annot",
+                label: "✎",
+                title: annotateOpen ? "Hide annotate" : "Show annotate",
+                active: annotateOpen,
+                onClick: () => setAnnotateOpen((v) => !v),
+              },
+              {
+                key: "full",
+                label: fullscreen ? "⤡" : "⤢",
+                title: fullscreen ? "Exit fullscreen" : "Fullscreen",
+                active: fullscreen,
+                onClick: () => setFullscreen((v) => !v),
+              },
+            ] as const
+          ).map((b) => (
+            <button
+              key={b.key}
+              type="button"
+              onClick={b.onClick}
+              title={b.title}
+              aria-label={b.title}
+              className={`size-8 grid place-items-center rounded text-sm font-bold transition ${
+                "active" in b && b.active
+                  ? "bg-kairos-blue text-white"
+                  : "bg-white/5 text-slate-200 hover:bg-white/10"
+              }`}
+            >
+              {b.label}
+            </button>
+          ))}
+          {base !== "live" && imgZoom !== 1 && (
+            <div className="text-[9px] font-mono text-slate-400 text-center pt-0.5">
+              {Math.round(imgZoom * 100)}%
+            </div>
+          )}
+        </div>
       </div>
+
 
 
       {pendingImport && (
