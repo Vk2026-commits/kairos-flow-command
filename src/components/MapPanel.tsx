@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import aerialAsset from "@/assets/wheeler-aerial.jpg.asset.json";
 import streetAsset from "@/assets/wheeler-street.jpg.asset.json";
 import lotAsset from "@/assets/wheeler-lot.jpg.asset.json";
-import { LiveMap } from "./LiveMap";
+import { LiveMap, type LiveMapHandle } from "./LiveMap";
 
 type LayerKey =
   | "ingress"
