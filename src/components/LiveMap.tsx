@@ -20,11 +20,23 @@ export type LiveMapView = {
   streetView?: boolean;
 };
 
+export type PlaceSuggestion = {
+  placeId: string;
+  primary: string;
+  secondary: string;
+  full: string;
+};
+
 export type LiveMapHandle = {
   zoomIn: () => void;
   zoomOut: () => void;
   reset: () => void;
   search: (query: string) => Promise<{ ok: true; address: string } | { ok: false; error: string }>;
+  searchPlace: (
+    placeId: string,
+    fallbackText?: string,
+  ) => Promise<{ ok: true; address: string } | { ok: false; error: string }>;
+  getSuggestions: (input: string) => Promise<PlaceSuggestion[]>;
   setInteractive: (enabled: boolean) => void;
   getView: () => LiveMapView | null;
   setView: (v: LiveMapView) => void;
