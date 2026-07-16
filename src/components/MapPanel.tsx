@@ -94,17 +94,59 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMsg, setSearchMsg] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
   const [searching, setSearching] = useState(false);
+  type RecentSearch = { query: string; address: string; at: number };
+  const RECENT_KEY = "kairos:recent-searches:v1";
+  const [recent, setRecent] = useState<RecentSearch[]>([]);
+  const [recentOpen, setRecentOpen] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(RECENT_KEY);
+      if (raw) setRecent(JSON.parse(raw));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
+    } catch {
+      /* ignore */
+    }
+  }, [recent]);
+
+  async function runSearch(q: string) {
+    if (!liveMapRef.current || !q.trim()) return;
+    setSearching(true);
+    setSearchMsg(null);
+    setRecentOpen(false);
+    const r = await liveMapRef.current.search(q);
+    setSearching(false);
+    if (r.ok) {
+      setSearchMsg({ tone: "ok", text: r.address });
+      setRecent((prev) => {
+        const entry: RecentSearch = { query: q.trim(), address: r.address, at: Date.now() };
+        const deduped = prev.filter(
+          (p) => p.address !== entry.address && p.query.toLowerCase() !== entry.query.toLowerCase(),
+        );
+        return [entry, ...deduped].slice(0, 10);
+      });
+    } else {
+      setSearchMsg({ tone: "err", text: r.error });
+    }
+  }
 
   async function submitSearch(e: React.FormEvent) {
     e.preventDefault();
-    if (!liveMapRef.current || !searchQuery.trim()) return;
-    setSearching(true);
-    setSearchMsg(null);
-    const r = await liveMapRef.current.search(searchQuery);
-    setSearching(false);
-    if (r.ok) setSearchMsg({ tone: "ok", text: r.address });
-    else setSearchMsg({ tone: "err", text: r.error });
+    await runSearch(searchQuery);
   }
+
+  const filteredRecent = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return recent;
+    return recent.filter(
+      (r) => r.query.toLowerCase().includes(q) || r.address.toLowerCase().includes(q),
+    );
+  }, [recent, searchQuery]);
 
   const [mapLocked, setMapLocked] = useState(false);
   useEffect(() => {
@@ -670,10 +712,22 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
                     if (searchMsg) setSearchMsg(null);
+                    setRecentOpen(true);
                   }}
+                  onFocus={() => setRecentOpen(true)}
+                  onBlur={() => window.setTimeout(() => setRecentOpen(false), 150)}
                   placeholder="Search address or intersection…"
                   className="w-56 lg:w-72 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-[11px] text-white placeholder:text-slate-500 focus:outline-none focus:border-kairos-blue"
                 />
+                <button
+                  type="button"
+                  onClick={() => setRecentOpen((v) => !v)}
+                  disabled={!recent.length}
+                  title={recent.length ? "Recent searches" : "No recent searches yet"}
+                  className="text-[10px] font-bold px-2 py-1.5 rounded border border-white/10 bg-white/5 text-slate-300 hover:text-white disabled:opacity-40"
+                >
+                  🕘
+                </button>
                 <button
                   type="submit"
                   disabled={searching || !searchQuery.trim()}
@@ -701,6 +755,61 @@ export function MapPanel({ service, onServiceChange }: Props) {
                       ? `✓ ${searchMsg.text}`
                       : `⚠ ${searchMsg?.text}`}
                   </span>
+                )}
+                {recentOpen && recent.length > 0 && (
+                  <div
+                    className="absolute top-full right-0 mt-1 w-72 lg:w-80 bg-bg-deep/98 border border-white/10 rounded-md shadow-xl z-40 overflow-hidden"
+                    onMouseDown={(e) => e.preventDefault()}
+                  >
+                    <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/5">
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                        Recent Searches
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRecent([]);
+                          setRecentOpen(false);
+                        }}
+                        className="text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-red-400"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    <ul className="max-h-60 overflow-y-auto">
+                      {filteredRecent.length === 0 ? (
+                        <li className="px-2.5 py-2 text-[10px] text-slate-500 italic">
+                          No matches for “{searchQuery}”.
+                        </li>
+                      ) : (
+                        filteredRecent.map((r) => (
+                          <li key={`${r.at}-${r.address}`} className="flex items-center gap-1 hover:bg-white/5 group">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSearchQuery(r.query);
+                                void runSearch(r.query);
+                              }}
+                              className="flex-1 text-left px-2.5 py-1.5 min-w-0"
+                            >
+                              <div className="text-[11px] text-white truncate">{r.query}</div>
+                              <div className="text-[10px] text-slate-500 truncate">{r.address}</div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setRecent((prev) => prev.filter((p) => p.at !== r.at || p.address !== r.address))
+                              }
+                              title="Remove"
+                              className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-500 hover:text-red-400 px-2"
+                            >
+                              ✕
+                            </button>
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  </div>
                 )}
               </form>
               <button
