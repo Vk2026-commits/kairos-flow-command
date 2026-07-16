@@ -268,10 +268,6 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
           const place = new Place({ id: placeId });
           await place.fetchFields({ fields: ["location", "formattedAddress", "displayName"] });
           if (!place.location) {
-            if (fallbackText) {
-              // Fall back to geocoding by text if place has no location.
-              return (this as unknown as LiveMapHandle).search(fallbackText);
-            }
             return { ok: false as const, error: "Place has no location." };
           }
           const pos = { lat: place.location.lat(), lng: place.location.lng() };
