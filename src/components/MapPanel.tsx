@@ -2269,14 +2269,23 @@ export function MapPanel({ service, onServiceChange }: Props) {
         </svg>
 
         {/* Closure pins (annotations + HTML) */}
-        {visibleAnnotations.map((a) =>
-          a.kind === "closure" ? (
+        {visibleAnnotations.map((a) => {
+          const editable = !tool && !playing;
+          return a.kind === "closure" ? (
             <div
               key={a.id}
-              className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 pointer-events-none"
+              onClick={(e) => {
+                if (!editable) return;
+                e.stopPropagation();
+                if (window.confirm("Delete this closure pin?")) removeAnnotation(a.id);
+              }}
+              className={`absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 group ${
+                editable ? "cursor-pointer" : "pointer-events-none"
+              }`}
               style={{ left: `${a.point.x}%`, top: `${a.point.y}%` }}
+              title={editable ? "Click to delete this closure" : undefined}
             >
-              <div className="size-6 rounded bg-red-500/90 border border-white/20 flex items-center justify-center text-white font-black text-sm shadow-lg">
+              <div className="size-6 rounded bg-red-500/90 border border-white/20 flex items-center justify-center text-white font-black text-sm shadow-lg group-hover:ring-2 group-hover:ring-white/60">
                 ✕
               </div>
               <span className="text-[9px] font-bold text-red-300 bg-bg-deep/80 px-1.5 py-0.5 rounded whitespace-nowrap">
