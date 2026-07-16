@@ -680,6 +680,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={onUpload} />
           </div>
         </div>
+        )}
       </div>
 
       {/* Annotation toolbar */}
