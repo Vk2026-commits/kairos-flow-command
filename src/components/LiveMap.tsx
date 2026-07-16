@@ -210,26 +210,29 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
   // Initial load
   useEffect(() => {
     let cancelled = false;
+    const startCenter = initialView?.center ?? center;
+    const startZoom = initialView?.zoom ?? 17;
+    const startType = initialView?.mapType ?? mapType;
     loadGoogleMaps()
       .then((g) => {
         if (cancelled || !mapRef.current) return;
         mapInst.current = new g.maps.Map(mapRef.current, {
-          center,
-          zoom: 17,
-          mapTypeId: mapType,
+          center: startCenter,
+          zoom: startZoom,
+          mapTypeId: startType,
           disableDefaultUI: false,
           streetViewControl: true,
           fullscreenControl: false,
           mapTypeControl: false,
         });
         markerInst.current = new g.maps.Marker({
-          position: center,
+          position: startCenter,
           map: mapInst.current,
           title: "Wheeler Ave Baptist Church",
         });
         if (svRef.current) {
           svInst.current = new g.maps.StreetViewPanorama(svRef.current, {
-            position: center,
+            position: startCenter,
             pov: { heading: 90, pitch: 0 },
             zoom: 1,
             addressControl: false,
