@@ -2370,7 +2370,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
               if (window.confirm("Delete this annotation?")) removeAnnotation(id);
             };
             return visibleAnnotations.map((a) => {
-              if (a.kind === "closure") return null;
+              if (a.kind === "closure" || a.kind === "personnel") return null;
               if (playbackIds?.has(a.id)) return null;
               if (renderStyle === "cars") {
                 const spacing = Math.max(4.5, strokeW * 5);
