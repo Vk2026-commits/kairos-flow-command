@@ -190,6 +190,38 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
   const fileRef = useRef<HTMLInputElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const liveMapRef = useRef<LiveMapHandle>(null);
+
+  // Zoom & pan for image bases (street/aerial/lot/custom).
+  const [imgZoom, setImgZoom] = useState(1);
+  const [imgPan, setImgPan] = useState({ x: 0, y: 0 });
+  const panDrag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+
+  function zoomIn() {
+    if (base === "live") liveMapRef.current?.zoomIn();
+    else setImgZoom((z) => Math.min(5, +(z + 0.25).toFixed(2)));
+  }
+  function zoomOut() {
+    if (base === "live") liveMapRef.current?.zoomOut();
+    else
+      setImgZoom((z) => {
+        const nz = Math.max(1, +(z - 0.25).toFixed(2));
+        if (nz === 1) setImgPan({ x: 0, y: 0 });
+        return nz;
+      });
+  }
+  function resetView() {
+    if (base === "live") liveMapRef.current?.reset();
+    else {
+      setImgZoom(1);
+      setImgPan({ x: 0, y: 0 });
+    }
+  }
+  useEffect(() => {
+    // Reset image zoom/pan whenever the base layer changes.
+    setImgZoom(1);
+    setImgPan({ x: 0, y: 0 });
+  }, [base]);
 
 
   // Load / persist annotations
