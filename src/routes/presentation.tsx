@@ -476,7 +476,7 @@ function Slide6Map() {
         </div>
       </div>
       <div className="rounded-2xl border border-white/5 overflow-hidden bg-surface h-[calc(100vh-200px)]">
-        <MapPanel />
+        <MapPanel service={service} onServiceChange={setService} />
       </div>
       <div className="mt-3 grid grid-cols-3 gap-3">
         {[
