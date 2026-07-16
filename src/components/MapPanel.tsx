@@ -191,6 +191,82 @@ export function MapPanel({ service, onServiceChange }: Props) {
     setAnnotations([]);
   }
 
+  function exportAnnotations() {
+    const payload = {
+      app: "kairos-command",
+      kind: "map-annotations",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      annotations,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    a.href = url;
+    a.download = `kairos-annotations-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  const importRef = useRef<HTMLInputElement>(null);
+
+  function isValidAnnotation(a: unknown): a is Annotation {
+    if (!a || typeof a !== "object") return false;
+    const r = a as Record<string, unknown>;
+    if (typeof r.id !== "string" || typeof r.base !== "string") return false;
+    if (r.kind === "closure") {
+      const p = r.point as Pt | undefined;
+      return (
+        typeof r.label === "string" &&
+        !!p &&
+        typeof p.x === "number" &&
+        typeof p.y === "number"
+      );
+    }
+    if (r.kind === "ingress" || r.kind === "egress" || r.kind === "shuttle") {
+      return (
+        Array.isArray(r.points) &&
+        (r.points as Pt[]).every(
+          (p) => typeof p?.x === "number" && typeof p?.y === "number",
+        )
+      );
+    }
+    return false;
+  }
+
+  async function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    try {
+      const text = await f.text();
+      const parsed = JSON.parse(text);
+      const list: unknown = Array.isArray(parsed)
+        ? parsed
+        : parsed?.annotations;
+      if (!Array.isArray(list)) throw new Error("No annotations array found.");
+      const clean = list.filter(isValidAnnotation) as Annotation[];
+      if (!clean.length) throw new Error("File contained no valid annotations.");
+
+      const replace = window.confirm(
+        `Import ${clean.length} annotation(s).\n\nOK = REPLACE current annotations\nCancel = MERGE with current annotations`,
+      );
+      // Regenerate ids on merge to avoid collisions with existing entries.
+      const withIds = clean.map((a) => ({ ...a, id: crypto.randomUUID() }));
+      setAnnotations((prev) => (replace ? withIds : [...prev, ...withIds]));
+    } catch (err) {
+      window.alert(
+        `Import failed: ${err instanceof Error ? err.message : "invalid file"}`,
+      );
+    }
+  }
+
+
   // Show annotations that belong to the currently selected base layer,
   // and only when the matching layer toggle is on.
   const visibleAnnotations = annotations.filter((a) => {
