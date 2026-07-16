@@ -789,6 +789,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
   // Panel visibility — collapse to get panels out of the way while drawing.
   const [layersOpen, setLayersOpen] = useState(true);
   const [annotateOpen, setAnnotateOpen] = useState(true);
+  const [personnelOpen, setPersonnelOpen] = useState(false);
   const [playbackOpen, setPlaybackOpen] = useState(true);
 
   // Panel drag offsets (pixels from their default anchor).
@@ -1317,7 +1318,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
   // in the order they were saved (ingress → egress → shuttle by save order).
   const playbackSeq = annotations.filter(
     (a): a is Extract<Annotation, { kind: "ingress" | "egress" | "shuttle" }> =>
-      a.base === base && a.kind !== "closure",
+      a.base === base && (a.kind === "ingress" || a.kind === "egress" || a.kind === "shuttle"),
   );
 
   // Stop playing if the sequence becomes empty (e.g. layer switched).
@@ -1365,7 +1366,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
   }
 
 
-  const anyPanelOpen = layersOpen || annotateOpen || playbackOpen;
+  const anyPanelOpen = layersOpen || annotateOpen || personnelOpen || playbackOpen;
 
   return (
     <div
@@ -1393,7 +1394,8 @@ export function MapPanel({ service, onServiceChange }: Props) {
           {(
             [
               { key: "layers", label: "Map Layers", open: layersOpen, set: setLayersOpen, badge: `${Object.values(layers).filter(Boolean).length}/${LAYERS.length}` },
-              { key: "annotate", label: "Annotate", open: annotateOpen, set: setAnnotateOpen, badge: `${annotations.filter((a) => a.base === base).length}` },
+              { key: "annotate", label: "Annotate", open: annotateOpen, set: setAnnotateOpen, badge: `${annotations.filter((a) => a.base === base && a.kind !== "personnel").length}` },
+              { key: "personnel", label: "Personnel", open: personnelOpen, set: setPersonnelOpen, badge: `${annotations.filter((a) => a.base === base && a.kind === "personnel").length}` },
               { key: "playback", label: "Playback", open: playbackOpen, set: setPlaybackOpen, badge: playbackSeq.length ? `${playbackSeq.length}` : undefined },
             ] as const
           ).map((p) => (
@@ -1884,7 +1886,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
                     );
                   })}
                 </div>
-                {tool && tool !== "closure" && (
+                {tool && !isPointTool(tool) && (
                   <div className="mt-2 text-[10px] text-slate-400 leading-relaxed">
                     Click the map to drop points ({draft.length} placed). <b className="text-white">Double-click</b> or press <b className="text-white">Finish</b> to save.
                   </div>
@@ -1895,7 +1897,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   </div>
                 )}
                 <div className="mt-2 flex gap-1.5">
-                  <button type="button" onClick={finishPath} disabled={!tool || tool === "closure" || draft.length < 2} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-kairos-blue text-white disabled:opacity-30 disabled:cursor-not-allowed">Finish</button>
+                  <button type="button" onClick={finishPath} disabled={!tool || isPointTool(tool) || draft.length < 2} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-kairos-blue text-white disabled:opacity-30 disabled:cursor-not-allowed">Finish</button>
                   <button type="button" onClick={undo} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-white/5 text-slate-300 hover:text-white border border-white/5">Undo</button>
                   <button type="button" onClick={cancelDraft} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-white/5 text-slate-300 hover:text-white border border-white/5">Cancel</button>
                 </div>
