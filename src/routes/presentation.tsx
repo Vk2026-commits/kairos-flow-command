@@ -7,9 +7,48 @@ import {
   ShieldCheck, CalendarClock, DollarSign, Trophy, MessageCircleQuestion,
   CheckCircle2, Circle, Radio, Clock, MapPin, Wifi, Camera, FileText,
   BadgeCheck, Activity, Award, Timer, TrendingUp, Zap, Eye, HeartHandshake,
+  BookOpen, ChevronDown,
 } from "lucide-react";
 import { MapPanel } from "@/components/MapPanel";
 import { useLiveOps, formatCycle } from "@/hooks/use-live-ops";
+import { speakerNotes } from "@/lib/speaker-notes";
+
+/* Speaker Notes — collapsible section shown at the bottom of every chapter. */
+function SpeakerNotes({ n }: { n: number }) {
+  const [open, setOpen] = useState(false);
+  const note = speakerNotes[n];
+  if (!note) return null;
+  return (
+    <div className="mt-10 rounded-2xl border border-kairos-gold/25 bg-gradient-to-b from-kairos-gold/[0.06] to-transparent">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between gap-4 p-5 text-left hover:bg-white/[0.02] transition rounded-2xl"
+        aria-expanded={open}
+      >
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-lg bg-kairos-gold/15 border border-kairos-gold/40 grid place-items-center">
+            <BookOpen className="size-5 text-kairos-gold" />
+          </div>
+          <div>
+            <div className="text-[10px] tracking-[0.35em] font-mono text-kairos-gold">SPEAKER NOTES</div>
+            <div className="text-sm text-white/80 mt-0.5">{note.summary}</div>
+          </div>
+        </div>
+        <ChevronDown className={`size-5 text-kairos-gold shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="px-6 pb-6 pt-2 space-y-4 fade-in-up">
+          {note.blocks.map((b, i) => (
+            <div key={i} className="border-l-2 border-kairos-gold/40 pl-4">
+              {b.heading && <div className="font-semibold text-white mb-1">{b.heading}</div>}
+              <p className="text-sm text-white/70 leading-relaxed">{b.body}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/presentation")({
   head: () => ({
