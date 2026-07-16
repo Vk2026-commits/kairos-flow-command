@@ -852,7 +852,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
           </button>
         )}
         {playbackOpen && (
-        <div className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 shadow-2xl">
+        <div className="relative bg-surface/85 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 shadow-2xl">
           <button
             type="button"
             onClick={() => setPlaybackOpen(false)}
