@@ -116,6 +116,34 @@ export function MapPanel({ service, onServiceChange }: Props) {
   function setBaseStroke(v: number) {
     setStrokeWidths((prev) => ({ ...prev, [base]: v }));
   }
+
+  // Per-base arrowhead size multiplier. 1.0 = default (marker scales with stroke).
+  const ARROW_KEY = "kairos:arrow-scales:v1";
+  const DEFAULT_ARROW: Record<BaseKey, number> = {
+    street: 1, aerial: 1, lot: 1, live: 1, custom: 1,
+  };
+  const [arrowScales, setArrowScales] = useState<Record<BaseKey, number>>(DEFAULT_ARROW);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ARROW_KEY);
+      if (raw) setArrowScales({ ...DEFAULT_ARROW, ...JSON.parse(raw) });
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(ARROW_KEY, JSON.stringify(arrowScales));
+    } catch {
+      /* ignore */
+    }
+  }, [arrowScales]);
+  const arrowScale = arrowScales[base] ?? 1;
+  const markerSize = +(4 * arrowScale).toFixed(2);
+  function setBaseArrow(v: number) {
+    setArrowScales((prev) => ({ ...prev, [base]: v }));
+  }
   const [tool, setTool] = useState<Tool>(null);
   const [draft, setDraft] = useState<Pt[]>([]);
   const [cursor, setCursor] = useState<Pt | null>(null);
