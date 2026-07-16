@@ -7,9 +7,48 @@ import {
   ShieldCheck, CalendarClock, DollarSign, Trophy, MessageCircleQuestion,
   CheckCircle2, Circle, Radio, Clock, MapPin, Wifi, Camera, FileText,
   BadgeCheck, Activity, Award, Timer, TrendingUp, Zap, Eye, HeartHandshake,
+  BookOpen, ChevronDown,
 } from "lucide-react";
 import { MapPanel } from "@/components/MapPanel";
 import { useLiveOps, formatCycle } from "@/hooks/use-live-ops";
+import { speakerNotes } from "@/lib/speaker-notes";
+
+/* Speaker Notes — collapsible section shown at the bottom of every chapter. */
+function SpeakerNotes({ n }: { n: number }) {
+  const [open, setOpen] = useState(false);
+  const note = speakerNotes[n];
+  if (!note) return null;
+  return (
+    <div className="mt-10 rounded-2xl border border-kairos-gold/25 bg-gradient-to-b from-kairos-gold/[0.06] to-transparent">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between gap-4 p-5 text-left hover:bg-white/[0.02] transition rounded-2xl"
+        aria-expanded={open}
+      >
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-lg bg-kairos-gold/15 border border-kairos-gold/40 grid place-items-center">
+            <BookOpen className="size-5 text-kairos-gold" />
+          </div>
+          <div>
+            <div className="text-[10px] tracking-[0.35em] font-mono text-kairos-gold">SPEAKER NOTES</div>
+            <div className="text-sm text-white/80 mt-0.5">{note.summary}</div>
+          </div>
+        </div>
+        <ChevronDown className={`size-5 text-kairos-gold shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="px-6 pb-6 pt-2 space-y-4 fade-in-up">
+          {note.blocks.map((b, i) => (
+            <div key={i} className="border-l-2 border-kairos-gold/40 pl-4">
+              {b.heading && <div className="font-semibold text-white mb-1">{b.heading}</div>}
+              <p className="text-sm text-white/70 leading-relaxed">{b.body}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/presentation")({
   head: () => ({
@@ -256,28 +295,33 @@ function IconTile({ icon: Icon, title, desc }: { icon: React.ComponentType<{ cla
 ============================================================ */
 function Slide1Welcome() {
   return (
-    <div className="relative min-h-[80vh] overflow-hidden flex items-center justify-center">
-      <div className="absolute inset-0 map-grid opacity-30" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,98,255,0.2),transparent_70%)]" />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-bg-deep" />
-      <div className="relative text-center px-6 fade-in-up">
-        <div className="flex items-center justify-center gap-6 mb-8">
-          <div className="px-4 py-2 rounded-lg border border-kairos-blue/40 bg-kairos-blue/10 text-xs font-mono tracking-widest text-kairos-blue">
-            KAIROS SECURITY
+    <div className="pb-10">
+      <div className="relative min-h-[80vh] overflow-hidden flex items-center justify-center">
+        <div className="absolute inset-0 map-grid opacity-30" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,98,255,0.2),transparent_70%)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-bg-deep" />
+        <div className="relative text-center px-6 fade-in-up">
+          <div className="flex items-center justify-center gap-6 mb-8">
+            <div className="px-4 py-2 rounded-lg border border-kairos-blue/40 bg-kairos-blue/10 text-xs font-mono tracking-widest text-kairos-blue">
+              KAIROS SECURITY
+            </div>
+            <div className="w-8 h-px bg-white/20" />
+            <div className="px-4 py-2 rounded-lg border border-kairos-gold/40 bg-kairos-gold/10 text-xs font-mono tracking-widest text-kairos-gold">
+              WHEELER AVENUE
+            </div>
           </div>
-          <div className="w-8 h-px bg-white/20" />
-          <div className="px-4 py-2 rounded-lg border border-kairos-gold/40 bg-kairos-gold/10 text-xs font-mono tracking-widest text-kairos-gold">
-            WHEELER AVENUE
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-glow-blue max-w-4xl mx-auto">
+            Transportation Excellence
+            <br />
+            <span className="text-kairos-gold italic">Begins Before Worship.</span>
+          </h1>
+          <div className="mt-10 text-[10px] font-mono tracking-widest text-muted-foreground">
+            PRESS <kbd className="px-2 py-1 rounded bg-white/10">→</kbd> TO BEGIN PRESENTATION
           </div>
         </div>
-        <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-glow-blue max-w-4xl mx-auto">
-          Transportation Excellence
-          <br />
-          <span className="text-kairos-gold italic">Begins Before Worship.</span>
-        </h1>
-        <div className="mt-10 text-[10px] font-mono tracking-widest text-muted-foreground">
-          PRESS <kbd className="px-2 py-1 rounded bg-white/10">→</kbd> TO BEGIN PRESENTATION
-        </div>
+      </div>
+      <div className="px-8 md:px-12 max-w-[1600px] mx-auto">
+        <SpeakerNotes n={1} />
       </div>
     </div>
   );
@@ -285,9 +329,16 @@ function Slide1Welcome() {
 
 /* SLIDE 2 — Who Is Kairos */
 function Slide2Who() {
-  const services = [
-    { i: ShieldCheck, l: "Security" }, { i: Activity, l: "Operations" },
-    { i: MapIcon, l: "Traffic" }, { i: ParkingCircle, l: "Parking" }, { i: Bus, l: "Transportation" },
+  const highlights = [
+    { i: Building2, l: "10 Years in Business" },
+    { i: MapPin, l: "Houston Based" },
+    { i: BadgeCheck, l: "HUB Certified" },
+    { i: BadgeCheck, l: "MBE Certified" },
+    { i: Bus, l: "Transportation" },
+    { i: ParkingCircle, l: "Parking Operations" },
+    { i: ShieldCheck, l: "Security" },
+    { i: MapIcon, l: "Traffic Management" },
+    { i: Activity, l: "Executive Operations" },
   ];
   const certs = [
     { l: "HUB Certified", sub: "State of Texas" },
@@ -297,16 +348,16 @@ function Slide2Who() {
   return (
     <SlideShell eyebrow="CHAPTER 02" title="Who Is Kairos" subtitle="Houston-based professional operations firm, already deployed on the Wheeler campus.">
       <div className="grid grid-cols-4 gap-4 mb-8">
-        <Stat label="Years in Business" value="7+" sub="Est. 2018" />
+        <Stat label="Years in Business" value="10" sub="Est. 2016" />
         <Stat label="On Wheeler Campus" value="3" sub="Consecutive years" accent="gold" />
         <Stat label="Events Annually" value="450+" />
         <Stat label="Guests Served" value="1.2M" sub="2024" />
       </div>
       <div className="grid grid-cols-2 gap-6">
         <div>
-          <div className="text-[10px] tracking-widest text-muted-foreground mb-3">CORE SERVICE LINES</div>
-          <div className="grid grid-cols-5 gap-3">
-            {services.map((s) => <IconTile key={s.l} icon={s.i} title={s.l} />)}
+          <div className="text-[10px] tracking-widest text-muted-foreground mb-3">CAPABILITIES & CREDENTIALS</div>
+          <div className="grid grid-cols-3 gap-3">
+            {highlights.map((s) => <IconTile key={s.l} icon={s.i} title={s.l} />)}
           </div>
         </div>
         <div>
@@ -328,6 +379,7 @@ function Slide2Who() {
         <div className="text-kairos-gold text-xs tracking-widest font-mono mb-1">EXISTING PARTNER</div>
         <div className="text-lg">Three years of on-campus experience gives Kairos operational context no other bidder can match.</div>
       </div>
+      <SpeakerNotes n={2} />
     </SlideShell>
   );
 }
@@ -336,8 +388,8 @@ function Slide2Who() {
 function Slide3Wheeler() {
   const items = [
     { i: Clock, t: "Three Services", d: "7:00 AM · 10:00 AM · 1:00 PM" },
-    { i: ParkingCircle, t: "Three Parking Lots", d: "Main · Overflow · Shuttle" },
-    { i: Users, t: "Thousands of Guests", d: "Peak: 4,500+ per Sunday" },
+    { i: ParkingCircle, t: "Five Parking Lots", d: "Church · Overflow · UH · TSU" },
+    { i: Users, t: "6,000 Guests Every Sunday", d: "Peak weekly attendance" },
     { i: Activity, t: "Continuous Operations", d: "Six-hour operational window" },
     { i: HeartHandshake, t: "Volunteer Ministry", d: "First Touch partnership" },
     { i: Radio, t: "HPD Coordination", d: "Traffic control officers" },
@@ -350,65 +402,60 @@ function Slide3Wheeler() {
           <div className="text-[10px] tracking-widest text-kairos-blue font-mono mb-4">SUNDAY BY THE NUMBERS</div>
           <div className="grid grid-cols-2 gap-4">
             <div><div className="text-4xl font-bold font-mono">3</div><div className="text-xs text-muted-foreground">Services</div></div>
-            <div><div className="text-4xl font-bold font-mono text-kairos-gold">4.5K</div><div className="text-xs text-muted-foreground">Peak Guests</div></div>
-            <div><div className="text-4xl font-bold font-mono">3</div><div className="text-xs text-muted-foreground">Parking Lots</div></div>
+            <div><div className="text-4xl font-bold font-mono text-kairos-gold">6,000</div><div className="text-xs text-muted-foreground">Guests Every Sunday</div></div>
+            <div><div className="text-4xl font-bold font-mono">5</div><div className="text-xs text-muted-foreground">Parking Lots</div></div>
             <div><div className="text-4xl font-bold font-mono">6h</div><div className="text-xs text-muted-foreground">Ops Window</div></div>
           </div>
         </div>
         {items.map((it) => <IconTile key={it.t} icon={it.i} title={it.t} desc={it.d} />)}
       </div>
+      <SpeakerNotes n={3} />
     </SlideShell>
   );
 }
 
 /* SLIDE 4 — Challenge */
 function Slide4Challenge() {
-  const issues = [
-    { i: Timer, t: "Service Transitions", d: "Departing + arriving guests overlap" },
-    { i: AlertTriangle, t: "Cross Traffic", d: "Pedestrian & vehicle conflicts" },
-    { i: Clock, t: "Queue Delays", d: "Shuttle wait times extend" },
-    { i: Users, t: "Volunteer Workload", d: "Ministry pulled from worship" },
+  const problems = [
+    { i: Users, t: "Moving People Efficiently" },
+    { i: Bus, t: "Moving Buses Through Traffic" },
+    { i: ParkingCircle, t: "Moving Cars Off Parking Lots" },
+    { i: Timer, t: "Transition Between Services" },
+    { i: Gauge, t: "Capacity Constraints" },
+    { i: HeartHandshake, t: "Volunteer Limitations" },
+    { i: Sparkles, t: "Guest Arrival Experience" },
+    { i: AlertTriangle, t: "Traffic Congestion" },
+    { i: ShieldCheck, t: "Pedestrian Safety" },
+    { i: Radio, t: "Shuttle Coordination" },
   ];
   return (
-    <SlideShell eyebrow="CHAPTER 04" title="The Current Challenge" subtitle="What happens today between services.">
-      <div className="grid grid-cols-5 gap-6">
-        <div className="col-span-3 relative h-[380px] rounded-xl border border-destructive/30 bg-surface overflow-hidden">
-          <div className="absolute inset-0 map-grid opacity-40" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.15),transparent_60%)]" />
-          {/* congestion pulse */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-            <div className="size-32 rounded-full border-2 border-destructive/40 animate-ping" />
-          </div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-24 rounded-full bg-destructive/20 border border-destructive/50 grid place-items-center">
-            <AlertTriangle className="size-10 text-destructive" />
-          </div>
-          {/* moving dots */}
-          {[10, 30, 55, 75].map((y, i) => (
-            <div key={i} className="absolute h-0.5 w-full" style={{ top: `${y}%` }}>
-              <div className="h-full bg-gradient-to-r from-transparent via-destructive/60 to-transparent flow-dash" />
+    <SlideShell eyebrow="CHAPTER 04" title="The Problem" subtitle="What Wheeler faces today between services.">
+      <div className="grid grid-cols-5 gap-3">
+        {problems.map((p, i) => (
+          <div
+            key={p.t}
+            className="p-4 rounded-xl border border-destructive/25 bg-gradient-to-b from-destructive/10 to-transparent hover:border-destructive/50 transition fade-in-up"
+            style={{ animationDelay: `${i * 60}ms` }}
+          >
+            <div className="size-10 rounded-lg bg-destructive/15 border border-destructive/40 grid place-items-center mb-3">
+              <p.i className="size-5 text-destructive" />
             </div>
-          ))}
-          <div className="absolute bottom-4 left-4 right-4 flex justify-between text-[10px] font-mono">
-            <span className="text-destructive">CONGESTION DETECTED</span>
-            <span className="text-muted-foreground">SIMULATED</span>
+            <div className="text-sm font-semibold leading-snug">{p.t}</div>
           </div>
+        ))}
+      </div>
+      <div className="mt-8 p-6 rounded-2xl border border-kairos-gold/40 bg-gradient-to-br from-kairos-gold/15 to-transparent">
+        <div className="text-[10px] font-mono tracking-[0.35em] text-kairos-gold mb-2">
+          BIGGEST TAKEAWAY FROM THE Q&amp;A
         </div>
-        <div className="col-span-2 space-y-3">
-          {issues.map((it) => (
-            <div key={it.t} className="p-4 rounded-lg border border-destructive/20 bg-destructive/5 flex items-start gap-3 fade-in-up">
-              <it.i className="size-5 text-destructive shrink-0 mt-0.5" />
-              <div>
-                <div className="font-semibold text-sm">{it.t}</div>
-                <div className="text-xs text-muted-foreground">{it.d}</div>
-              </div>
-            </div>
-          ))}
-          <div className="mt-4 p-4 rounded-lg border border-kairos-blue/40 bg-kairos-blue/10 text-center">
-            <div className="text-[10px] font-mono text-kairos-blue tracking-widest">→ FADE TO</div>
-            <div className="text-lg font-semibold mt-1">The Kairos Solution</div>
-          </div>
+        <div className="text-4xl md:text-5xl font-bold italic text-white">
+          "Ingress and Egress."
+        </div>
+        <div className="mt-3 text-sm text-white/70 max-w-3xl">
+          This phrase came up repeatedly throughout the Q&amp;A and represents the Church's highest operational priority.
         </div>
       </div>
+      <SpeakerNotes n={4} />
     </SlideShell>
   );
 }
@@ -447,6 +494,7 @@ function Slide5Solution() {
           })}
         </div>
       </div>
+      <SpeakerNotes n={5} />
     </SlideShell>
   );
 }
@@ -490,6 +538,7 @@ function Slide6Map() {
           </div>
         ))}
       </div>
+      <SpeakerNotes n={6} />
     </div>
   );
 }
@@ -535,6 +584,7 @@ function Slide7Ingress() {
           ))}
         </div>
       </div>
+      <SpeakerNotes n={7} />
     </SlideShell>
   );
 }
@@ -581,6 +631,7 @@ function Slide8Egress() {
           ))}
         </div>
       </div>
+      <SpeakerNotes n={8} />
     </SlideShell>
   );
 }
@@ -626,6 +677,7 @@ function Slide9Parking() {
           <div className="text-sm">Arrivals routed via primary entrance → attendant hand-off → assigned row. Real-time redirect when {'>'}85% full.</div>
         </div>
       </div>
+      <SpeakerNotes n={9} />
     </SlideShell>
   );
 }
@@ -680,6 +732,7 @@ function Slide10Shuttle() {
           ))}
         </div>
       </div>
+      <SpeakerNotes n={10} />
     </SlideShell>
   );
 }
@@ -719,6 +772,7 @@ function Slide11FirstTouch() {
         <ChevronRight className="size-4 text-muted-foreground" />
         <span className="text-kairos-gold font-semibold">First Touch never leaves the guest</span>
       </div>
+      <SpeakerNotes n={11} />
     </SlideShell>
   );
 }
@@ -758,6 +812,7 @@ function Slide12Command() {
           <Stat label="System Uptime" value={`${live.systemUptimePct.toFixed(1)}%`} />
         </div>
       </div>
+      <SpeakerNotes n={12} />
     </SlideShell>
   );
 }
@@ -792,6 +847,7 @@ function Slide13KPI() {
           </div>
         ))}
       </div>
+      <SpeakerNotes n={13} />
     </SlideShell>
   );
 }
@@ -832,6 +888,7 @@ function Slide14Tech() {
           </div>
         </div>
       </div>
+      <SpeakerNotes n={14} />
     </SlideShell>
   );
 }
@@ -862,6 +919,7 @@ function Slide15Staffing() {
         <Stat label="Locations Covered" value="7" />
         <Stat label="Coverage Window" value="6 hrs" accent="gold" />
       </div>
+      <SpeakerNotes n={15} />
     </SlideShell>
   );
 }
@@ -900,6 +958,7 @@ function Slide16Fleet() {
           </div>
         ))}
       </div>
+      <SpeakerNotes n={16} />
     </SlideShell>
   );
 }
@@ -921,6 +980,7 @@ function Slide17Safety() {
       <div className="grid grid-cols-4 gap-4">
         {items.map((it) => <IconTile key={it.l} icon={it.i} title={it.l} desc={it.d} />)}
       </div>
+      <SpeakerNotes n={17} />
     </SlideShell>
   );
 }
@@ -957,6 +1017,7 @@ function Slide18Timeline() {
         <Stat label="Training Hours" value="40+" />
         <Stat label="Ongoing Reviews" value="Monthly" />
       </div>
+      <SpeakerNotes n={18} />
     </SlideShell>
   );
 }
@@ -989,6 +1050,7 @@ function Slide19Pricing() {
         <button className="px-6 py-3 rounded-lg bg-kairos-blue text-white font-semibold flex items-center gap-2"><FileText className="size-4" /> Download Proposal</button>
         <button className="px-6 py-3 rounded-lg border border-white/20 hover:bg-white/5 font-semibold flex items-center gap-2"><Eye className="size-4" /> View Details</button>
       </div>
+      <SpeakerNotes n={19} />
     </SlideShell>
   );
 }
@@ -1023,6 +1085,7 @@ function Slide20Why() {
         <div className="text-2xl md:text-3xl font-bold">"We don't simply transport guests.</div>
         <div className="text-2xl md:text-3xl font-bold text-kairos-gold italic mt-1">We create an experience."</div>
       </div>
+      <SpeakerNotes n={20} />
     </SlideShell>
   );
 }
@@ -1030,22 +1093,32 @@ function Slide20Why() {
 /* SLIDE 21 — Questions */
 function Slide21Questions() {
   return (
-    <div className="relative min-h-[80vh] overflow-hidden flex items-center justify-center">
-      <div className="absolute inset-0 map-grid opacity-30" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.15),transparent_70%)]" />
-      <div className="relative text-center px-6 max-w-3xl fade-in-up">
-        <div className="text-[10px] tracking-[0.4em] text-kairos-gold font-mono mb-4">CHAPTER 21</div>
-        <h1 className="text-7xl md:text-8xl font-bold tracking-tight text-glow-blue">Thank You.</h1>
-        <div className="mt-6 text-xl text-muted-foreground">Questions & Discussion</div>
-        <div className="mt-12 pt-8 border-t border-white/10">
-          <div className="text-sm tracking-[0.3em] text-muted-foreground">KAIROS SECURITY</div>
-          <div className="text-lg mt-1">Professional Transportation Operations Partner</div>
-          <div className="mt-6 grid grid-cols-3 gap-4 text-sm">
-            <div><div className="text-[10px] text-muted-foreground tracking-widest">CONTACT</div><div className="mt-1">operations@kairossecurity.com</div></div>
-            <div><div className="text-[10px] text-muted-foreground tracking-widest">PHONE</div><div className="mt-1">(713) 555-0100</div></div>
-            <div><div className="text-[10px] text-muted-foreground tracking-widest">HOUSTON, TX</div><div className="mt-1">HUB · MBE Certified</div></div>
+    <div className="pb-10">
+      <div className="relative min-h-[80vh] overflow-hidden flex items-center justify-center">
+        <div className="absolute inset-0 map-grid opacity-30" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.15),transparent_70%)]" />
+        <div className="relative text-center px-6 max-w-3xl fade-in-up">
+          <div className="text-[10px] tracking-[0.4em] text-kairos-gold font-mono mb-4">CHAPTER 21</div>
+          <h1 className="text-6xl md:text-7xl font-bold tracking-tight text-glow-blue">Thank You.</h1>
+          <div className="mt-6 text-xl text-muted-foreground">Questions & Discussion</div>
+          <div className="mt-8 p-6 rounded-2xl border border-kairos-gold/30 bg-gradient-to-br from-kairos-gold/10 to-transparent">
+            <div className="text-lg md:text-xl italic text-white leading-relaxed">
+              "Moving People With Excellence. Serving Wheeler Avenue Baptist Church with professionalism, hospitality, safety, and operational excellence."
+            </div>
+          </div>
+          <div className="mt-12 pt-8 border-t border-white/10">
+            <div className="text-sm tracking-[0.3em] text-muted-foreground">KAIROS SECURITY</div>
+            <div className="text-lg mt-1">Professional Transportation Operations Partner</div>
+            <div className="mt-6 grid grid-cols-3 gap-4 text-sm">
+              <div><div className="text-[10px] text-muted-foreground tracking-widest">CONTACT</div><div className="mt-1">operations@kairossecurity.com</div></div>
+              <div><div className="text-[10px] text-muted-foreground tracking-widest">PHONE</div><div className="mt-1">(713) 555-0100</div></div>
+              <div><div className="text-[10px] text-muted-foreground tracking-widest">HOUSTON, TX</div><div className="mt-1">HUB · MBE Certified</div></div>
+            </div>
           </div>
         </div>
+      </div>
+      <div className="px-8 md:px-12 max-w-[1600px] mx-auto">
+        <SpeakerNotes n={21} />
       </div>
     </div>
   );
