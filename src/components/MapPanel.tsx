@@ -2487,31 +2487,69 @@ export function MapPanel({ service, onServiceChange }: Props) {
           )}
         </svg>
 
-        {/* Closure pins (annotations + HTML) */}
+        {/* Closure pins, personnel markers, path labels (HTML overlays) */}
         {visibleAnnotations.map((a) => {
           const editable = !tool && !playing;
-          return a.kind === "closure" ? (
-            <div
-              key={a.id}
-              onClick={(e) => {
-                if (!editable) return;
-                e.stopPropagation();
-                if (window.confirm("Delete this closure pin?")) removeAnnotation(a.id);
-              }}
-              className={`absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 group ${
-                editable ? "cursor-pointer" : "pointer-events-none"
-              }`}
-              style={{ left: `${a.point.x}%`, top: `${a.point.y}%` }}
-              title={editable ? "Click to delete this closure" : undefined}
-            >
-              <div className="size-6 rounded bg-red-500/90 border border-white/20 flex items-center justify-center text-white font-black text-sm shadow-lg group-hover:ring-2 group-hover:ring-white/60">
-                ✕
+          if (a.kind === "closure") {
+            return (
+              <div
+                key={a.id}
+                onClick={(e) => {
+                  if (!editable) return;
+                  e.stopPropagation();
+                  if (window.confirm("Delete this closure pin?")) removeAnnotation(a.id);
+                }}
+                className={`absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 group ${
+                  editable ? "cursor-pointer" : "pointer-events-none"
+                }`}
+                style={{ left: `${a.point.x}%`, top: `${a.point.y}%` }}
+                title={editable ? "Click to delete this closure" : undefined}
+              >
+                <div className="size-6 rounded bg-red-500/90 border border-white/20 flex items-center justify-center text-white font-black text-sm shadow-lg group-hover:ring-2 group-hover:ring-white/60">
+                  ✕
+                </div>
+                <span className="text-[9px] font-bold text-red-300 bg-bg-deep/80 px-1.5 py-0.5 rounded whitespace-nowrap">
+                  {a.label}
+                </span>
               </div>
-              <span className="text-[9px] font-bold text-red-300 bg-bg-deep/80 px-1.5 py-0.5 rounded whitespace-nowrap">
-                {a.label}
-              </span>
-            </div>
-          ) : a.label ? (
+            );
+          }
+          if (a.kind === "personnel") {
+            const meta = PERSONNEL_META[a.role];
+            return (
+              <div
+                key={a.id}
+                onClick={(e) => {
+                  if (!editable) return;
+                  e.stopPropagation();
+                  if (window.confirm(`Delete this ${meta.label} marker?`)) removeAnnotation(a.id);
+                }}
+                className={`absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 group ${
+                  editable ? "cursor-pointer" : "pointer-events-none"
+                }`}
+                style={{ left: `${a.point.x}%`, top: `${a.point.y}%` }}
+                title={editable ? `Click to delete this ${meta.label} marker` : meta.label}
+              >
+                <div
+                  className="size-6 rounded-full border-2 border-white shadow-lg flex items-center justify-center group-hover:ring-2 group-hover:ring-white/60"
+                  style={{ background: meta.color }}
+                >
+                  {/* silhouette */}
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 text-white" fill="currentColor" aria-hidden="true">
+                    <circle cx="12" cy="7" r="3.2" />
+                    <path d="M4.5 20c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5v.5h-15V20z" />
+                  </svg>
+                </div>
+                <span
+                  className="text-[9px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap bg-bg-deep/80 border border-white/10"
+                  style={{ color: meta.color }}
+                >
+                  {a.label || meta.short}
+                </span>
+              </div>
+            );
+          }
+          return a.label ? (
             <div
               key={`lbl-${a.id}`}
               className="absolute -translate-x-1/2 -translate-y-full pointer-events-none"
