@@ -605,7 +605,20 @@ export function MapPanel({ service, onServiceChange }: Props) {
   }
   // progress is measured in "arrows": integer part = fully drawn count,
   // fractional part = reveal progress of the current arrow.
+  const PROGRESS_KEY = "kairos:playback-progress:v1";
   const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PROGRESS_KEY);
+      if (raw) {
+        const n = Number(JSON.parse(raw));
+        if (Number.isFinite(n) && n >= 0) setProgress(n);
+      }
+    } catch { /* ignore */ }
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch { /* ignore */ }
+  }, [progress]);
   const [pendingImport, setPendingImport] = useState<{
     annotations: Annotation[];
     selectedBases: Record<BaseKey, boolean>;
