@@ -1297,6 +1297,42 @@ export function MapPanel({ service, onServiceChange }: Props) {
                     className="absolute top-full right-0 mt-1 w-72 lg:w-80 bg-bg-deep/98 border border-white/10 rounded-md shadow-xl z-40 overflow-hidden"
                     onMouseDown={(e) => e.preventDefault()}
                   >
+                    {(sugLoading || suggestions.length > 0) && (
+                      <div className="border-b border-white/5">
+                        <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/5">
+                          <span className="text-[9px] font-bold uppercase tracking-widest text-kairos-blue">
+                            🔎 Suggestions
+                          </span>
+                          {sugLoading && (
+                            <span className="text-[9px] font-mono text-slate-500">searching…</span>
+                          )}
+                        </div>
+                        {suggestions.length > 0 && (
+                          <ul className="max-h-56 overflow-y-auto">
+                            {suggestions.map((s, i) => (
+                              <li
+                                key={s.placeId}
+                                className={`flex items-center gap-1 hover:bg-white/5 ${
+                                  i === activeSug ? "bg-white/5" : ""
+                                }`}
+                              >
+                                <button
+                                  type="button"
+                                  onMouseEnter={() => setActiveSug(i)}
+                                  onClick={() => void pickSuggestion(s)}
+                                  className="flex-1 text-left px-2.5 py-1.5 min-w-0"
+                                >
+                                  <div className="text-[11px] text-white truncate">{s.primary}</div>
+                                  {s.secondary && (
+                                    <div className="text-[10px] text-slate-500 truncate">{s.secondary}</div>
+                                  )}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
                     <>
                       <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/5 gap-1">
                         <span className="text-[9px] font-bold uppercase tracking-widest text-kairos-gold">
