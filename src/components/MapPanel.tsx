@@ -1984,6 +1984,17 @@ export function MapPanel({ service, onServiceChange }: Props) {
               if (a.kind === "closure") return null;
               // Playback overrides normal render for arrows in the sequence.
               if (playbackIds?.has(a.id)) return null;
+              if (renderStyle === "cars") {
+                const spacing = Math.max(1.2, strokeW * 3.2);
+                const cars = sampleCarsOnPath(a.points, spacing, 1);
+                return (
+                  <g key={a.id}>
+                    {cars.map((c, i) => (
+                      <CarGlyph key={i} x={c.x} y={c.y} angle={c.angle} color={TOOL_COLORS[a.kind]} />
+                    ))}
+                  </g>
+                );
+              }
               return (
                 <path
                   key={a.id}
