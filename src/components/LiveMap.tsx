@@ -45,6 +45,7 @@ function loadGoogleMaps(): Promise<typeof google> {
       key,
       loading: "async",
       v: "weekly",
+      libraries: "geometry",
       callback: cbName,
     });
     if (channel) params.set("channel", channel);
