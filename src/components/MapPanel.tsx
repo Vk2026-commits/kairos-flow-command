@@ -84,8 +84,16 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const [draft, setDraft] = useState<Pt[]>([]);
   const [cursor, setCursor] = useState<Pt | null>(null);
 
+  // Playback state — animates ingress/egress/shuttle arrows in saved order.
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  // progress is measured in "arrows": integer part = fully drawn count,
+  // fractional part = reveal progress of the current arrow.
+  const [progress, setProgress] = useState(0);
+
   const fileRef = useRef<HTMLInputElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
+
 
   // Load / persist annotations
   useEffect(() => {
