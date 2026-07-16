@@ -373,7 +373,15 @@ export function MapPanel({ service, onServiceChange }: Props) {
     );
   }, [recent, searchQuery]);
 
-  // Debounced Places autocomplete
+  // Debounced Places autocomplete with a sliding-window rate limit.
+  // Prevents excessive geocoding requests while typing.
+  const sugTimesRef = useRef<number[]>([]);
+  const SUG_DEBOUNCE_MS = 400;
+  const SUG_MIN_GAP_MS = 250;      // min ms between two consecutive fetches
+  const SUG_MAX_PER_WINDOW = 15;    // max fetches per rolling window
+  const SUG_WINDOW_MS = 10_000;
+  const sugLastAtRef = useRef(0);
+
   useEffect(() => {
     const q = searchQuery.trim();
     if (q.length < 2 || !liveMapRef.current) {
@@ -384,6 +392,17 @@ export function MapPanel({ service, onServiceChange }: Props) {
     const seq = ++sugSeqRef.current;
     setSugLoading(true);
     const t = window.setTimeout(async () => {
+      const now = Date.now();
+      // Rate limit: skip if too soon after the last fetch or over the window cap.
+      const gap = now - sugLastAtRef.current;
+      const windowStart = now - SUG_WINDOW_MS;
+      sugTimesRef.current = sugTimesRef.current.filter((ts) => ts > windowStart);
+      if (gap < SUG_MIN_GAP_MS || sugTimesRef.current.length >= SUG_MAX_PER_WINDOW) {
+        if (seq === sugSeqRef.current) setSugLoading(false);
+        return;
+      }
+      sugLastAtRef.current = now;
+      sugTimesRef.current.push(now);
       try {
         const res = await liveMapRef.current!.getSuggestions(q);
         if (seq === sugSeqRef.current) {
@@ -393,7 +412,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
       } finally {
         if (seq === sugSeqRef.current) setSugLoading(false);
       }
-    }, 220);
+    }, SUG_DEBOUNCE_MS);
     return () => window.clearTimeout(t);
   }, [searchQuery]);
 
@@ -951,6 +970,10 @@ export function MapPanel({ service, onServiceChange }: Props) {
   function clearAll() {
     if (!window.confirm("Delete ALL annotations on every base layer?")) return;
     setAnnotations([]);
+  }
+
+  function removeAnnotation(id: string) {
+    setAnnotations((a) => a.filter((x) => x.id !== id));
   }
 
   function exportAnnotations() {
@@ -2122,15 +2145,31 @@ export function MapPanel({ service, onServiceChange }: Props) {
             const playbackIds = playing || progress > 0
               ? new Set(playbackSeq.map((a) => a.id))
               : null;
+            const editable = !tool && !playing;
+            const onDelClick = (id: string) => (e: React.MouseEvent) => {
+              e.stopPropagation();
+              if (window.confirm("Delete this annotation?")) removeAnnotation(id);
+            };
             return visibleAnnotations.map((a) => {
               if (a.kind === "closure") return null;
-              // Playback overrides normal render for arrows in the sequence.
               if (playbackIds?.has(a.id)) return null;
               if (renderStyle === "cars") {
                 const spacing = Math.max(4.5, strokeW * 5);
                 const cars = sampleCarsOnPath(a.points, spacing, 1);
                 return (
-                  <g key={a.id}>
+                  <g
+                    key={a.id}
+                    onClick={editable ? onDelClick(a.id) : undefined}
+                    style={{ cursor: editable ? "pointer" : undefined, pointerEvents: editable ? "auto" : "none" }}
+                  >
+                    {editable && (
+                      <path
+                        d={pathD(a.points)}
+                        stroke="transparent"
+                        strokeWidth={Math.max(6, strokeW * 4)}
+                        fill="none"
+                      />
+                    )}
                     {cars.map((c, i) => (
                       <CarGlyph key={i} x={c.x} y={c.y} angle={c.angle} color={TOOL_COLORS[a.kind]} />
                     ))}
@@ -2138,15 +2177,28 @@ export function MapPanel({ service, onServiceChange }: Props) {
                 );
               }
               return (
-                <path
+                <g
                   key={a.id}
-                  d={pathD(a.points)}
-                  stroke={TOOL_COLORS[a.kind]}
-                  strokeWidth={strokeW}
-                  fill="none"
-                  markerEnd={`url(#arr-${a.kind})`}
-                  className="flow-dash"
-                />
+                  onClick={editable ? onDelClick(a.id) : undefined}
+                  style={{ cursor: editable ? "pointer" : undefined, pointerEvents: editable ? "auto" : "none" }}
+                >
+                  {editable && (
+                    <path
+                      d={pathD(a.points)}
+                      stroke="transparent"
+                      strokeWidth={Math.max(6, strokeW * 4)}
+                      fill="none"
+                    />
+                  )}
+                  <path
+                    d={pathD(a.points)}
+                    stroke={TOOL_COLORS[a.kind]}
+                    strokeWidth={strokeW}
+                    fill="none"
+                    markerEnd={`url(#arr-${a.kind})`}
+                    className="flow-dash"
+                  />
+                </g>
               );
             });
           })()}
@@ -2217,14 +2269,23 @@ export function MapPanel({ service, onServiceChange }: Props) {
         </svg>
 
         {/* Closure pins (annotations + HTML) */}
-        {visibleAnnotations.map((a) =>
-          a.kind === "closure" ? (
+        {visibleAnnotations.map((a) => {
+          const editable = !tool && !playing;
+          return a.kind === "closure" ? (
             <div
               key={a.id}
-              className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 pointer-events-none"
+              onClick={(e) => {
+                if (!editable) return;
+                e.stopPropagation();
+                if (window.confirm("Delete this closure pin?")) removeAnnotation(a.id);
+              }}
+              className={`absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 group ${
+                editable ? "cursor-pointer" : "pointer-events-none"
+              }`}
               style={{ left: `${a.point.x}%`, top: `${a.point.y}%` }}
+              title={editable ? "Click to delete this closure" : undefined}
             >
-              <div className="size-6 rounded bg-red-500/90 border border-white/20 flex items-center justify-center text-white font-black text-sm shadow-lg">
+              <div className="size-6 rounded bg-red-500/90 border border-white/20 flex items-center justify-center text-white font-black text-sm shadow-lg group-hover:ring-2 group-hover:ring-white/60">
                 ✕
               </div>
               <span className="text-[9px] font-bold text-red-300 bg-bg-deep/80 px-1.5 py-0.5 rounded whitespace-nowrap">
@@ -2247,8 +2308,8 @@ export function MapPanel({ service, onServiceChange }: Props) {
                 {a.label}
               </span>
             </div>
-          ) : null,
-        )}
+          ) : null;
+        })}
 
         {layers.stops &&
           STOPS.map((s) => (
