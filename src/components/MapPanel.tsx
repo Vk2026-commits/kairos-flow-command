@@ -640,7 +640,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "traffic_plans" },
-        (payload) => {
+        (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
           setPlans((prev) => {
             if (payload.eventType === "INSERT") {
               const p = rowToPlan(payload.new as Record<string, unknown>);
