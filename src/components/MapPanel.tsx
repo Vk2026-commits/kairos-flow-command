@@ -373,7 +373,15 @@ export function MapPanel({ service, onServiceChange }: Props) {
     );
   }, [recent, searchQuery]);
 
-  // Debounced Places autocomplete
+  // Debounced Places autocomplete with a sliding-window rate limit.
+  // Prevents excessive geocoding requests while typing.
+  const sugTimesRef = useRef<number[]>([]);
+  const SUG_DEBOUNCE_MS = 400;
+  const SUG_MIN_GAP_MS = 250;      // min ms between two consecutive fetches
+  const SUG_MAX_PER_WINDOW = 15;    // max fetches per rolling window
+  const SUG_WINDOW_MS = 10_000;
+  const sugLastAtRef = useRef(0);
+
   useEffect(() => {
     const q = searchQuery.trim();
     if (q.length < 2 || !liveMapRef.current) {
@@ -384,6 +392,17 @@ export function MapPanel({ service, onServiceChange }: Props) {
     const seq = ++sugSeqRef.current;
     setSugLoading(true);
     const t = window.setTimeout(async () => {
+      const now = Date.now();
+      // Rate limit: skip if too soon after the last fetch or over the window cap.
+      const gap = now - sugLastAtRef.current;
+      const windowStart = now - SUG_WINDOW_MS;
+      sugTimesRef.current = sugTimesRef.current.filter((ts) => ts > windowStart);
+      if (gap < SUG_MIN_GAP_MS || sugTimesRef.current.length >= SUG_MAX_PER_WINDOW) {
+        if (seq === sugSeqRef.current) setSugLoading(false);
+        return;
+      }
+      sugLastAtRef.current = now;
+      sugTimesRef.current.push(now);
       try {
         const res = await liveMapRef.current!.getSuggestions(q);
         if (seq === sugSeqRef.current) {
@@ -393,7 +412,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
       } finally {
         if (seq === sugSeqRef.current) setSugLoading(false);
       }
-    }, 220);
+    }, SUG_DEBOUNCE_MS);
     return () => window.clearTimeout(t);
   }, [searchQuery]);
 
