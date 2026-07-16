@@ -12,12 +12,21 @@ type Props = {
   streetView?: boolean;
 };
 
+export type LiveMapView = {
+  center: { lat: number; lng: number };
+  zoom: number;
+  mapType: MapType;
+  streetView?: boolean;
+};
+
 export type LiveMapHandle = {
   zoomIn: () => void;
   zoomOut: () => void;
   reset: () => void;
   search: (query: string) => Promise<{ ok: true; address: string } | { ok: false; error: string }>;
   setInteractive: (enabled: boolean) => void;
+  getView: () => LiveMapView | null;
+  setView: (v: LiveMapView) => void;
 };
 
 let mapsLoader: Promise<typeof google> | null = null;
