@@ -569,7 +569,23 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
   // Playback state — animates ingress/egress/shuttle arrows in saved order.
   const [playing, setPlaying] = useState(false);
+  const SPEED_KEY = "kairos:playback-speed:v1";
   const [speed, setSpeed] = useState(1);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SPEED_KEY);
+      if (raw) {
+        const n = Number(JSON.parse(raw));
+        if (Number.isFinite(n) && n > 0) setSpeed(Math.min(8, Math.max(0.25, n)));
+      }
+    } catch { /* ignore */ }
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem(SPEED_KEY, JSON.stringify(speed)); } catch { /* ignore */ }
+  }, [speed]);
+  function bumpSpeed(delta: number) {
+    setSpeed((s) => +Math.min(8, Math.max(0.25, +(s + delta).toFixed(2))).toFixed(2));
+  }
   // progress is measured in "arrows": integer part = fully drawn count,
   // fractional part = reveal progress of the current arrow.
   const [progress, setProgress] = useState(0);
@@ -1635,10 +1651,31 @@ export function MapPanel({ service, onServiceChange }: Props) {
                     </div>
                   </div>
                 </div>
-                <div className="mt-2 flex gap-1 justify-end">
-                  {([0.5, 1, 2, 4] as const).map((s) => (
-                    <button type="button" key={s} onClick={() => setSpeed(s)} className={`text-[10px] font-bold px-2 py-1 rounded transition ${speed === s ? "bg-kairos-gold text-bg-deep" : "bg-white/5 text-slate-400 hover:text-white"}`}>{s}×</button>
-                  ))}
+                <div className="mt-3 pt-2 border-t border-white/10">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Playback Speed</span>
+                    <span className="text-[10px] font-mono text-kairos-gold tabular-nums">{speed}×</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button type="button" onClick={() => bumpSpeed(-0.25)} disabled={speed <= 0.25} className="size-6 rounded bg-white/5 border border-white/10 text-slate-300 grid place-items-center hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed text-[11px] font-bold" title="Slower">−</button>
+                    <input
+                      type="range"
+                      min={0.25}
+                      max={8}
+                      step={0.25}
+                      value={speed}
+                      onChange={(e) => setSpeed(+e.target.value)}
+                      className="flex-1 accent-kairos-gold"
+                      aria-label="Playback speed"
+                    />
+                    <button type="button" onClick={() => bumpSpeed(0.25)} disabled={speed >= 8} className="size-6 rounded bg-white/5 border border-white/10 text-slate-300 grid place-items-center hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed text-[11px] font-bold" title="Faster">+</button>
+                  </div>
+                  <div className="mt-2 flex gap-1 justify-between">
+                    {([0.25, 0.5, 1, 2, 4, 8] as const).map((s) => (
+                      <button type="button" key={s} onClick={() => setSpeed(s)} className={`text-[10px] font-bold px-1.5 py-1 rounded transition ${speed === s ? "bg-kairos-gold text-bg-deep" : "bg-white/5 text-slate-400 hover:text-white"}`}>{s}×</button>
+                    ))}
+                    <button type="button" onClick={() => setSpeed(1)} className="text-[10px] font-bold px-1.5 py-1 rounded bg-white/5 text-slate-400 hover:text-white transition" title="Reset to 1×">Reset</button>
+                  </div>
                 </div>
               </div>
             )}
