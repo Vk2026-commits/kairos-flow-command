@@ -16,6 +16,7 @@ export type LiveMapHandle = {
   zoomIn: () => void;
   zoomOut: () => void;
   reset: () => void;
+  search: (query: string) => Promise<{ ok: true; address: string } | { ok: false; error: string }>;
 };
 
 let mapsLoader: Promise<typeof google> | null = null;
@@ -85,6 +86,29 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
         if (!m) return;
         m.setZoom(17);
         m.panTo(center);
+      },
+      search: async (query: string) => {
+        const q = query.trim();
+        if (!q) return { ok: false as const, error: "Enter an address or intersection." };
+        try {
+          const g = await loadGoogleMaps();
+          const m = mapInst.current;
+          if (!m) return { ok: false as const, error: "Map not ready." };
+          const geocoder = new g.maps.Geocoder();
+          const res = await geocoder.geocode({ address: q });
+          const hit = res.results?.[0];
+          if (!hit) return { ok: false as const, error: "No results found." };
+          const loc = hit.geometry.location;
+          const pos = { lat: loc.lat(), lng: loc.lng() };
+          m.panTo(pos);
+          m.setZoom(18);
+          markerInst.current?.setPosition(pos);
+          markerInst.current?.setTitle(hit.formatted_address);
+          svInst.current?.setPosition(pos);
+          return { ok: true as const, address: hit.formatted_address };
+        } catch (e) {
+          return { ok: false as const, error: e instanceof Error ? e.message : "Search failed." };
+        }
       },
     }),
     [center],
