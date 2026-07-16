@@ -1223,6 +1223,74 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={onImportFile} />
                 </div>
                 <button type="button" onClick={clearAll} className="mt-1.5 w-full text-[10px] font-bold py-1.5 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition">Clear All Annotations</button>
+
+                {/* ===== Traffic Plans ===== */}
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <h5 className="text-[10px] font-bold uppercase tracking-widest text-white">
+                      Traffic Plans <span className="text-kairos-gold font-mono ml-1">{plans.length}</span>
+                    </h5>
+                    <button
+                      type="button"
+                      onClick={() => setPlansOpen((v) => !v)}
+                      className="text-[10px] text-slate-400 hover:text-white"
+                    >
+                      {plansOpen ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={savePlan}
+                    className="w-full text-[10px] font-bold py-1.5 rounded bg-kairos-gold text-bg-deep hover:brightness-110 transition flex items-center justify-center gap-1.5"
+                    title="Save current annotations, base layer, and map view as a reusable traffic plan"
+                  >
+                    💾 Save Current as Traffic Plan
+                  </button>
+                  {plansOpen && (
+                    <ul className="mt-2 max-h-48 overflow-y-auto space-y-1">
+                      {plans.length === 0 ? (
+                        <li className="text-[10px] text-slate-500 italic px-1 py-1">
+                          No saved plans yet. Save the current setup to reuse later.
+                        </li>
+                      ) : (
+                        plans.map((p) => (
+                          <li
+                            key={p.id}
+                            className="flex items-center gap-1 rounded bg-white/5 border border-white/5 hover:border-kairos-gold/30 group"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => loadPlan(p.id)}
+                              className="flex-1 min-w-0 text-left px-2 py-1.5"
+                              title="Load this plan"
+                            >
+                              <div className="text-[11px] font-semibold text-white truncate">{p.name}</div>
+                              <div className="text-[9px] font-mono text-slate-500 truncate">
+                                {p.base} · {p.annotations.length} ann · {new Date(p.savedAt).toLocaleDateString()}
+                              </div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => renamePlan(p.id)}
+                              title="Rename"
+                              className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-500 hover:text-white px-1.5"
+                            >
+                              ✎
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deletePlan(p.id)}
+                              title="Delete plan"
+                              className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-500 hover:text-red-400 px-2"
+                            >
+                              ✕
+                            </button>
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  )}
+                </div>
               </div>
             )}
 
