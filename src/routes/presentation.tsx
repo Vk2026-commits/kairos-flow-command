@@ -9,6 +9,7 @@ import {
   BadgeCheck, Activity, Award, Timer, TrendingUp, Zap, Eye, HeartHandshake,
 } from "lucide-react";
 import { MapPanel } from "@/components/MapPanel";
+import { useLiveOps, formatCycle } from "@/hooks/use-live-ops";
 
 export const Route = createFileRoute("/presentation")({
   head: () => ({
@@ -631,19 +632,15 @@ function Slide9Parking() {
 
 /* SLIDE 10 — Shuttle */
 function Slide10Shuttle() {
-  const shuttles = [
-    { id: "S-01", loc: "UH Lot 12", pax: 24, cycle: "12:40", status: "Loading" },
-    { id: "S-02", loc: "Enroute → Church", pax: 31, cycle: "11:20", status: "Moving" },
-    { id: "S-03", loc: "Church Curb", pax: 0, cycle: "13:05", status: "Departure" },
-    { id: "S-04", loc: "TSU Overflow", pax: 18, cycle: "14:10", status: "Loading" },
-  ];
+  const live = useLiveOps();
+  const shuttles = live.shuttles;
   return (
     <SlideShell eyebrow="CHAPTER 10" title="Shuttle Operations" subtitle="Live tracking of every shuttle in the cycle.">
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <Stat label="Active Shuttles" value="4" />
-        <Stat label="Avg Wait Time" value="3:42" sub="Target < 5:00" accent="gold" />
-        <Stat label="Avg Cycle Time" value="12:38" />
-        <Stat label="Passengers / Hour" value="612" />
+        <Stat label="Active Shuttles" value={String(shuttles.length)} />
+        <Stat label="Avg Wait Time" value={formatCycle(live.avgWaitSec)} sub="Target < 5:00" accent="gold" />
+        <Stat label="Avg Cycle Time" value={`${live.avgShuttleCycleMin.toFixed(1)} min`} />
+        <Stat label="Passengers / Hour" value={String(live.passengersPerHour)} />
       </div>
       <div className="grid grid-cols-2 gap-6">
         <div className="rounded-2xl border border-white/5 bg-surface p-4 h-[400px] relative overflow-hidden">
@@ -677,7 +674,7 @@ function Slide10Shuttle() {
               </div>
               <div className="text-right">
                 <div className="text-xs text-muted-foreground">CYCLE</div>
-                <div className="font-mono font-bold text-kairos-gold">{s.cycle}</div>
+                <div className="font-mono font-bold text-kairos-gold">{formatCycle(s.cycleSec)}</div>
               </div>
             </div>
           ))}
@@ -728,6 +725,7 @@ function Slide11FirstTouch() {
 
 /* SLIDE 12 — Command Center */
 function Slide12Command() {
+  const live = useLiveOps();
   const modules = [
     { i: MonitorPlay, l: "Supervisor Dashboard" }, { i: MapIcon, l: "Vehicle Tracking" },
     { i: AlertTriangle, l: "Incident Mgmt" }, { i: Radio, l: "Communications" },
@@ -754,10 +752,10 @@ function Slide12Command() {
           ))}
         </div>
         <div className="mt-6 grid grid-cols-4 gap-4">
-          <Stat label="Personnel On Scene" value="28" />
-          <Stat label="Vehicles Active" value="7" />
-          <Stat label="Incidents Open" value="0" accent="gold" />
-          <Stat label="System Uptime" value="99.9%" />
+          <Stat label="Personnel On Scene" value={String(live.activePersonnel)} />
+          <Stat label="Vehicles Active" value={String(live.vehiclesActive)} />
+          <Stat label="Incidents Open" value={String(live.incidentsOpen)} accent="gold" />
+          <Stat label="System Uptime" value={`${live.systemUptimePct.toFixed(1)}%`} />
         </div>
       </div>
     </SlideShell>
@@ -766,15 +764,16 @@ function Slide12Command() {
 
 /* SLIDE 13 — KPIs */
 function Slide13KPI() {
+  const live = useLiveOps();
   const kpis = [
-    { l: "Avg Wait Time", v: "3:42", t: "< 5:00", ok: true },
-    { l: "Traffic Clearance", v: "13 min", t: "< 15 min", ok: true },
-    { l: "Guest Satisfaction", v: "4.8/5", t: "> 4.5", ok: true },
-    { l: "Parking Fill Rate", v: "82%", t: "80-90%", ok: true },
-    { l: "Shuttle Cycle", v: "12:38", t: "< 14:00", ok: true },
-    { l: "Incident Rate", v: "0.02%", t: "< 0.5%", ok: true },
-    { l: "Vehicle Readiness", v: "100%", t: "100%", ok: true },
-    { l: "Staff Attendance", v: "99.4%", t: "> 98%", ok: true },
+    { l: "Avg Wait Time", v: formatCycle(live.avgWaitSec), t: "< 5:00", ok: live.avgWaitSec < 300 },
+    { l: "Traffic Clearance", v: `${live.trafficClearanceMin} min`, t: "< 15 min", ok: live.trafficClearanceMin < 15 },
+    { l: "Guest Satisfaction", v: `${live.guestSatisfaction.toFixed(1)}/5`, t: "> 4.5", ok: live.guestSatisfaction > 4.5 },
+    { l: "Parking Fill Rate", v: `${live.parkingFillPct.toFixed(0)}%`, t: "80-90%", ok: live.parkingFillPct >= 80 && live.parkingFillPct <= 95 },
+    { l: "Shuttle Cycle", v: `${live.avgShuttleCycleMin.toFixed(1)} min`, t: "< 14:00", ok: live.avgShuttleCycleMin < 14 },
+    { l: "Incident Rate", v: `${live.incidentRatePct.toFixed(2)}%`, t: "< 0.5%", ok: live.incidentRatePct < 0.5 },
+    { l: "Vehicle Readiness", v: `${live.vehicleReadinessPct}%`, t: "100%", ok: live.vehicleReadinessPct === 100 },
+    { l: "Staff Attendance", v: `${live.staffAttendancePct.toFixed(1)}%`, t: "> 98%", ok: live.staffAttendancePct > 98 },
   ];
   return (
     <SlideShell eyebrow="CHAPTER 13" title="Performance KPIs" subtitle="Every commitment in the proposal, measured in real time.">

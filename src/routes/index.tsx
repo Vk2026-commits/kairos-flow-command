@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useLiveOps } from "@/hooks/use-live-ops";
 import { MapPanel } from "@/components/MapPanel";
 
 export const Route = createFileRoute("/")({
@@ -44,6 +45,9 @@ function CommandDashboard() {
     "10:00 AM",
   );
   const now = useClock();
+  const live = useLiveOps();
+  const sparkSeed = live.avgShuttleCycleMin;
+  const spark = [40, 60, 45, 80, Math.round((sparkSeed / 14) * 100)];
 
   const timeStr = now
     ? now.toLocaleTimeString("en-US", { hour12: false })
@@ -151,23 +155,30 @@ function CommandDashboard() {
         <div className="flex-1 p-4 lg:p-6 grid grid-cols-12 auto-rows-min lg:grid-rows-6 gap-4 lg:gap-6 overflow-y-auto lg:overflow-hidden">
           <KpiCard
             label="Total Parking Capacity"
-            value="84"
+            value={live.parkingFillPct.toFixed(0)}
             unit="%"
-            progress={84}
+            progress={live.parkingFillPct}
           />
           <KpiCard
             label="Avg Shuttle Cycle"
-            value="12.4"
+            value={live.avgShuttleCycleMin.toFixed(1)}
             unit="min"
-            spark={[40, 60, 45, 80, 100]}
+            spark={spark}
           />
           <KpiCard
             label="Active Personnel"
-            value="58"
-            unit="/62"
+            value={String(live.activePersonnel)}
+            unit={`/${live.totalPersonnel}`}
             personnel
+            personnelExtra={Math.max(0, live.activePersonnel - 3)}
           />
-          <KpiCard label="Security Status" value="NOMINAL" statusNominal />
+          <KpiCard
+            label="Security Status"
+            value={live.incidentsOpen === 0 ? "NOMINAL" : "ALERT"}
+            statusNominal={live.incidentsOpen === 0}
+            incidentsOpen={live.incidentsOpen}
+          />
+
 
           <MapPanel
             service={service}
@@ -191,7 +202,9 @@ function KpiCard({
   progress,
   spark,
   personnel,
+  personnelExtra,
   statusNominal,
+  incidentsOpen,
 }: {
   label: string;
   value: string;
@@ -199,7 +212,9 @@ function KpiCard({
   progress?: number;
   spark?: number[];
   personnel?: boolean;
+  personnelExtra?: number;
   statusNominal?: boolean;
+  incidentsOpen?: number;
 }) {
   return (
     <div className="col-span-6 lg:col-span-3 bg-surface border border-white/5 rounded-2xl p-5 flex flex-col justify-between hover:border-kairos-blue/30 transition-all fade-in-up">
@@ -255,14 +270,16 @@ function KpiCard({
             />
           ))}
           <div className="size-6 rounded-full border-2 border-surface bg-kairos-blue flex items-center justify-center text-[9px] font-bold text-white">
-            +55
+            +{personnelExtra ?? 55}
           </div>
         </div>
       )}
 
-      {statusNominal && (
+      {statusNominal !== undefined && (
         <div className="text-[10px] font-mono text-slate-500 uppercase mt-4">
-          No open incidents recorded
+          {incidentsOpen && incidentsOpen > 0
+            ? `${incidentsOpen} open incident${incidentsOpen === 1 ? "" : "s"}`
+            : "No open incidents recorded"}
         </div>
       )}
     </div>
