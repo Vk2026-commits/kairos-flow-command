@@ -1156,11 +1156,11 @@ export function MapPanel({ service, onServiceChange }: Props) {
       className={
         fullscreen
           ? "fixed inset-0 z-50 bg-surface flex flex-col overflow-hidden"
-          : "col-span-12 lg:col-span-8 lg:row-span-5 bg-surface border border-white/5 rounded-3xl min-h-[520px] flex flex-col relative [&>*:last-child]:rounded-b-3xl [&>*:last-child]:overflow-hidden"
+          : "col-span-12 lg:col-span-8 lg:row-span-5 bg-surface border border-white/5 rounded-3xl min-h-[520px] flex flex-col relative isolate [&>*:last-child]:rounded-b-3xl [&>*:last-child]:overflow-hidden"
       }
     >
       {/* ============ Docked toolbar (above the map, never on it) ============ */}
-      <div className="relative shrink-0 border-b border-white/10 bg-surface/95 backdrop-blur-md">
+      <div className="relative z-40 shrink-0 border-b border-white/10 bg-surface/95 backdrop-blur-md">
         <div className="flex flex-wrap items-center gap-1.5 px-3 py-2">
           <button
             type="button"
@@ -1570,7 +1570,12 @@ export function MapPanel({ service, onServiceChange }: Props) {
         {/* Expanded panel bodies — overlay above the map so it never resizes
             (keeps annotations pinned to the same map coordinates). */}
         {anyPanelOpen && (
-          <div className="absolute left-0 right-0 top-full z-30 border-t border-white/10 px-3 py-3 grid gap-3 md:grid-cols-3 max-h-[40vh] overflow-y-auto bg-surface/95 backdrop-blur-sm shadow-xl pointer-events-auto">
+          <div
+            className="absolute left-0 right-0 top-full z-50 border-t border-white/10 px-3 py-3 grid gap-3 md:grid-cols-3 max-h-[40vh] overflow-y-auto bg-surface/95 backdrop-blur-sm shadow-xl pointer-events-auto"
+            onClick={(event) => event.stopPropagation()}
+            onDoubleClick={(event) => event.stopPropagation()}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
 
             {layersOpen && (
               <div className="rounded-lg border border-white/10 bg-white/5 p-3">
@@ -2070,7 +2075,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
         onPointerMove={onSurfacePointerMove}
         onPointerUp={onSurfacePointerUp}
         onPointerCancel={onSurfacePointerUp}
-        className={`relative flex-1 min-h-0 overflow-hidden ${
+        className={`relative z-0 flex-1 min-h-0 overflow-hidden ${
           tool ? "cursor-crosshair" : imgZoom > 1 && base !== "live" ? (panDrag.current ? "cursor-grabbing" : "cursor-grab") : ""
         }`}
       >
