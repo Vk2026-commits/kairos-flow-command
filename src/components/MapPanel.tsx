@@ -1293,6 +1293,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const visibleAnnotations = annotations.filter((a) => {
     if (a.base !== base) return false;
     if (a.kind === "closure") return layers.closures;
+    if (a.kind === "personnel") return true;
     return layers[a.kind];
   });
 
