@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import aerialAsset from "@/assets/wheeler-aerial.jpg.asset.json";
 import streetAsset from "@/assets/wheeler-street.jpg.asset.json";
 import lotAsset from "@/assets/wheeler-lot.jpg.asset.json";
+import { LiveMap } from "./LiveMap";
 
 type LayerKey =
   | "ingress"
@@ -12,7 +13,8 @@ type LayerKey =
   | "closures"
   | "parking";
 
-type BaseKey = "street" | "aerial" | "lot" | "custom";
+type BaseKey = "street" | "aerial" | "lot" | "live" | "custom";
+type LiveMapType = "roadmap" | "satellite" | "hybrid";
 
 type Tool = "ingress" | "egress" | "shuttle" | "closure" | null;
 type ImportMode = "merge" | "replace";
@@ -26,6 +28,7 @@ const BASES: { key: BaseKey; label: string; src?: string }[] = [
   { key: "street", label: "Street", src: streetAsset.url },
   { key: "aerial", label: "Aerial", src: aerialAsset.url },
   { key: "lot", label: "Lot Plan", src: lotAsset.url },
+  { key: "live", label: "Live Map" },
 ];
 
 const STOPS = [
@@ -84,6 +87,11 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const [tool, setTool] = useState<Tool>(null);
   const [draft, setDraft] = useState<Pt[]>([]);
   const [cursor, setCursor] = useState<Pt | null>(null);
+
+  // Live Google Maps view state
+  const [liveMapType, setLiveMapType] = useState<LiveMapType>("hybrid");
+  const [streetView, setStreetView] = useState(false);
+
 
   // Panel visibility — collapse to get panels out of the way while drawing.
   const [layersOpen, setLayersOpen] = useState(true);
@@ -369,6 +377,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
           street: clean.some((a) => a.base === "street"),
           aerial: clean.some((a) => a.base === "aerial"),
           lot: clean.some((a) => a.base === "lot"),
+          live: clean.some((a) => a.base === "live"),
           custom: clean.some((a) => a.base === "custom"),
         },
         mode: "merge",
@@ -537,6 +546,41 @@ export function MapPanel({ service, onServiceChange }: Props) {
               </button>
             ))}
           </div>
+
+          {/* Live map controls — only visible when Live Map is active */}
+          {base === "live" && (
+            <>
+              <div className="mx-1 h-5 w-px bg-white/10" />
+              <div className="flex gap-1">
+                {(["roadmap", "satellite", "hybrid"] as LiveMapType[]).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setLiveMapType(t)}
+                    className={`text-[10px] font-bold px-2 py-1.5 rounded border transition capitalize ${
+                      liveMapType === t
+                        ? "bg-kairos-blue text-white border-white/10"
+                        : "bg-white/5 text-slate-300 border-white/10 hover:text-white"
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setStreetView((v) => !v)}
+                className={`text-[10px] font-bold px-2 py-1.5 rounded border transition ${
+                  streetView
+                    ? "bg-kairos-gold text-bg-deep border-white/10"
+                    : "bg-white/5 text-slate-300 border-white/10 hover:text-white"
+                }`}
+                title="Toggle Street View split"
+              >
+                {streetView ? "◨ Street View On" : "◨ Street View"}
+              </button>
+            </>
+          )}
 
           {/* Service selector pushed to the right */}
           <div className="ml-auto flex gap-1">
@@ -710,13 +754,21 @@ export function MapPanel({ service, onServiceChange }: Props) {
         onDoubleClick={finishPath}
         className={`relative flex-1 min-h-0 overflow-hidden ${tool ? "cursor-crosshair" : ""}`}
       >
-        <img
-          src={activeSrc}
-          alt="Wheeler Avenue campus map"
-          className="w-full h-full object-contain pointer-events-none"
-        />
-        <div className="absolute inset-0 map-grid opacity-40 pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-t from-bg-deep/70 via-transparent to-bg-deep/20 pointer-events-none" />
+        {base === "live" ? (
+          <div className="absolute inset-0">
+            <LiveMap mapType={liveMapType} streetView={streetView} />
+          </div>
+        ) : (
+          <>
+            <img
+              src={activeSrc}
+              alt="Wheeler Avenue campus map"
+              className="w-full h-full object-contain pointer-events-none"
+            />
+            <div className="absolute inset-0 map-grid opacity-40 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-bg-deep/70 via-transparent to-bg-deep/20 pointer-events-none" />
+          </>
+        )}
 
         {/* Overlay SVG */}
         <svg
