@@ -91,6 +91,20 @@ export function MapPanel({ service, onServiceChange }: Props) {
   // Live Google Maps view state
   const [liveMapType, setLiveMapType] = useState<LiveMapType>("hybrid");
   const [streetView, setStreetView] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchMsg, setSearchMsg] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
+  const [searching, setSearching] = useState(false);
+
+  async function submitSearch(e: React.FormEvent) {
+    e.preventDefault();
+    if (!liveMapRef.current || !searchQuery.trim()) return;
+    setSearching(true);
+    setSearchMsg(null);
+    const r = await liveMapRef.current.search(searchQuery);
+    setSearching(false);
+    if (r.ok) setSearchMsg({ tone: "ok", text: r.address });
+    else setSearchMsg({ tone: "err", text: r.error });
+  }
 
 
   // Panel visibility — collapse to get panels out of the way while drawing.
