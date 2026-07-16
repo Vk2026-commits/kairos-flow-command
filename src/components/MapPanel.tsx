@@ -1125,16 +1125,32 @@ export function MapPanel({ service, onServiceChange }: Props) {
       ]);
       return;
     }
+    if (tool === "hpd" || tool === "security" || tool === "ministry") {
+      const meta = PERSONNEL_META[tool];
+      const label = window.prompt(`${meta.label} label (optional):`, "") ?? "";
+      setAnnotations((a) => [
+        ...a,
+        {
+          id: crypto.randomUUID(),
+          kind: "personnel",
+          role: tool as PersonnelRole,
+          base,
+          point: p,
+          label: label || undefined,
+        },
+      ]);
+      return;
+    }
     setDraft((d) => [...d, p]);
   }
 
   function onSurfaceMove(e: React.MouseEvent) {
-    if (!tool || tool === "closure") return;
+    if (!tool || isPointTool(tool)) return;
     setCursor(ptFromEvent(e));
   }
 
   function finishPath() {
-    if (!tool || tool === "closure" || draft.length < 2) {
+    if (!tool || isPointTool(tool) || draft.length < 2) {
       setDraft([]);
       return;
     }
