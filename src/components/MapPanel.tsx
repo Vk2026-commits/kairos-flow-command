@@ -230,6 +230,81 @@ export function MapPanel({ service, onServiceChange }: Props) {
     setLandmarks((prev) => prev.filter((l) => l.id !== id));
   }
 
+  const landmarksImportRef = useRef<HTMLInputElement>(null);
+
+  function exportLandmarks() {
+    if (!landmarks.length) return;
+    const payload = {
+      app: "kairos-command",
+      kind: "map-landmarks",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      landmarks,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    a.href = url;
+    a.download = `kairos-landmarks-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function isValidLandmark(l: unknown): l is Landmark {
+    if (!l || typeof l !== "object") return false;
+    const r = l as Record<string, unknown>;
+    return (
+      typeof r.label === "string" &&
+      typeof r.query === "string" &&
+      typeof r.address === "string"
+    );
+  }
+
+  async function onImportLandmarks(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    try {
+      const text = await f.text();
+      const parsed = JSON.parse(text);
+      const list: unknown = Array.isArray(parsed) ? parsed : parsed?.landmarks;
+      if (!Array.isArray(list)) throw new Error("No landmarks array found.");
+      const clean = list.filter(isValidLandmark) as Landmark[];
+      if (!clean.length) throw new Error("File contained no valid landmarks.");
+      const mode = window.confirm(
+        `Import ${clean.length} landmark(s)?\n\nOK = Merge with existing (skip duplicates)\nCancel = Replace all current landmarks`,
+      )
+        ? "merge"
+        : "replace";
+      setLandmarks((prev) => {
+        const incoming = clean.map((l) => ({
+          id: crypto.randomUUID(),
+          label: l.label,
+          query: l.query,
+          address: l.address,
+          at: typeof l.at === "number" ? l.at : Date.now(),
+        }));
+        if (mode === "replace") return incoming;
+        const seen = new Set(
+          prev.map((p) => `${p.label.toLowerCase()}::${p.address.toLowerCase()}`),
+        );
+        const deduped = incoming.filter(
+          (l) => !seen.has(`${l.label.toLowerCase()}::${l.address.toLowerCase()}`),
+        );
+        return [...deduped, ...prev];
+      });
+      setRecentOpen(true);
+    } catch (err) {
+      window.alert(
+        `Import failed: ${err instanceof Error ? err.message : "invalid file"}`,
+      );
+    }
+  }
+
+
   // Traffic Plans — save the whole map state (annotations + base + layers + live view)
   // as a named plan so operators can pull it up for any traffic scenario.
   type TrafficPlan = {
@@ -931,19 +1006,45 @@ export function MapPanel({ service, onServiceChange }: Props) {
                       : `⚠ ${searchMsg?.text}`}
                   </span>
                 )}
-                {recentOpen && (recent.length > 0 || landmarks.length > 0) && (
+                {recentOpen && (
                   <div
                     className="absolute top-full right-0 mt-1 w-72 lg:w-80 bg-bg-deep/98 border border-white/10 rounded-md shadow-xl z-40 overflow-hidden"
                     onMouseDown={(e) => e.preventDefault()}
                   >
-                    {landmarks.length > 0 && (
-                      <>
-                        <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/5">
-                          <span className="text-[9px] font-bold uppercase tracking-widest text-kairos-gold">
-                            📍 Landmarks
-                          </span>
-                          <span className="text-[9px] font-mono text-slate-500">{landmarks.length}</span>
+                    <>
+                      <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/5 gap-1">
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-kairos-gold">
+                          📍 Landmarks
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={exportLandmarks}
+                            disabled={!landmarks.length}
+                            title="Export landmarks as JSON"
+                            className="text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-kairos-blue disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            ↓ Export
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => landmarksImportRef.current?.click()}
+                            title="Import landmarks from JSON"
+                            className="text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-kairos-gold"
+                          >
+                            ↑ Import
+                          </button>
+                          <input
+                            ref={landmarksImportRef}
+                            type="file"
+                            accept="application/json,.json"
+                            hidden
+                            onChange={onImportLandmarks}
+                          />
+                          <span className="text-[9px] font-mono text-slate-500 ml-1">{landmarks.length}</span>
                         </div>
+                      </div>
+                      {landmarks.length > 0 && (
                         <ul className="max-h-40 overflow-y-auto border-b border-white/5">
                           {landmarks.map((l) => (
                             <li key={l.id} className="flex items-center gap-1 hover:bg-white/5 group">
@@ -978,8 +1079,9 @@ export function MapPanel({ service, onServiceChange }: Props) {
                             </li>
                           ))}
                         </ul>
-                      </>
-                    )}
+                      )}
+                    </>
+
                     <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/5">
                       <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
                         Recent Searches
