@@ -102,22 +102,19 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
       search: async (query: string) => {
         const q = query.trim();
         if (!q) return { ok: false as const, error: "Enter an address or intersection." };
-        try {
-          const g = await loadGoogleMaps();
+
+        const applyResult = async (
+          g: typeof google,
+          pos: { lat: number; lng: number },
+          address: string,
+        ) => {
           const m = mapInst.current;
-          if (!m) return { ok: false as const, error: "Map not ready." };
-          const geocoder = new g.maps.Geocoder();
-          const res = await geocoder.geocode({ address: q });
-          const hit = res.results?.[0];
-          if (!hit) return { ok: false as const, error: "No results found." };
-          const loc = hit.geometry.location;
-          const pos = { lat: loc.lat(), lng: loc.lng() };
+          if (!m) return;
           m.panTo(pos);
           m.setZoom(18);
           markerInst.current?.setPosition(pos);
-          markerInst.current?.setTitle(hit.formatted_address);
+          markerInst.current?.setTitle(address);
 
-          // Sync Street View: find nearest panorama and aim camera at the target.
           const sv = svInst.current;
           if (sv) {
             try {
@@ -129,8 +126,9 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
               });
               const panoPos = pano.data.location?.latLng;
               if (panoPos) {
+                const target = new g.maps.LatLng(pos.lat, pos.lng);
                 const heading = g.maps.geometry?.spherical
-                  ? g.maps.geometry.spherical.computeHeading(panoPos, loc)
+                  ? g.maps.geometry.spherical.computeHeading(panoPos, target)
                   : 0;
                 sv.setPano(pano.data.location!.pano!);
                 sv.setPov({ heading, pitch: 0 });
@@ -142,21 +140,57 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
               sv.setPosition(pos);
             }
           }
-          return { ok: true as const, address: hit.formatted_address };
+        };
+
+        // Fallback geocoder using OpenStreetMap Nominatim (no API key required).
+        const nominatimSearch = async () => {
+          const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
+          const resp = await fetch(url, { headers: { Accept: "application/json" } });
+          if (!resp.ok) throw new Error(`Nominatim HTTP ${resp.status}`);
+          const data = (await resp.json()) as Array<{ lat: string; lon: string; display_name: string }>;
+          if (!data.length) return null;
+          return {
+            pos: { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) },
+            address: data[0].display_name,
+          };
+        };
+
+        try {
+          const g = await loadGoogleMaps();
+          if (!mapInst.current) return { ok: false as const, error: "Map not ready." };
+
+          // Try Google Geocoder first; fall back to Nominatim on denial/quota/network issues.
+          try {
+            const geocoder = new g.maps.Geocoder();
+            const res = await geocoder.geocode({ address: q });
+            const hit = res.results?.[0];
+            if (hit) {
+              const loc = hit.geometry.location;
+              const pos = { lat: loc.lat(), lng: loc.lng() };
+              await applyResult(g, pos, hit.formatted_address);
+              return { ok: true as const, address: hit.formatted_address };
+            }
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            // Only fall through to Nominatim on infra-level failures.
+            if (!/REQUEST_DENIED|OVER_QUERY_LIMIT|OVER_DAILY_LIMIT|network|Failed to fetch/i.test(msg)) {
+              if (/ZERO_RESULTS/i.test(msg)) {
+                // Try Nominatim as a second opinion before giving up.
+              } else if (/INVALID_REQUEST/i.test(msg)) {
+                return { ok: false as const, error: "Invalid search query." };
+              } else {
+                return { ok: false as const, error: `Search failed: ${msg}` };
+              }
+            }
+          }
+
+          // Fallback
+          const alt = await nominatimSearch();
+          if (!alt) return { ok: false as const, error: "No matches for that address." };
+          await applyResult(g, alt.pos, alt.address);
+          return { ok: true as const, address: alt.address };
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
-          if (/ZERO_RESULTS/i.test(msg)) {
-            return { ok: false as const, error: "No matches for that address." };
-          }
-          if (/OVER_QUERY_LIMIT|OVER_DAILY_LIMIT/i.test(msg)) {
-            return { ok: false as const, error: "Search quota exceeded. Try again later." };
-          }
-          if (/REQUEST_DENIED/i.test(msg)) {
-            return { ok: false as const, error: "Search request denied (API key/permissions)." };
-          }
-          if (/INVALID_REQUEST/i.test(msg)) {
-            return { ok: false as const, error: "Invalid search query." };
-          }
           if (/network|Failed to fetch/i.test(msg)) {
             return { ok: false as const, error: "Network error — check your connection." };
           }
