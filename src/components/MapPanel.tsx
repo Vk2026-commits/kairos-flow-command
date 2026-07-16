@@ -144,6 +144,23 @@ export function MapPanel({ service, onServiceChange }: Props) {
   function setBaseArrow(v: number) {
     setArrowScales((prev) => ({ ...prev, [base]: v }));
   }
+
+  // Flow-dash (marching ants) animation speed for saved annotation lines.
+  // Higher seconds = slower motion. Persists across sessions.
+  const FLOW_KEY = "kairos:flow-duration:v1";
+  const [flowDuration, setFlowDuration] = useState(5);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(FLOW_KEY);
+      if (raw) {
+        const n = Number(JSON.parse(raw));
+        if (Number.isFinite(n) && n > 0) setFlowDuration(Math.min(20, Math.max(1, n)));
+      }
+    } catch { /* ignore */ }
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem(FLOW_KEY, JSON.stringify(flowDuration)); } catch { /* ignore */ }
+  }, [flowDuration]);
   const [tool, setTool] = useState<Tool>(null);
   const [draft, setDraft] = useState<Pt[]>([]);
   const [cursor, setCursor] = useState<Pt | null>(null);
