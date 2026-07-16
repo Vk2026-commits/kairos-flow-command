@@ -1,3 +1,4 @@
+/// <reference types="google.maps" />
 import { useEffect, useRef, useState } from "react";
 
 // Wheeler Avenue Baptist Church — Houston, TX
