@@ -256,6 +256,11 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const RECENT_CAP = 10;
   const [recent, setRecent] = useState<RecentSearch[]>([]);
   const [recentOpen, setRecentOpen] = useState(false);
+  type Suggestion = { placeId: string; primary: string; secondary: string; full: string };
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [sugLoading, setSugLoading] = useState(false);
+  const [activeSug, setActiveSug] = useState(-1);
+  const sugSeqRef = useRef(0);
   useEffect(() => {
     try {
       const raw = localStorage.getItem(RECENT_KEY);
@@ -289,6 +294,28 @@ export function MapPanel({ service, onServiceChange }: Props) {
     );
   }
 
+  function recordRecent(q: string, address: string) {
+    setRecent((prev) => {
+      const existing = prev.find(
+        (p) => p.address === address || p.query.toLowerCase() === q.trim().toLowerCase(),
+      );
+      const entry: RecentSearch = {
+        query: q.trim(),
+        address,
+        at: Date.now(),
+        pinned: existing?.pinned,
+      };
+      const rest = prev.filter(
+        (p) => p.address !== address && p.query.toLowerCase() !== q.trim().toLowerCase(),
+      );
+      const pinned = rest.filter((p) => p.pinned);
+      const unpinned = rest.filter((p) => !p.pinned);
+      const nextUnpinned = entry.pinned ? unpinned : [entry, ...unpinned].slice(0, RECENT_CAP);
+      const nextPinned = entry.pinned ? [entry, ...pinned] : pinned;
+      return sortRecent([...nextPinned, ...nextUnpinned]);
+    });
+  }
+
   async function runSearch(q: string) {
     if (!liveMapRef.current || !q.trim()) return;
     setSearching(true);
@@ -298,35 +325,42 @@ export function MapPanel({ service, onServiceChange }: Props) {
     setSearching(false);
     if (r.ok) {
       setSearchMsg({ tone: "ok", text: r.address });
-      setRecent((prev) => {
-        const existing = prev.find(
-          (p) => p.address === r.address || p.query.toLowerCase() === q.trim().toLowerCase(),
-        );
-        const entry: RecentSearch = {
-          query: q.trim(),
-          address: r.address,
-          at: Date.now(),
-          pinned: existing?.pinned,
-        };
-        const rest = prev.filter(
-          (p) => p.address !== r.address && p.query.toLowerCase() !== q.trim().toLowerCase(),
-        );
-        // Cap only unpinned; pinned entries never get evicted.
-        const pinned = rest.filter((p) => p.pinned);
-        const unpinned = rest.filter((p) => !p.pinned);
-        const nextUnpinned = entry.pinned
-          ? unpinned
-          : [entry, ...unpinned].slice(0, RECENT_CAP);
-        const nextPinned = entry.pinned ? [entry, ...pinned] : pinned;
-        return sortRecent([...nextPinned, ...nextUnpinned]);
-      });
+      recordRecent(q, r.address);
     } else {
       setSearchMsg({ tone: "err", text: r.error });
     }
   }
 
+  async function pickSuggestion(s: Suggestion) {
+    if (!liveMapRef.current) return;
+    setSearching(true);
+    setSearchMsg(null);
+    setRecentOpen(false);
+    setSuggestions([]);
+    setSearchQuery(s.full);
+    const r = await liveMapRef.current.searchPlace(s.placeId, s.full);
+    setSearching(false);
+    if (r.ok) {
+      setSearchMsg({ tone: "ok", text: r.address });
+      recordRecent(s.full, r.address);
+    } else {
+      // Fallback to text geocode
+      const r2 = await liveMapRef.current.search(s.full);
+      if (r2.ok) {
+        setSearchMsg({ tone: "ok", text: r2.address });
+        recordRecent(s.full, r2.address);
+      } else {
+        setSearchMsg({ tone: "err", text: r2.error });
+      }
+    }
+  }
+
   async function submitSearch(e: React.FormEvent) {
     e.preventDefault();
+    if (activeSug >= 0 && suggestions[activeSug]) {
+      await pickSuggestion(suggestions[activeSug]);
+      return;
+    }
     await runSearch(searchQuery);
   }
 
@@ -338,6 +372,30 @@ export function MapPanel({ service, onServiceChange }: Props) {
       (r) => r.query.toLowerCase().includes(q) || r.address.toLowerCase().includes(q),
     );
   }, [recent, searchQuery]);
+
+  // Debounced Places autocomplete
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 2 || !liveMapRef.current) {
+      setSuggestions([]);
+      setSugLoading(false);
+      return;
+    }
+    const seq = ++sugSeqRef.current;
+    setSugLoading(true);
+    const t = window.setTimeout(async () => {
+      try {
+        const res = await liveMapRef.current!.getSuggestions(q);
+        if (seq === sugSeqRef.current) {
+          setSuggestions(res);
+          setActiveSug(-1);
+        }
+      } finally {
+        if (seq === sugSeqRef.current) setSugLoading(false);
+      }
+    }, 220);
+    return () => window.clearTimeout(t);
+  }, [searchQuery]);
 
   // Named landmarks — saved from recent searches for reuse during annotate/playback.
   type Landmark = { id: string; label: string; query: string; address: string; at: number };
@@ -1180,7 +1238,21 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   }}
                   onFocus={() => setRecentOpen(true)}
                   onBlur={() => window.setTimeout(() => setRecentOpen(false), 150)}
-                  placeholder="Search address or intersection…"
+                  onKeyDown={(e) => {
+                    if (!suggestions.length) return;
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setActiveSug((i) => (i + 1) % suggestions.length);
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setActiveSug((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+                    } else if (e.key === "Escape") {
+                      setSuggestions([]);
+                      setActiveSug(-1);
+                    }
+                  }}
+                  placeholder="Search address, place, or intersection…"
+                  autoComplete="off"
                   className="w-56 lg:w-72 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-[11px] text-white placeholder:text-slate-500 focus:outline-none focus:border-kairos-blue"
                 />
                 <button
@@ -1225,6 +1297,42 @@ export function MapPanel({ service, onServiceChange }: Props) {
                     className="absolute top-full right-0 mt-1 w-72 lg:w-80 bg-bg-deep/98 border border-white/10 rounded-md shadow-xl z-40 overflow-hidden"
                     onMouseDown={(e) => e.preventDefault()}
                   >
+                    {(sugLoading || suggestions.length > 0) && (
+                      <div className="border-b border-white/5">
+                        <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/5">
+                          <span className="text-[9px] font-bold uppercase tracking-widest text-kairos-blue">
+                            🔎 Suggestions
+                          </span>
+                          {sugLoading && (
+                            <span className="text-[9px] font-mono text-slate-500">searching…</span>
+                          )}
+                        </div>
+                        {suggestions.length > 0 && (
+                          <ul className="max-h-56 overflow-y-auto">
+                            {suggestions.map((s, i) => (
+                              <li
+                                key={s.placeId}
+                                className={`flex items-center gap-1 hover:bg-white/5 ${
+                                  i === activeSug ? "bg-white/5" : ""
+                                }`}
+                              >
+                                <button
+                                  type="button"
+                                  onMouseEnter={() => setActiveSug(i)}
+                                  onClick={() => void pickSuggestion(s)}
+                                  className="flex-1 text-left px-2.5 py-1.5 min-w-0"
+                                >
+                                  <div className="text-[11px] text-white truncate">{s.primary}</div>
+                                  {s.secondary && (
+                                    <div className="text-[10px] text-slate-500 truncate">{s.secondary}</div>
+                                  )}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
                     <>
                       <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/5 gap-1">
                         <span className="text-[9px] font-bold uppercase tracking-widest text-kairos-gold">
