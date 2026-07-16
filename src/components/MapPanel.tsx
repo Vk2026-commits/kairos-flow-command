@@ -574,12 +574,35 @@ export function MapPanel({ service, onServiceChange }: Props) {
               Cancel
             </button>
           </div>
+          <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+            <button
+              onClick={exportAnnotations}
+              disabled={!annotations.length}
+              className="text-[10px] font-bold py-1.5 rounded border border-kairos-blue/40 text-kairos-blue hover:bg-kairos-blue/10 transition disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              ↓ Export JSON
+            </button>
+            <button
+              onClick={() => importRef.current?.click()}
+              className="text-[10px] font-bold py-1.5 rounded border border-kairos-gold/40 text-kairos-gold hover:bg-kairos-gold/10 transition"
+            >
+              ↑ Import JSON
+            </button>
+            <input
+              ref={importRef}
+              type="file"
+              accept="application/json,.json"
+              hidden
+              onChange={onImportFile}
+            />
+          </div>
           <button
             onClick={clearAll}
             className="mt-1.5 w-full text-[10px] font-bold py-1.5 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition"
           >
             Clear All Annotations
           </button>
+
         </div>
       </div>
 
