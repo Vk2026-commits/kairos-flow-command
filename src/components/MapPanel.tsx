@@ -95,6 +95,22 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const [annotateOff, setAnnotateOff] = useState({ x: 0, y: 0 });
   const [playbackOff, setPlaybackOff] = useState({ x: 0, y: 0 });
 
+  // Fullscreen (presentation) mode — map fills the viewport.
+  const [fullscreen, setFullscreen] = useState(false);
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFullscreen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fullscreen]);
+
+  function collapsePanel(setOpen: (v: boolean) => void, setOff: (p: { x: number; y: number }) => void) {
+    setOff({ x: 0, y: 0 }); // snap chip back inside the map
+    setOpen(false);
+  }
+
   function makeDragHandlers(
     off: { x: number; y: number },
     setOff: (p: { x: number; y: number }) => void,
@@ -112,10 +128,32 @@ export function MapPanel({ service, onServiceChange }: Props) {
           __drag?: { x: number; y: number; ox: number; oy: number };
         };
         if (!el.__drag) return;
-        setOff({
-          x: el.__drag.ox + e.clientX - el.__drag.x,
-          y: el.__drag.oy + e.clientY - el.__drag.y,
-        });
+        let nx = el.__drag.ox + e.clientX - el.__drag.x;
+        let ny = el.__drag.oy + e.clientY - el.__drag.y;
+        // Clamp so the dragged panel stays inside the map surface.
+        const surface = surfaceRef.current?.getBoundingClientRect();
+        // Find the panel wrapper (nearest positioned ancestor with a translate transform).
+        const panel = el.closest<HTMLElement>("[data-drag-panel]");
+        if (surface && panel) {
+          const pr = panel.getBoundingClientRect();
+          // Current panel top-left in viewport coords when offset applied:
+          const curLeft = pr.left;
+          const curTop = pr.top;
+          // Convert requested delta into new absolute pos, then clamp.
+          const deltaX = nx - el.__drag.ox;
+          const deltaY = ny - el.__drag.oy;
+          const newLeft = curLeft + (deltaX - (off.x - el.__drag.ox));
+          const newTop = curTop + (deltaY - (off.y - el.__drag.oy));
+          const minLeft = surface.left + 4;
+          const maxLeft = surface.right - pr.width - 4;
+          const minTop = surface.top + 4;
+          const maxTop = surface.bottom - pr.height - 4;
+          if (newLeft < minLeft) nx += minLeft - newLeft;
+          if (newLeft > maxLeft) nx -= newLeft - maxLeft;
+          if (newTop < minTop) ny += minTop - newTop;
+          if (newTop > maxTop) ny -= newTop - maxTop;
+        }
+        setOff({ x: nx, y: ny });
       },
       onPointerUp: (e: React.PointerEvent<HTMLElement>) => {
         const el = e.currentTarget as HTMLElement & { __drag?: unknown };
@@ -432,7 +470,13 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
 
   return (
-    <div className="col-span-12 lg:col-span-8 lg:row-span-5 bg-surface border border-white/5 rounded-3xl relative overflow-hidden min-h-[520px]">
+    <div
+      className={
+        fullscreen
+          ? "fixed inset-0 z-50 bg-surface border-0 rounded-none overflow-hidden"
+          : "col-span-12 lg:col-span-8 lg:row-span-5 bg-surface border border-white/5 rounded-3xl relative overflow-hidden min-h-[520px]"
+      }
+    >
       {/* Base image + click surface */}
       <div
         ref={surfaceRef}
@@ -625,6 +669,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
       {/* Layer control panel */}
       <div
+        data-drag-panel
         className="absolute top-4 left-4 lg:top-6 lg:left-6 w-64 z-10"
         style={{ transform: `translate(${layersOff.x}px, ${layersOff.y}px)` }}
       >
@@ -654,7 +699,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
               </span>
               <button
                 type="button"
-                onClick={() => setLayersOpen(false)}
+                onClick={() => collapsePanel(setLayersOpen, setLayersOff)}
                 className="size-5 rounded bg-white/5 border border-white/10 text-slate-400 hover:text-white grid place-items-center text-[10px]"
                 title="Minimize"
               >
@@ -733,6 +778,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
       {/* Annotation toolbar */}
       <div
+        data-drag-panel
         className="absolute top-4 right-4 lg:top-6 lg:right-6 w-64 z-10"
         style={{ transform: `translate(${annotateOff.x}px, ${annotateOff.y}px)` }}
       >
@@ -762,7 +808,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
               </span>
               <button
                 type="button"
-                onClick={() => setAnnotateOpen(false)}
+                onClick={() => collapsePanel(setAnnotateOpen, setAnnotateOff)}
                 className="size-5 rounded bg-white/5 border border-white/10 text-slate-400 hover:text-white grid place-items-center text-[10px]"
                 title="Minimize"
               >
@@ -896,8 +942,20 @@ export function MapPanel({ service, onServiceChange }: Props) {
         <p className="text-xs font-bold text-white">Wheeler Ave Baptist Church</p>
       </div>
 
+      {/* Fullscreen toggle (presentation) */}
+      <button
+        type="button"
+        onClick={() => setFullscreen((v) => !v)}
+        className="absolute top-4 right-4 lg:top-6 lg:right-6 z-20 bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition"
+        style={{ transform: "translateY(-2.75rem)" }}
+        title={fullscreen ? "Exit fullscreen (Esc)" : "Fullscreen map"}
+      >
+        {fullscreen ? "⤢ Exit Fullscreen" : "⤢ Fullscreen Map"}
+      </button>
+
       {/* Playback panel */}
       <div
+        data-drag-panel
         className="absolute bottom-4 left-1/2 lg:bottom-6 z-10 w-[min(560px,calc(100%-2rem))]"
         style={{
           transform: `translate(calc(-50% + ${playbackOff.x}px), ${playbackOff.y}px)`,
@@ -924,7 +982,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
           </div>
           <button
             type="button"
-            onClick={() => setPlaybackOpen(false)}
+            onClick={() => collapsePanel(setPlaybackOpen, setPlaybackOff)}
             className="absolute top-1 right-1 size-5 rounded bg-white/5 border border-white/10 text-slate-400 hover:text-white grid place-items-center text-[10px]"
             title="Minimize"
           >
