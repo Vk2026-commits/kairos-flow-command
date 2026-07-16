@@ -182,6 +182,55 @@ export function MapPanel({ service, onServiceChange }: Props) {
     );
   }, [recent, searchQuery]);
 
+  // Named landmarks — saved from recent searches for reuse during annotate/playback.
+  type Landmark = { id: string; label: string; query: string; address: string; at: number };
+  const LANDMARKS_KEY = "kairos:landmarks:v1";
+  const [landmarks, setLandmarks] = useState<Landmark[]>([]);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LANDMARKS_KEY);
+      if (raw) setLandmarks(JSON.parse(raw));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(LANDMARKS_KEY, JSON.stringify(landmarks));
+    } catch {
+      /* ignore */
+    }
+  }, [landmarks]);
+
+  function saveAsLandmark(source: { query: string; address: string }) {
+    const suggested = source.address.split(",")[0] ?? source.query;
+    const label = window.prompt("Landmark label:", suggested)?.trim();
+    if (!label) return;
+    setLandmarks((prev) => {
+      const filtered = prev.filter(
+        (l) => l.label.toLowerCase() !== label.toLowerCase() && l.address !== source.address,
+      );
+      return [
+        { id: crypto.randomUUID(), label, query: source.query, address: source.address, at: Date.now() },
+        ...filtered,
+      ];
+    });
+    setRecentOpen(false);
+  }
+
+  function renameLandmark(id: string) {
+    const cur = landmarks.find((l) => l.id === id);
+    if (!cur) return;
+    const label = window.prompt("Rename landmark:", cur.label)?.trim();
+    if (!label) return;
+    setLandmarks((prev) => prev.map((l) => (l.id === id ? { ...l, label } : l)));
+  }
+
+  function removeLandmark(id: string) {
+    setLandmarks((prev) => prev.filter((l) => l.id !== id));
+  }
+
+
   const [mapLocked, setMapLocked] = useState(false);
   useEffect(() => {
     if (base !== "live") return;
