@@ -1,5 +1,5 @@
 /// <reference types="google.maps" />
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 // Wheeler Avenue Baptist Church — Houston, TX
 export const WHEELER_LATLNG = { lat: 29.7269, lng: -95.3572 };
@@ -10,6 +10,12 @@ type Props = {
   center?: { lat: number; lng: number };
   mapType?: MapType;
   streetView?: boolean;
+};
+
+export type LiveMapHandle = {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  reset: () => void;
 };
 
 let mapsLoader: Promise<typeof google> | null = null;
@@ -51,11 +57,10 @@ function loadGoogleMaps(): Promise<typeof google> {
   return mapsLoader;
 }
 
-export function LiveMap({
-  center = WHEELER_LATLNG,
-  mapType = "hybrid",
-  streetView = false,
-}: Props) {
+export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
+  { center = WHEELER_LATLNG, mapType = "hybrid", streetView = false },
+  ref,
+) {
   const mapRef = useRef<HTMLDivElement>(null);
   const svRef = useRef<HTMLDivElement>(null);
   const mapInst = useRef<google.maps.Map | null>(null);
@@ -63,6 +68,27 @@ export function LiveMap({
   const markerInst = useRef<google.maps.Marker | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      zoomIn: () => {
+        const m = mapInst.current;
+        if (m) m.setZoom((m.getZoom() ?? 17) + 1);
+      },
+      zoomOut: () => {
+        const m = mapInst.current;
+        if (m) m.setZoom(Math.max(1, (m.getZoom() ?? 17) - 1));
+      },
+      reset: () => {
+        const m = mapInst.current;
+        if (!m) return;
+        m.setZoom(17);
+        m.panTo(center);
+      },
+    }),
+    [center],
+  );
 
   // Initial load
   useEffect(() => {
@@ -94,7 +120,6 @@ export function LiveMap({
             motionTracking: false,
             motionTrackingControl: false,
           });
-          // Link the panorama so the pegman on the map shows coverage.
           mapInst.current.setStreetView(svInst.current);
         }
         setLoaded(true);
@@ -106,7 +131,6 @@ export function LiveMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // React to prop changes
   useEffect(() => {
     if (!loaded || !mapInst.current) return;
     mapInst.current.setMapTypeId(mapType);
@@ -148,4 +172,4 @@ export function LiveMap({
       )}
     </div>
   );
-}
+});
