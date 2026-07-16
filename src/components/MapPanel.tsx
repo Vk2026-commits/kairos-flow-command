@@ -1156,7 +1156,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
       className={
         fullscreen
           ? "fixed inset-0 z-50 bg-surface flex flex-col overflow-hidden"
-          : "col-span-12 lg:col-span-8 lg:row-span-5 bg-surface border border-white/5 rounded-3xl overflow-hidden min-h-[520px] flex flex-col relative"
+          : "col-span-12 lg:col-span-8 lg:row-span-5 bg-surface border border-white/5 rounded-3xl min-h-[520px] flex flex-col relative [&>*:last-child]:rounded-b-3xl [&>*:last-child]:overflow-hidden"
       }
     >
       {/* ============ Docked toolbar (above the map, never on it) ============ */}
