@@ -1590,7 +1590,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   key={a.id}
                   d={pathD(a.points)}
                   stroke={TOOL_COLORS[a.kind]}
-                  strokeWidth="0.9"
+                  strokeWidth={strokeW}
                   fill="none"
                   markerEnd={`url(#arr-${a.kind})`}
                   className="flow-dash"
@@ -1613,7 +1613,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   key={`pb-${a.id}`}
                   d={pathD(a.points)}
                   stroke={TOOL_COLORS[a.kind]}
-                  strokeWidth="1.1"
+                  strokeWidth={+(strokeW * 1.25).toFixed(2)}
                   fill="none"
                   markerEnd={reveal > 0.95 ? `url(#arr-${a.kind})` : undefined}
                   pathLength={100}
@@ -1636,7 +1636,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
               <path
                 d={pathD(cursor ? [...draft, cursor] : draft)}
                 stroke={TOOL_COLORS[tool]}
-                strokeWidth="0.9"
+                strokeWidth={strokeW}
                 fill="none"
                 strokeDasharray="1.5 1.5"
                 opacity="0.9"
