@@ -45,6 +45,9 @@ function CommandDashboard() {
     "10:00 AM",
   );
   const now = useClock();
+  const live = useLiveOps();
+  const sparkSeed = live.avgShuttleCycleMin;
+  const spark = [40, 60, 45, 80, Math.round((sparkSeed / 14) * 100)];
 
   const timeStr = now
     ? now.toLocaleTimeString("en-US", { hour12: false })
