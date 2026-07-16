@@ -375,7 +375,9 @@ export function MapPanel({ service, onServiceChange }: Props) {
     if (typeof plan.streetView === "boolean") setStreetView(plan.streetView);
     if (plan.service) onServiceChange(plan.service);
     if (plan.base === "live" && plan.liveView) {
-      // Defer until LiveMap mounts / becomes visible.
+      // Seed initialView so a fresh LiveMap mount lands on the saved camera,
+      // and also try setView in case LiveMap is already mounted.
+      setSavedLiveView(plan.liveView);
       window.setTimeout(() => liveMapRef.current?.setView(plan.liveView!), 300);
     }
     setPlansOpen(true);
