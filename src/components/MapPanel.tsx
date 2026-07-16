@@ -470,7 +470,13 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
 
   return (
-    <div className="col-span-12 lg:col-span-8 lg:row-span-5 bg-surface border border-white/5 rounded-3xl relative overflow-hidden min-h-[520px]">
+    <div
+      className={
+        fullscreen
+          ? "fixed inset-0 z-50 bg-surface border-0 rounded-none overflow-hidden"
+          : "col-span-12 lg:col-span-8 lg:row-span-5 bg-surface border border-white/5 rounded-3xl relative overflow-hidden min-h-[520px]"
+      }
+    >
       {/* Base image + click surface */}
       <div
         ref={surfaceRef}
