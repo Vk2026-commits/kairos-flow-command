@@ -182,6 +182,55 @@ export function MapPanel({ service, onServiceChange }: Props) {
     );
   }, [recent, searchQuery]);
 
+  // Named landmarks — saved from recent searches for reuse during annotate/playback.
+  type Landmark = { id: string; label: string; query: string; address: string; at: number };
+  const LANDMARKS_KEY = "kairos:landmarks:v1";
+  const [landmarks, setLandmarks] = useState<Landmark[]>([]);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LANDMARKS_KEY);
+      if (raw) setLandmarks(JSON.parse(raw));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(LANDMARKS_KEY, JSON.stringify(landmarks));
+    } catch {
+      /* ignore */
+    }
+  }, [landmarks]);
+
+  function saveAsLandmark(source: { query: string; address: string }) {
+    const suggested = source.address.split(",")[0] ?? source.query;
+    const label = window.prompt("Landmark label:", suggested)?.trim();
+    if (!label) return;
+    setLandmarks((prev) => {
+      const filtered = prev.filter(
+        (l) => l.label.toLowerCase() !== label.toLowerCase() && l.address !== source.address,
+      );
+      return [
+        { id: crypto.randomUUID(), label, query: source.query, address: source.address, at: Date.now() },
+        ...filtered,
+      ];
+    });
+    setRecentOpen(false);
+  }
+
+  function renameLandmark(id: string) {
+    const cur = landmarks.find((l) => l.id === id);
+    if (!cur) return;
+    const label = window.prompt("Rename landmark:", cur.label)?.trim();
+    if (!label) return;
+    setLandmarks((prev) => prev.map((l) => (l.id === id ? { ...l, label } : l)));
+  }
+
+  function removeLandmark(id: string) {
+    setLandmarks((prev) => prev.filter((l) => l.id !== id));
+  }
+
+
   const [mapLocked, setMapLocked] = useState(false);
   useEffect(() => {
     if (base !== "live") return;
@@ -790,11 +839,55 @@ export function MapPanel({ service, onServiceChange }: Props) {
                       : `⚠ ${searchMsg?.text}`}
                   </span>
                 )}
-                {recentOpen && recent.length > 0 && (
+                {recentOpen && (recent.length > 0 || landmarks.length > 0) && (
                   <div
                     className="absolute top-full right-0 mt-1 w-72 lg:w-80 bg-bg-deep/98 border border-white/10 rounded-md shadow-xl z-40 overflow-hidden"
                     onMouseDown={(e) => e.preventDefault()}
                   >
+                    {landmarks.length > 0 && (
+                      <>
+                        <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/5">
+                          <span className="text-[9px] font-bold uppercase tracking-widest text-kairos-gold">
+                            📍 Landmarks
+                          </span>
+                          <span className="text-[9px] font-mono text-slate-500">{landmarks.length}</span>
+                        </div>
+                        <ul className="max-h-40 overflow-y-auto border-b border-white/5">
+                          {landmarks.map((l) => (
+                            <li key={l.id} className="flex items-center gap-1 hover:bg-white/5 group">
+                              <span className="pl-2 text-kairos-gold text-[11px]">📍</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSearchQuery(l.query);
+                                  void runSearch(l.query);
+                                }}
+                                className="flex-1 text-left px-1 py-1.5 min-w-0"
+                              >
+                                <div className="text-[11px] font-semibold text-white truncate">{l.label}</div>
+                                <div className="text-[10px] text-slate-500 truncate">{l.address}</div>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => renameLandmark(l.id)}
+                                title="Rename"
+                                className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-500 hover:text-white px-1.5"
+                              >
+                                ✎
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeLandmark(l.id)}
+                                title="Remove landmark"
+                                className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-500 hover:text-red-400 px-2"
+                              >
+                                ✕
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
                     <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/5">
                       <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
                         Recent Searches
@@ -848,6 +941,14 @@ export function MapPanel({ service, onServiceChange }: Props) {
                             </button>
                             <button
                               type="button"
+                              onClick={() => saveAsLandmark({ query: r.query, address: r.address })}
+                              title="Save as landmark"
+                              className="opacity-0 group-hover:opacity-100 text-[11px] text-slate-500 hover:text-kairos-gold px-1.5"
+                            >
+                              📍
+                            </button>
+                            <button
+                              type="button"
                               onClick={() =>
                                 setRecent((prev) => prev.filter((p) => p.at !== r.at || p.address !== r.address))
                               }
@@ -879,6 +980,30 @@ export function MapPanel({ service, onServiceChange }: Props) {
               >
                 {mapLocked ? "🔒 Map Locked" : "🔓 Lock Map"}
               </button>
+              {landmarks.length > 0 && (
+                <div
+                  className="flex items-center gap-1 pl-2 ml-1 border-l border-white/10 max-w-[280px] lg:max-w-[420px] overflow-x-auto"
+                  title="Saved landmarks — click to jump (works while annotating or playing back)"
+                >
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 shrink-0">
+                    📍
+                  </span>
+                  {landmarks.map((l) => (
+                    <button
+                      key={l.id}
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery(l.query);
+                        void runSearch(l.query);
+                      }}
+                      title={l.address}
+                      className="text-[10px] font-bold px-2 py-1.5 rounded border border-kairos-gold/30 bg-kairos-gold/10 text-kairos-gold hover:bg-kairos-gold/20 whitespace-nowrap"
+                    >
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </>
           )}
 
