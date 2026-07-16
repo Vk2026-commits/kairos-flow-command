@@ -640,12 +640,12 @@ export function MapPanel({ service, onServiceChange }: Props) {
         )}
         {layersOpen && (
         <div className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl">
-          <div
-            {...makeDragHandlers(layersOff, setLayersOff)}
-            className="flex items-center justify-between mb-3 cursor-grab active:cursor-grabbing select-none"
-            title="Drag to move"
-          >
-            <h4 className="text-xs font-bold uppercase tracking-widest text-white">
+          <div className="flex items-center justify-between mb-3">
+            <h4
+              {...makeDragHandlers(layersOff, setLayersOff)}
+              className="text-xs font-bold uppercase tracking-widest text-white cursor-grab active:cursor-grabbing select-none"
+              title="Drag to move"
+            >
               ⋮⋮ Map Layers
             </h4>
             <div className="flex items-center gap-2">
