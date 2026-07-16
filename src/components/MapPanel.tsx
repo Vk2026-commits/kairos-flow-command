@@ -1564,6 +1564,32 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   </div>
                 </div>
 
+                {/* Legend — what each arrow / car color means. */}
+                <div className="mt-2 rounded border border-white/10 bg-white/5 px-2 py-1.5">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-slate-300 mb-1">
+                    Legend
+                  </div>
+                  <ul className="space-y-1">
+                    {([
+                      { k: "ingress", label: "Ingress", desc: "Vehicles arriving" },
+                      { k: "egress", label: "Egress", desc: "Vehicles departing" },
+                      { k: "shuttle", label: "Shuttle", desc: "Shuttle route" },
+                      { k: "closure", label: "Closure", desc: "Road closed" },
+                    ] as const).map((row) => (
+                      <li key={row.k} className="flex items-center gap-2">
+                        <span
+                          className="inline-block h-2.5 w-4 rounded-sm border border-black/40"
+                          style={{ background: TOOL_COLORS[row.k] }}
+                        />
+                        <span className="text-[10px] font-bold text-white">{row.label}</span>
+                        <span className="text-[10px] text-slate-400">{row.desc}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+
+
 
 
                 {/* Line thickness — per-base so animated arrows stay readable on any map. */}
