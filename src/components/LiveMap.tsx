@@ -68,7 +68,7 @@ function loadGoogleMaps(): Promise<typeof google> {
       key,
       loading: "async",
       v: "weekly",
-      libraries: "geometry",
+      libraries: "geometry,places",
       callback: cbName,
     });
     if (channel) params.set("channel", channel);
