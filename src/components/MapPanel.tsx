@@ -669,6 +669,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
       {/* Layer control panel */}
       <div
+        data-drag-panel
         className="absolute top-4 left-4 lg:top-6 lg:left-6 w-64 z-10"
         style={{ transform: `translate(${layersOff.x}px, ${layersOff.y}px)` }}
       >
