@@ -802,9 +802,9 @@ export function MapPanel({ service, onServiceChange }: Props) {
                       <button
                         type="button"
                         onClick={() => {
-                          setRecent([]);
-                          setRecentOpen(false);
+                          setRecent((prev) => prev.filter((p) => p.pinned));
                         }}
+                        title="Clear unpinned searches (pinned stay)"
                         className="text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-red-400"
                       >
                         Clear
@@ -817,14 +817,31 @@ export function MapPanel({ service, onServiceChange }: Props) {
                         </li>
                       ) : (
                         filteredRecent.map((r) => (
-                          <li key={`${r.at}-${r.address}`} className="flex items-center gap-1 hover:bg-white/5 group">
+                          <li
+                            key={`${r.at}-${r.address}`}
+                            className={`flex items-center gap-1 hover:bg-white/5 group ${
+                              r.pinned ? "bg-kairos-gold/5" : ""
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => togglePin(r)}
+                              title={r.pinned ? "Unpin" : "Pin to top"}
+                              className={`px-2 py-1.5 text-[11px] transition ${
+                                r.pinned
+                                  ? "text-kairos-gold"
+                                  : "text-slate-600 opacity-60 group-hover:opacity-100 hover:text-kairos-gold"
+                              }`}
+                            >
+                              {r.pinned ? "★" : "☆"}
+                            </button>
                             <button
                               type="button"
                               onClick={() => {
                                 setSearchQuery(r.query);
                                 void runSearch(r.query);
                               }}
-                              className="flex-1 text-left px-2.5 py-1.5 min-w-0"
+                              className="flex-1 text-left px-1 py-1.5 min-w-0"
                             >
                               <div className="text-[11px] text-white truncate">{r.query}</div>
                               <div className="text-[10px] text-slate-500 truncate">{r.address}</div>
