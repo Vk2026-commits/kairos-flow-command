@@ -94,17 +94,59 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMsg, setSearchMsg] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
   const [searching, setSearching] = useState(false);
+  type RecentSearch = { query: string; address: string; at: number };
+  const RECENT_KEY = "kairos:recent-searches:v1";
+  const [recent, setRecent] = useState<RecentSearch[]>([]);
+  const [recentOpen, setRecentOpen] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(RECENT_KEY);
+      if (raw) setRecent(JSON.parse(raw));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
+    } catch {
+      /* ignore */
+    }
+  }, [recent]);
+
+  async function runSearch(q: string) {
+    if (!liveMapRef.current || !q.trim()) return;
+    setSearching(true);
+    setSearchMsg(null);
+    setRecentOpen(false);
+    const r = await liveMapRef.current.search(q);
+    setSearching(false);
+    if (r.ok) {
+      setSearchMsg({ tone: "ok", text: r.address });
+      setRecent((prev) => {
+        const entry: RecentSearch = { query: q.trim(), address: r.address, at: Date.now() };
+        const deduped = prev.filter(
+          (p) => p.address !== entry.address && p.query.toLowerCase() !== entry.query.toLowerCase(),
+        );
+        return [entry, ...deduped].slice(0, 10);
+      });
+    } else {
+      setSearchMsg({ tone: "err", text: r.error });
+    }
+  }
 
   async function submitSearch(e: React.FormEvent) {
     e.preventDefault();
-    if (!liveMapRef.current || !searchQuery.trim()) return;
-    setSearching(true);
-    setSearchMsg(null);
-    const r = await liveMapRef.current.search(searchQuery);
-    setSearching(false);
-    if (r.ok) setSearchMsg({ tone: "ok", text: r.address });
-    else setSearchMsg({ tone: "err", text: r.error });
+    await runSearch(searchQuery);
   }
+
+  const filteredRecent = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return recent;
+    return recent.filter(
+      (r) => r.query.toLowerCase().includes(q) || r.address.toLowerCase().includes(q),
+    );
+  }, [recent, searchQuery]);
 
   const [mapLocked, setMapLocked] = useState(false);
   useEffect(() => {
