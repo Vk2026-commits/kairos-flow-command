@@ -1457,6 +1457,79 @@ export function MapPanel({ service, onServiceChange }: Props) {
                     <line x1="2" y1="3" x2="98" y2="3" stroke="#facc15" strokeWidth={strokeW} strokeLinecap="round" />
                   </svg>
                 </div>
+
+                {/* Arrowhead size — keeps animated tips proportional to line thickness. */}
+                <div className="mt-1.5 rounded border border-white/10 bg-white/5 px-2 py-1.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                      Arrowhead Size
+                      <span className="ml-1 text-slate-500 font-mono normal-case">on {base}</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-kairos-gold">{arrowScale.toFixed(2)}×</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBaseArrow(Math.max(0.3, +(arrowScale - 0.1).toFixed(2)))}
+                      title="Smaller arrowhead"
+                      className="size-6 rounded bg-white/5 border border-white/10 text-slate-300 hover:text-white grid place-items-center text-xs"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="range"
+                      min={0.3}
+                      max={3}
+                      step={0.1}
+                      value={arrowScale}
+                      onChange={(e) => setBaseArrow(parseFloat(e.target.value))}
+                      className="flex-1 accent-kairos-gold"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setBaseArrow(Math.min(3, +(arrowScale + 0.1).toFixed(2)))}
+                      title="Larger arrowhead"
+                      className="size-6 rounded bg-white/5 border border-white/10 text-slate-300 hover:text-white grid place-items-center text-xs"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBaseArrow(1)}
+                      title="Reset to default"
+                      className="text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-white px-1"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  {/* Preview showing the arrow at current stroke + scale. */}
+                  <svg viewBox="0 0 100 8" className="w-full h-4 mt-1" preserveAspectRatio="none">
+                    <defs>
+                      <marker
+                        id="arr-preview"
+                        viewBox="0 0 10 10"
+                        refX="8"
+                        refY="5"
+                        markerWidth={markerSize}
+                        markerHeight={markerSize}
+                        orient="auto"
+                      >
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#facc15" />
+                      </marker>
+                    </defs>
+                    <line
+                      x1="2"
+                      y1="4"
+                      x2="90"
+                      y2="4"
+                      stroke="#facc15"
+                      strokeWidth={strokeW}
+                      strokeLinecap="round"
+                      markerEnd="url(#arr-preview)"
+                    />
+                  </svg>
+                </div>
+
                 <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                   <button type="button" onClick={exportAnnotations} disabled={!annotations.length} className="text-[10px] font-bold py-1.5 rounded border border-kairos-blue/40 text-kairos-blue hover:bg-kairos-blue/10 transition disabled:opacity-30 disabled:cursor-not-allowed">↓ Export JSON</button>
                   <button type="button" onClick={() => importRef.current?.click()} className="text-[10px] font-bold py-1.5 rounded border border-kairos-gold/40 text-kairos-gold hover:bg-kairos-gold/10 transition">↑ Import JSON</button>
