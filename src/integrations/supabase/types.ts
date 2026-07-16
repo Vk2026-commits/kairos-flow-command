@@ -14,7 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      traffic_plans: {
+        Row: {
+          annotations: Json
+          base: string
+          created_at: string
+          id: string
+          layers: Json
+          live_map_type: string | null
+          live_view: Json | null
+          name: string
+          saved_at: number
+          service: string | null
+          street_view: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          annotations?: Json
+          base: string
+          created_at?: string
+          id?: string
+          layers?: Json
+          live_map_type?: string | null
+          live_view?: Json | null
+          name: string
+          saved_at?: number
+          service?: string | null
+          street_view?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          annotations?: Json
+          base?: string
+          created_at?: string
+          id?: string
+          layers?: Json
+          live_map_type?: string | null
+          live_view?: Json | null
+          name?: string
+          saved_at?: number
+          service?: string | null
+          street_view?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
