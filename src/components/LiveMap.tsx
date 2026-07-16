@@ -162,6 +162,26 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
           return { ok: false as const, error: `Search failed: ${msg}` };
         }
       },
+      getView: () => {
+        const m = mapInst.current;
+        if (!m) return null;
+        const c = m.getCenter();
+        if (!c) return null;
+        return {
+          center: { lat: c.lat(), lng: c.lng() },
+          zoom: m.getZoom() ?? 17,
+          mapType: (m.getMapTypeId() as MapType) ?? "hybrid",
+        };
+      },
+      setView: (v) => {
+        const m = mapInst.current;
+        if (!m) return;
+        m.setMapTypeId(v.mapType);
+        m.setZoom(v.zoom);
+        m.panTo(v.center);
+        markerInst.current?.setPosition(v.center);
+        svInst.current?.setPosition(v.center);
+      },
       setInteractive: (enabled: boolean) => {
         const opts: google.maps.MapOptions = {
           draggable: enabled,
