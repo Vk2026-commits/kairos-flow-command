@@ -971,7 +971,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
           </div>
           <button
             type="button"
-            onClick={() => setPlaybackOpen(false)}
+            onClick={() => collapsePanel(setPlaybackOpen, setPlaybackOff)}
             className="absolute top-1 right-1 size-5 rounded bg-white/5 border border-white/10 text-slate-400 hover:text-white grid place-items-center text-[10px]"
             title="Minimize"
           >
