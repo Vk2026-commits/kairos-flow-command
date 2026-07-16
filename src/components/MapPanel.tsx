@@ -12,7 +12,8 @@ type LayerKey =
   | "closures"
   | "parking";
 
-type BaseKey = "street" | "aerial" | "lot" | "custom";
+type BaseKey = "street" | "aerial" | "lot" | "live" | "custom";
+type LiveMapType = "roadmap" | "satellite" | "hybrid";
 
 type Tool = "ingress" | "egress" | "shuttle" | "closure" | null;
 type ImportMode = "merge" | "replace";
