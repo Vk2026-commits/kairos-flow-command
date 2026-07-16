@@ -683,6 +683,27 @@ function Slide9Parking() {
 }
 
 /* SLIDE 10 — Shuttle */
+function ShuttleStatusIndicators({ s }: { s: { status: string; trips: number } }) {
+  const available = s.status === "Loading" || s.status === "Staging";
+  const enRoute = s.status === "Moving";
+  return (
+    <div className="flex items-center gap-2 mt-2">
+      <span className={`inline-flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-full border transition ${available ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300" : "bg-white/5 border-white/10 text-muted-foreground"}`}>
+        <span className={`size-1.5 rounded-full ${available ? "bg-emerald-400 animate-pulse" : "bg-white/30"}`} />
+        Available
+      </span>
+      <span className={`inline-flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-full border transition ${enRoute ? "bg-kairos-blue/15 border-kairos-blue/40 text-kairos-blue" : "bg-white/5 border-white/10 text-muted-foreground"}`}>
+        <span className={`size-1.5 rounded-full ${enRoute ? "bg-kairos-blue animate-pulse" : "bg-white/30"}`} />
+        En Route
+      </span>
+      <span className="inline-flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-full border bg-kairos-gold/15 border-kairos-gold/40 text-kairos-gold">
+        <CheckCircle2 className="size-3" />
+        {s.trips} trips
+      </span>
+    </div>
+  );
+}
+
 function Slide10Shuttle() {
   const live = useLiveOps();
   const shuttles = live.shuttles;
@@ -709,25 +730,29 @@ function Slide10Shuttle() {
         </div>
         <div className="space-y-2">
           {shuttles.map((s) => (
-            <div key={s.id} className="p-3 rounded-lg border border-white/5 bg-surface flex items-center gap-4">
-              <div className="size-10 rounded-lg bg-kairos-blue/20 border border-kairos-blue/40 grid place-items-center">
-                <Bus className="size-5 text-kairos-blue" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold">{s.id}</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-white/10 text-muted-foreground">{s.status}</span>
+            <div key={s.id} className="p-3 rounded-lg border border-white/5 bg-surface">
+              <div className="flex items-center gap-4">
+                <div className="size-10 rounded-lg bg-kairos-blue/20 border border-kairos-blue/40 grid place-items-center">
+                  <Bus className="size-5 text-kairos-blue" />
                 </div>
-                <div className="text-xs text-muted-foreground">{s.loc}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold">{s.id}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-white/10 text-muted-foreground">{s.status}</span>
+                    {s.type === "golf-cart" && <span className="text-[10px] px-2 py-0.5 rounded bg-kairos-gold/15 border border-kairos-gold/30 text-kairos-gold">Golf Cart</span>}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">{s.loc}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-muted-foreground">PAX</div>
+                  <div className="font-mono font-bold">{s.pax}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-muted-foreground">CYCLE</div>
+                  <div className="font-mono font-bold text-kairos-gold">{formatCycle(s.cycleSec)}</div>
+                </div>
               </div>
-              <div className="text-right">
-                <div className="text-xs text-muted-foreground">PAX</div>
-                <div className="font-mono font-bold">{s.pax}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-xs text-muted-foreground">CYCLE</div>
-                <div className="font-mono font-bold text-kairos-gold">{formatCycle(s.cycleSec)}</div>
-              </div>
+              <ShuttleStatusIndicators s={s} />
             </div>
           ))}
         </div>

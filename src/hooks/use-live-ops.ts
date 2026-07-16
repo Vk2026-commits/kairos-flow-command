@@ -11,13 +11,16 @@ import { useEffect, useState } from "react";
  */
 
 export type ShuttleStatus = "Loading" | "Moving" | "Departure" | "Staging";
+export type VehicleType = "shuttle" | "golf-cart";
 
 export type Shuttle = {
   id: string;
+  type: VehicleType;
   loc: string;
   pax: number;
   cycleSec: number; // seconds since cycle start
   status: ShuttleStatus;
+  trips: number;
 };
 
 export type LiveOps = {
@@ -72,10 +75,9 @@ function seed(): LiveOps {
     incidentRatePct: 0.02,
     trafficClearanceMin: 13,
     shuttles: [
-      { id: "S-01", loc: "UH Lot 12",         pax: 24, cycleSec: 12 * 60 + 40, status: "Loading" },
-      { id: "S-02", loc: "Enroute → Church",  pax: 31, cycleSec: 11 * 60 + 20, status: "Moving" },
-      { id: "S-03", loc: "Church Curb",       pax: 0,  cycleSec: 13 * 60 + 5,  status: "Departure" },
-      { id: "S-04", loc: "TSU Overflow",      pax: 18, cycleSec: 14 * 60 + 10, status: "Loading" },
+      { id: "S-01", type: "shuttle", loc: "UH Lot 12",         pax: 24, cycleSec: 12 * 60 + 40, status: "Loading", trips: 4 },
+      { id: "S-02", type: "shuttle", loc: "Enroute → Church",  pax: 31, cycleSec: 11 * 60 + 20, status: "Moving",  trips: 5 },
+      { id: "GC-01", type: "golf-cart", loc: "Church Curb",    pax: 2,  cycleSec: 6 * 60 + 15,  status: "Loading", trips: 12 },
     ],
   };
 }
@@ -97,12 +99,14 @@ function step(prev: LiveOps): LiveOps {
     staffAttendancePct: Math.max(98, Math.min(100, jitter(prev.staffAttendancePct, 0.1, 1))),
     incidentRatePct: 0.02,
     trafficClearanceMin: Math.max(11, Math.min(15, Math.round(jitter(prev.trafficClearanceMin, 0.5)))),
-    shuttles: prev.shuttles.map((s, i) => {
+    shuttles: prev.shuttles.map((s) => {
       const cycleSec = (s.cycleSec + 5) % (15 * 60);
-      const status = STATUSES[(STATUSES.indexOf(s.status) + (Math.random() < 0.08 ? 1 : 0)) % STATUSES.length];
+      const nextStatus = STATUSES[(STATUSES.indexOf(s.status) + (Math.random() < 0.08 ? 1 : 0)) % STATUSES.length];
       const loc = Math.random() < 0.08 ? LOCS[(LOCS.indexOf(s.loc) + 1) % LOCS.length] : s.loc;
-      const pax = status === "Departure" ? 0 : Math.max(0, Math.min(36, s.pax + (Math.random() < 0.3 ? (Math.random() < 0.5 ? -1 : 1) : 0)));
-      return { id: s.id, loc, pax, cycleSec, status };
+      const capacity = s.type === "golf-cart" ? 6 : 36;
+      const pax = nextStatus === "Departure" ? 0 : Math.max(0, Math.min(capacity, s.pax + (Math.random() < 0.3 ? (Math.random() < 0.5 ? -1 : 1) : 0)));
+      const trips = nextStatus === "Departure" && s.status !== "Departure" ? s.trips + 1 : s.trips;
+      return { ...s, loc, pax, cycleSec, status: nextStatus, trips };
     }),
   };
 }
