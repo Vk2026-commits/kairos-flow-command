@@ -1379,6 +1379,56 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   <button type="button" onClick={undo} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-white/5 text-slate-300 hover:text-white border border-white/5">Undo</button>
                   <button type="button" onClick={cancelDraft} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-white/5 text-slate-300 hover:text-white border border-white/5">Cancel</button>
                 </div>
+
+                {/* Line thickness — per-base so animated arrows stay readable on any map. */}
+                <div className="mt-2 rounded border border-white/10 bg-white/5 px-2 py-1.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                      Line Thickness
+                      <span className="ml-1 text-slate-500 font-mono normal-case">on {base}</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-kairos-gold">{strokeW.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBaseStroke(Math.max(0.2, +(strokeW - 0.1).toFixed(2)))}
+                      title="Thinner"
+                      className="size-6 rounded bg-white/5 border border-white/10 text-slate-300 hover:text-white grid place-items-center text-xs"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="range"
+                      min={0.2}
+                      max={3}
+                      step={0.1}
+                      value={strokeW}
+                      onChange={(e) => setBaseStroke(parseFloat(e.target.value))}
+                      className="flex-1 accent-kairos-gold"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setBaseStroke(Math.min(3, +(strokeW + 0.1).toFixed(2)))}
+                      title="Thicker"
+                      className="size-6 rounded bg-white/5 border border-white/10 text-slate-300 hover:text-white grid place-items-center text-xs"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBaseStroke(DEFAULT_STROKE[base])}
+                      title="Reset to default for this base"
+                      className="text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-white px-1"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  {/* Preview */}
+                  <svg viewBox="0 0 100 6" className="w-full h-3 mt-1" preserveAspectRatio="none">
+                    <line x1="2" y1="3" x2="98" y2="3" stroke="#facc15" strokeWidth={strokeW} strokeLinecap="round" />
+                  </svg>
+                </div>
                 <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                   <button type="button" onClick={exportAnnotations} disabled={!annotations.length} className="text-[10px] font-bold py-1.5 rounded border border-kairos-blue/40 text-kairos-blue hover:bg-kairos-blue/10 transition disabled:opacity-30 disabled:cursor-not-allowed">↓ Export JSON</button>
                   <button type="button" onClick={() => importRef.current?.click()} className="text-[10px] font-bold py-1.5 rounded border border-kairos-gold/40 text-kairos-gold hover:bg-kairos-gold/10 transition">↑ Import JSON</button>
