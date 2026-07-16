@@ -897,18 +897,31 @@ export function MapPanel({ service, onServiceChange }: Props) {
       </div>
 
       {/* Playback panel */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 lg:bottom-6 z-10 w-[min(560px,calc(100%-2rem))]">
+      <div
+        className="absolute bottom-4 left-1/2 lg:bottom-6 z-10 w-[min(560px,calc(100%-2rem))]"
+        style={{
+          transform: `translate(calc(-50% + ${playbackOff.x}px), ${playbackOff.y}px)`,
+        }}
+      >
         {!playbackOpen && (
           <button
             type="button"
             onClick={() => setPlaybackOpen(true)}
-            className="mx-auto block bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition"
+            {...makeDragHandlers(playbackOff, setPlaybackOff)}
+            className="mx-auto block bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition cursor-grab active:cursor-grabbing"
           >
-            ▸ Traffic Flow Playback
+            ⋮⋮ Traffic Flow Playback
           </button>
         )}
         {playbackOpen && (
         <div className="relative bg-surface/85 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 shadow-2xl">
+          <div
+            {...makeDragHandlers(playbackOff, setPlaybackOff)}
+            className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[10px] text-slate-400 hover:text-white cursor-grab active:cursor-grabbing select-none"
+            title="Drag to move"
+          >
+            ⋮⋮
+          </div>
           <button
             type="button"
             onClick={() => setPlaybackOpen(false)}
