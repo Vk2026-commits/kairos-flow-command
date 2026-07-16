@@ -964,6 +964,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {pendingImport && (
