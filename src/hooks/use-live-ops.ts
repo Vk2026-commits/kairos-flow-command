@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useFleetConfig, type FleetConfig } from "@/lib/fleet-config";
 
 /**
  * Shared live operational data source. Powers dashboard KPIs and every
@@ -57,7 +58,33 @@ function jitter(base: number, spread: number, decimals = 0) {
   return Math.round(v * p) / p;
 }
 
-function seed(): LiveOps {
+const SHUTTLE_TEMPLATES: Omit<Shuttle, "id" | "type">[] = [
+  { loc: "UH Lot 12",         pax: 24, cycleSec: 12 * 60 + 40, status: "Loading",  trips: 4 },
+  { loc: "Enroute → Church",  pax: 31, cycleSec: 11 * 60 + 20, status: "Moving",   trips: 5 },
+  { loc: "TSU Overflow",      pax: 18, cycleSec: 9 * 60 + 30,  status: "Staging",  trips: 3 },
+  { loc: "Church Curb",       pax: 0,  cycleSec: 2 * 60 + 10,  status: "Departure", trips: 6 },
+  { loc: "Staging Area",      pax: 12, cycleSec: 5 * 60 + 45,  status: "Loading",  trips: 2 },
+];
+const CART_TEMPLATES: Omit<Shuttle, "id" | "type">[] = [
+  { loc: "Church Curb",       pax: 2,  cycleSec: 6 * 60 + 15,  status: "Loading",  trips: 12 },
+  { loc: "ADA Zone",          pax: 3,  cycleSec: 4 * 60 + 30,  status: "Moving",   trips: 9 },
+  { loc: "Senior Drop-off",   pax: 1,  cycleSec: 3 * 60 + 10,  status: "Staging",  trips: 7 },
+];
+
+function buildShuttleList(cfg: FleetConfig): Shuttle[] {
+  const shuttles: Shuttle[] = [];
+  for (let i = 0; i < cfg.shuttleCount; i++) {
+    const tpl = SHUTTLE_TEMPLATES[i % SHUTTLE_TEMPLATES.length];
+    shuttles.push({ id: `S-${String(i + 1).padStart(2, "0")}`, type: "shuttle", ...tpl });
+  }
+  for (let i = 0; i < cfg.golfCartCount; i++) {
+    const tpl = CART_TEMPLATES[i % CART_TEMPLATES.length];
+    shuttles.push({ id: `GC-${String(i + 1).padStart(2, "0")}`, type: "golf-cart", ...tpl });
+  }
+  return shuttles;
+}
+
+function seed(cfg: FleetConfig): LiveOps {
   return {
     updatedAt: new Date(),
     parkingFillPct: 84,
@@ -65,7 +92,7 @@ function seed(): LiveOps {
     activePersonnel: 58,
     totalPersonnel: 62,
     incidentsOpen: 0,
-    vehiclesActive: 7,
+    vehiclesActive: cfg.shuttleCount + cfg.golfCartCount,
     systemUptimePct: 99.9,
     avgWaitSec: 222,
     passengersPerHour: 612,
@@ -74,11 +101,7 @@ function seed(): LiveOps {
     staffAttendancePct: 99.4,
     incidentRatePct: 0.02,
     trafficClearanceMin: 13,
-    shuttles: [
-      { id: "S-01", type: "shuttle", loc: "UH Lot 12",         pax: 24, cycleSec: 12 * 60 + 40, status: "Loading", trips: 4 },
-      { id: "S-02", type: "shuttle", loc: "Enroute → Church",  pax: 31, cycleSec: 11 * 60 + 20, status: "Moving",  trips: 5 },
-      { id: "GC-01", type: "golf-cart", loc: "Church Curb",    pax: 2,  cycleSec: 6 * 60 + 15,  status: "Loading", trips: 12 },
-    ],
+    shuttles: buildShuttleList(cfg),
   };
 }
 
@@ -118,7 +141,12 @@ export function formatCycle(sec: number) {
 }
 
 export function useLiveOps(intervalMs = 3000): LiveOps {
-  const [data, setData] = useState<LiveOps>(() => seed());
+  const [config] = useFleetConfig();
+  const [data, setData] = useState<LiveOps>(() => seed(config));
+  // Reseed when admin changes fleet counts so vehicle list stays in sync.
+  useEffect(() => {
+    setData(seed(config));
+  }, [config.shuttleCount, config.golfCartCount]);
   useEffect(() => {
     const id = setInterval(() => setData((p) => step(p)), intervalMs);
     return () => clearInterval(id);
