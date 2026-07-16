@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { MapPanel } from "@/components/MapPanel";
 import { useLiveOps, formatCycle } from "@/hooks/use-live-ops";
+import { useFleetConfig } from "@/lib/fleet-config";
 import { speakerNotes } from "@/lib/speaker-notes";
 
 /* Speaker Notes — collapsible section shown at the bottom of every chapter. */
@@ -707,10 +708,12 @@ function ShuttleStatusIndicators({ s }: { s: { status: string; trips: number } }
 function Slide10Shuttle() {
   const live = useLiveOps();
   const shuttles = live.shuttles;
+  const [fleet] = useFleetConfig();
+  const activeLabel = `${fleet.shuttleCount} active shuttle${fleet.shuttleCount === 1 ? "" : "s"}, ${fleet.golfCartCount} golf cart${fleet.golfCartCount === 1 ? "" : "s"}`;
   return (
     <SlideShell eyebrow="CHAPTER 10" title="Shuttle Operations" subtitle="Live tracking of every shuttle in the cycle.">
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <Stat label="Active Shuttles" value="2 active shuttles, one golf cart" />
+        <Stat label="Active Shuttles" value={activeLabel} />
         <Stat label="Avg Wait Time" value={formatCycle(live.avgWaitSec)} sub="Target < 5:00" accent="gold" />
         <Stat label="Avg Cycle Time" value={`${live.avgShuttleCycleMin.toFixed(1)} min`} />
         <Stat label="Passengers / Hour" value={String(live.passengersPerHour)} />
