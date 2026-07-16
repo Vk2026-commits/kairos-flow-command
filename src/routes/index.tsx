@@ -270,14 +270,16 @@ function KpiCard({
             />
           ))}
           <div className="size-6 rounded-full border-2 border-surface bg-kairos-blue flex items-center justify-center text-[9px] font-bold text-white">
-            +55
+            +{personnelExtra ?? 55}
           </div>
         </div>
       )}
 
-      {statusNominal && (
+      {statusNominal !== undefined && (
         <div className="text-[10px] font-mono text-slate-500 uppercase mt-4">
-          No open incidents recorded
+          {incidentsOpen && incidentsOpen > 0
+            ? `${incidentsOpen} open incident${incidentsOpen === 1 ? "" : "s"}`
+            : "No open incidents recorded"}
         </div>
       )}
     </div>
