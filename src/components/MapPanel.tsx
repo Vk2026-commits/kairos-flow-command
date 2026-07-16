@@ -842,7 +842,25 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
       {/* Playback panel */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 lg:bottom-6 z-10 w-[min(560px,calc(100%-2rem))]">
+        {!playbackOpen && (
+          <button
+            type="button"
+            onClick={() => setPlaybackOpen(true)}
+            className="mx-auto block bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition"
+          >
+            ▸ Traffic Flow Playback
+          </button>
+        )}
+        {playbackOpen && (
         <div className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 shadow-2xl">
+          <button
+            type="button"
+            onClick={() => setPlaybackOpen(false)}
+            className="absolute top-1 right-1 size-5 rounded bg-white/5 border border-white/10 text-slate-400 hover:text-white grid place-items-center text-[10px]"
+            title="Minimize"
+          >
+            –
+          </button>
           <div className="flex items-center gap-3">
             <button
               type="button"
