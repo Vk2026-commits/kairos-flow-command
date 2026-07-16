@@ -88,6 +88,11 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const [draft, setDraft] = useState<Pt[]>([]);
   const [cursor, setCursor] = useState<Pt | null>(null);
 
+  // Live Google Maps view state
+  const [liveMapType, setLiveMapType] = useState<LiveMapType>("hybrid");
+  const [streetView, setStreetView] = useState(false);
+
+
   // Panel visibility — collapse to get panels out of the way while drawing.
   const [layersOpen, setLayersOpen] = useState(true);
   const [annotateOpen, setAnnotateOpen] = useState(true);
