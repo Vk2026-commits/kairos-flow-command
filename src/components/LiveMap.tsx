@@ -12,12 +12,21 @@ type Props = {
   streetView?: boolean;
 };
 
+export type LiveMapView = {
+  center: { lat: number; lng: number };
+  zoom: number;
+  mapType: MapType;
+  streetView?: boolean;
+};
+
 export type LiveMapHandle = {
   zoomIn: () => void;
   zoomOut: () => void;
   reset: () => void;
   search: (query: string) => Promise<{ ok: true; address: string } | { ok: false; error: string }>;
   setInteractive: (enabled: boolean) => void;
+  getView: () => LiveMapView | null;
+  setView: (v: LiveMapView) => void;
 };
 
 let mapsLoader: Promise<typeof google> | null = null;
@@ -152,6 +161,26 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
           }
           return { ok: false as const, error: `Search failed: ${msg}` };
         }
+      },
+      getView: () => {
+        const m = mapInst.current;
+        if (!m) return null;
+        const c = m.getCenter();
+        if (!c) return null;
+        return {
+          center: { lat: c.lat(), lng: c.lng() },
+          zoom: m.getZoom() ?? 17,
+          mapType: (m.getMapTypeId() as MapType) ?? "hybrid",
+        };
+      },
+      setView: (v) => {
+        const m = mapInst.current;
+        if (!m) return;
+        m.setMapTypeId(v.mapType);
+        m.setZoom(v.zoom);
+        m.panTo(v.center);
+        markerInst.current?.setPosition(v.center);
+        svInst.current?.setPosition(v.center);
       },
       setInteractive: (enabled: boolean) => {
         const opts: google.maps.MapOptions = {

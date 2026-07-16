@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import aerialAsset from "@/assets/wheeler-aerial.jpg.asset.json";
 import streetAsset from "@/assets/wheeler-street.jpg.asset.json";
 import lotAsset from "@/assets/wheeler-lot.jpg.asset.json";
-import { LiveMap, type LiveMapHandle } from "./LiveMap";
+import { LiveMap, type LiveMapHandle, type LiveMapView } from "./LiveMap";
 
 type LayerKey =
   | "ingress"
@@ -229,6 +229,98 @@ export function MapPanel({ service, onServiceChange }: Props) {
   function removeLandmark(id: string) {
     setLandmarks((prev) => prev.filter((l) => l.id !== id));
   }
+
+  // Traffic Plans — save the whole map state (annotations + base + layers + live view)
+  // as a named plan so operators can pull it up for any traffic scenario.
+  type TrafficPlan = {
+    id: string;
+    name: string;
+    savedAt: number;
+    base: BaseKey;
+    layers: Record<LayerKey, boolean>;
+    annotations: Annotation[];
+    liveView?: LiveMapView | null;
+    liveMapType?: LiveMapType;
+    streetView?: boolean;
+    service?: Props["service"];
+  };
+  const PLANS_KEY = "kairos:traffic-plans:v1";
+  const [plans, setPlans] = useState<TrafficPlan[]>([]);
+  const [plansOpen, setPlansOpen] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PLANS_KEY);
+      if (raw) setPlans(JSON.parse(raw));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(PLANS_KEY, JSON.stringify(plans));
+    } catch {
+      /* ignore */
+    }
+  }, [plans]);
+
+  function savePlan() {
+    const suggested = `${service} · ${base} · ${new Date().toLocaleDateString()}`;
+    const name = window.prompt("Traffic plan name:", suggested)?.trim();
+    if (!name) return;
+    const liveView = base === "live" ? liveMapRef.current?.getView() ?? null : null;
+    const plan: TrafficPlan = {
+      id: crypto.randomUUID(),
+      name,
+      savedAt: Date.now(),
+      base,
+      layers: { ...layers },
+      annotations: annotations.map((a) => ({ ...a })),
+      liveView,
+      liveMapType,
+      streetView,
+      service,
+    };
+    setPlans((prev) => [plan, ...prev.filter((p) => p.name.toLowerCase() !== name.toLowerCase())]);
+    setPlansOpen(true);
+  }
+
+  function loadPlan(id: string) {
+    const plan = plans.find((p) => p.id === id);
+    if (!plan) return;
+    const replace =
+      annotations.length === 0 ||
+      window.confirm(
+        `Load "${plan.name}"?\n\nOK = Replace current annotations\nCancel = Merge into current annotations`,
+      );
+    setBase(plan.base);
+    setLayers(plan.layers);
+    const incoming = plan.annotations.map((a) => ({ ...a, id: crypto.randomUUID() }));
+    setAnnotations((prev) => (replace ? incoming : [...prev, ...incoming]));
+    if (plan.liveMapType) setLiveMapType(plan.liveMapType);
+    if (typeof plan.streetView === "boolean") setStreetView(plan.streetView);
+    if (plan.service) onServiceChange(plan.service);
+    if (plan.base === "live" && plan.liveView) {
+      // Defer until LiveMap mounts / becomes visible.
+      window.setTimeout(() => liveMapRef.current?.setView(plan.liveView!), 300);
+    }
+    setPlansOpen(true);
+  }
+
+  function renamePlan(id: string) {
+    const cur = plans.find((p) => p.id === id);
+    if (!cur) return;
+    const name = window.prompt("Rename plan:", cur.name)?.trim();
+    if (!name) return;
+    setPlans((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)));
+  }
+
+  function deletePlan(id: string) {
+    const cur = plans.find((p) => p.id === id);
+    if (!cur) return;
+    if (!window.confirm(`Delete plan "${cur.name}"?`)) return;
+    setPlans((prev) => prev.filter((p) => p.id !== id));
+  }
+
 
 
   const [mapLocked, setMapLocked] = useState(false);
@@ -1131,6 +1223,74 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={onImportFile} />
                 </div>
                 <button type="button" onClick={clearAll} className="mt-1.5 w-full text-[10px] font-bold py-1.5 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition">Clear All Annotations</button>
+
+                {/* ===== Traffic Plans ===== */}
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <h5 className="text-[10px] font-bold uppercase tracking-widest text-white">
+                      Traffic Plans <span className="text-kairos-gold font-mono ml-1">{plans.length}</span>
+                    </h5>
+                    <button
+                      type="button"
+                      onClick={() => setPlansOpen((v) => !v)}
+                      className="text-[10px] text-slate-400 hover:text-white"
+                    >
+                      {plansOpen ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={savePlan}
+                    className="w-full text-[10px] font-bold py-1.5 rounded bg-kairos-gold text-bg-deep hover:brightness-110 transition flex items-center justify-center gap-1.5"
+                    title="Save current annotations, base layer, and map view as a reusable traffic plan"
+                  >
+                    💾 Save Current as Traffic Plan
+                  </button>
+                  {plansOpen && (
+                    <ul className="mt-2 max-h-48 overflow-y-auto space-y-1">
+                      {plans.length === 0 ? (
+                        <li className="text-[10px] text-slate-500 italic px-1 py-1">
+                          No saved plans yet. Save the current setup to reuse later.
+                        </li>
+                      ) : (
+                        plans.map((p) => (
+                          <li
+                            key={p.id}
+                            className="flex items-center gap-1 rounded bg-white/5 border border-white/5 hover:border-kairos-gold/30 group"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => loadPlan(p.id)}
+                              className="flex-1 min-w-0 text-left px-2 py-1.5"
+                              title="Load this plan"
+                            >
+                              <div className="text-[11px] font-semibold text-white truncate">{p.name}</div>
+                              <div className="text-[9px] font-mono text-slate-500 truncate">
+                                {p.base} · {p.annotations.length} ann · {new Date(p.savedAt).toLocaleDateString()}
+                              </div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => renamePlan(p.id)}
+                              title="Rename"
+                              className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-500 hover:text-white px-1.5"
+                            >
+                              ✎
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deletePlan(p.id)}
+                              title="Delete plan"
+                              className="opacity-0 group-hover:opacity-100 text-[10px] text-slate-500 hover:text-red-400 px-2"
+                            >
+                              ✕
+                            </button>
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  )}
+                </div>
               </div>
             )}
 
