@@ -71,7 +71,7 @@ function loadGoogleMaps(): Promise<typeof google> {
 }
 
 export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
-  { center = WHEELER_LATLNG, mapType = "hybrid", streetView = false },
+  { center = WHEELER_LATLNG, mapType = "hybrid", streetView = false, initialView = null },
   ref,
 ) {
   const mapRef = useRef<HTMLDivElement>(null);
