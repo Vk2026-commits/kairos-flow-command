@@ -263,6 +263,13 @@ export function MapPanel({ service, onServiceChange }: Props) {
     );
   }
 
+  type LandmarkImportPreview = {
+    incoming: Landmark[];
+    duplicateKeys: Set<string>;
+    fileName: string;
+  };
+  const [landmarkImport, setLandmarkImport] = useState<LandmarkImportPreview | null>(null);
+
   async function onImportLandmarks(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = "";
@@ -274,35 +281,45 @@ export function MapPanel({ service, onServiceChange }: Props) {
       if (!Array.isArray(list)) throw new Error("No landmarks array found.");
       const clean = list.filter(isValidLandmark) as Landmark[];
       if (!clean.length) throw new Error("File contained no valid landmarks.");
-      const mode = window.confirm(
-        `Import ${clean.length} landmark(s)?\n\nOK = Merge with existing (skip duplicates)\nCancel = Replace all current landmarks`,
-      )
-        ? "merge"
-        : "replace";
-      setLandmarks((prev) => {
-        const incoming = clean.map((l) => ({
-          id: crypto.randomUUID(),
-          label: l.label,
-          query: l.query,
-          address: l.address,
-          at: typeof l.at === "number" ? l.at : Date.now(),
-        }));
-        if (mode === "replace") return incoming;
-        const seen = new Set(
-          prev.map((p) => `${p.label.toLowerCase()}::${p.address.toLowerCase()}`),
-        );
-        const deduped = incoming.filter(
-          (l) => !seen.has(`${l.label.toLowerCase()}::${l.address.toLowerCase()}`),
-        );
-        return [...deduped, ...prev];
-      });
-      setRecentOpen(true);
+      const existingKeys = new Set(
+        landmarks.map((p) => `${p.label.toLowerCase()}::${p.address.toLowerCase()}`),
+      );
+      const duplicateKeys = new Set(
+        clean
+          .map((l) => `${l.label.toLowerCase()}::${l.address.toLowerCase()}`)
+          .filter((k) => existingKeys.has(k)),
+      );
+      setLandmarkImport({ incoming: clean, duplicateKeys, fileName: f.name });
     } catch (err) {
       window.alert(
         `Import failed: ${err instanceof Error ? err.message : "invalid file"}`,
       );
     }
   }
+
+  function commitLandmarkImport(mode: "merge" | "replace") {
+    if (!landmarkImport) return;
+    const incoming = landmarkImport.incoming.map((l) => ({
+      id: crypto.randomUUID(),
+      label: l.label,
+      query: l.query,
+      address: l.address,
+      at: typeof l.at === "number" ? l.at : Date.now(),
+    }));
+    setLandmarks((prev) => {
+      if (mode === "replace") return incoming;
+      const seen = new Set(
+        prev.map((p) => `${p.label.toLowerCase()}::${p.address.toLowerCase()}`),
+      );
+      const deduped = incoming.filter(
+        (l) => !seen.has(`${l.label.toLowerCase()}::${l.address.toLowerCase()}`),
+      );
+      return [...deduped, ...prev];
+    });
+    setLandmarkImport(null);
+    setRecentOpen(true);
+  }
+
 
 
   // Traffic Plans — save the whole map state (annotations + base + layers + live view)
