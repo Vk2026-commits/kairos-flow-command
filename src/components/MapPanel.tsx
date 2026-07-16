@@ -101,17 +101,25 @@ function sampleCarsOnPath(points: Pt[], spacing: number, revealFrac = 1) {
   return cars;
 }
 
-// Small top-down car glyph, ~2.2 units long. Rendered inside the main
-// viewBox (0..100) so scale matches the annotation stroke width.
-function CarGlyph({ x, y, angle, color }: { x: number; y: number; angle: number; color: string }) {
+// Top-down car glyph with visible wheels. ~3 units long, ~1.6 wide.
+// Drawn inside the main viewBox (0..100) so scale matches annotation strokes.
+function CarGlyph({ x, y, angle, color, scale = 1 }: { x: number; y: number; angle: number; color: string; scale?: number }) {
   return (
-    <g transform={`translate(${x} ${y}) rotate(${angle})`}>
+    <g transform={`translate(${x} ${y}) rotate(${angle}) scale(${scale})`}>
+      {/* wheels (drawn under body so they poke out on the sides) */}
+      <rect x="-1.15" y="-0.95" width="0.6" height="0.35" rx="0.08" fill="#111827" />
+      <rect x="-1.15" y="0.60" width="0.6" height="0.35" rx="0.08" fill="#111827" />
+      <rect x="0.55" y="-0.95" width="0.6" height="0.35" rx="0.08" fill="#111827" />
+      <rect x="0.55" y="0.60" width="0.6" height="0.35" rx="0.08" fill="#111827" />
       {/* body */}
-      <rect x="-1.1" y="-0.55" width="2.2" height="1.1" rx="0.25" fill={color} stroke="rgba(0,0,0,0.55)" strokeWidth="0.08" />
-      {/* windshield hint */}
-      <rect x="0.15" y="-0.4" width="0.55" height="0.8" rx="0.1" fill="rgba(255,255,255,0.55)" />
-      {/* nose */}
-      <circle cx="1.05" cy="0" r="0.15" fill="rgba(255,255,255,0.85)" />
+      <rect x="-1.5" y="-0.7" width="3" height="1.4" rx="0.4" fill={color} stroke="rgba(0,0,0,0.7)" strokeWidth="0.1" />
+      {/* windshield */}
+      <rect x="0.25" y="-0.55" width="0.7" height="1.1" rx="0.15" fill="rgba(180,220,255,0.85)" stroke="rgba(0,0,0,0.4)" strokeWidth="0.05" />
+      {/* rear window */}
+      <rect x="-0.95" y="-0.55" width="0.55" height="1.1" rx="0.15" fill="rgba(180,220,255,0.55)" stroke="rgba(0,0,0,0.4)" strokeWidth="0.05" />
+      {/* headlights */}
+      <circle cx="1.35" cy="-0.42" r="0.14" fill="#fef3c7" />
+      <circle cx="1.35" cy="0.42" r="0.14" fill="#fef3c7" />
     </g>
   );
 }
