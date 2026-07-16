@@ -1645,10 +1645,41 @@ export function MapPanel({ service, onServiceChange }: Props) {
                       <p className="text-[10px] font-mono text-slate-400">
                         {playbackSeq.length ? `${Math.min(Math.ceil(progress), playbackSeq.length)} / ${playbackSeq.length}` : "no arrows"}
                       </p>
+                      <p className="text-[10px] font-mono text-slate-500 tabular-nums">
+                        {playbackSeq.length ? `${Math.round((progress / playbackSeq.length) * 100)}%` : ""}
+                      </p>
                     </div>
-                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                      <div className="h-full bg-kairos-blue transition-[width] duration-100" style={{ width: playbackSeq.length ? `${(progress / playbackSeq.length) * 100}%` : "0%" }} />
+                    <div className="relative h-4 flex items-center">
+                      <div className="absolute inset-x-0 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-kairos-blue" style={{ width: playbackSeq.length ? `${(progress / playbackSeq.length) * 100}%` : "0%" }} />
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={playbackSeq.length || 1}
+                        step={0.01}
+                        value={Math.min(progress, playbackSeq.length)}
+                        onChange={(e) => { setPlaying(false); setProgress(+e.target.value); }}
+                        disabled={!playbackSeq.length}
+                        className="relative w-full h-4 appearance-none bg-transparent accent-kairos-gold cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label="Playback scrubber"
+                      />
                     </div>
+                    {playbackSeq.length > 1 && (
+                      <div className="mt-1 flex justify-between">
+                        {playbackSeq.map((_, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => { setPlaying(false); setProgress(i + 1); }}
+                            className="text-[9px] font-mono text-slate-500 hover:text-kairos-gold transition tabular-nums"
+                            title={`Jump to arrow ${i + 1}`}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="mt-3 pt-2 border-t border-white/10">
