@@ -15,6 +15,7 @@ type LayerKey =
 type BaseKey = "street" | "aerial" | "lot" | "custom";
 
 type Tool = "ingress" | "egress" | "shuttle" | "closure" | null;
+type ImportMode = "merge" | "replace";
 
 type Pt = { x: number; y: number };
 type Annotation =
@@ -90,6 +91,11 @@ export function MapPanel({ service, onServiceChange }: Props) {
   // progress is measured in "arrows": integer part = fully drawn count,
   // fractional part = reveal progress of the current arrow.
   const [progress, setProgress] = useState(0);
+  const [pendingImport, setPendingImport] = useState<{
+    annotations: Annotation[];
+    selectedBases: Record<BaseKey, boolean>;
+    mode: ImportMode;
+  } | null>(null);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -128,6 +134,15 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
   function toggle(k: LayerKey) {
     setLayers((s) => ({ ...s, [k]: !s[k] }));
+  }
+
+  function selectBase(nextBase: BaseKey) {
+    setBase(nextBase);
+    setTool(null);
+    setDraft([]);
+    setCursor(null);
+    setPlaying(false);
+    setProgress(0);
   }
 
   function ptFromEvent(e: React.MouseEvent): Pt | null {
@@ -226,7 +241,12 @@ export function MapPanel({ service, onServiceChange }: Props) {
   function isValidAnnotation(a: unknown): a is Annotation {
     if (!a || typeof a !== "object") return false;
     const r = a as Record<string, unknown>;
-    if (typeof r.id !== "string" || typeof r.base !== "string") return false;
+    if (
+      typeof r.id !== "string" ||
+      !(["street", "aerial", "lot", "custom"] as string[]).includes(String(r.base))
+    ) {
+      return false;
+    }
     if (r.kind === "closure") {
       const p = r.point as Pt | undefined;
       return (
@@ -260,18 +280,49 @@ export function MapPanel({ service, onServiceChange }: Props) {
       if (!Array.isArray(list)) throw new Error("No annotations array found.");
       const clean = list.filter(isValidAnnotation) as Annotation[];
       if (!clean.length) throw new Error("File contained no valid annotations.");
-
-      const replace = window.confirm(
-        `Import ${clean.length} annotation(s).\n\nOK = REPLACE current annotations\nCancel = MERGE with current annotations`,
-      );
-      // Regenerate ids on merge to avoid collisions with existing entries.
-      const withIds = clean.map((a) => ({ ...a, id: crypto.randomUUID() }));
-      setAnnotations((prev) => (replace ? withIds : [...prev, ...withIds]));
+      setPendingImport({
+        annotations: clean,
+        selectedBases: {
+          street: clean.some((a) => a.base === "street"),
+          aerial: clean.some((a) => a.base === "aerial"),
+          lot: clean.some((a) => a.base === "lot"),
+          custom: clean.some((a) => a.base === "custom"),
+        },
+        mode: "merge",
+      });
     } catch (err) {
       window.alert(
         `Import failed: ${err instanceof Error ? err.message : "invalid file"}`,
       );
     }
+  }
+
+  function setImportBase(baseKey: BaseKey, selected: boolean) {
+    setPendingImport((current) =>
+      current
+        ? {
+            ...current,
+            selectedBases: { ...current.selectedBases, [baseKey]: selected },
+          }
+        : current,
+    );
+  }
+
+  function commitImport() {
+    if (!pendingImport) return;
+    const selected = pendingImport.annotations.filter(
+      (a) => pendingImport.selectedBases[a.base],
+    );
+    if (!selected.length) return;
+    const withIds = selected.map((a) => ({ ...a, id: crypto.randomUUID() }));
+    setAnnotations((prev) => {
+      if (pendingImport.mode === "replace") {
+        const selectedBases = new Set(selected.map((a) => a.base));
+        return [...prev.filter((a) => !selectedBases.has(a.base)), ...withIds];
+      }
+      return [...prev, ...withIds];
+    });
+    setPendingImport(null);
   }
 
 
@@ -543,8 +594,12 @@ export function MapPanel({ service, onServiceChange }: Props) {
               const on = layers[l.key];
               return (
                 <button
+                  type="button"
                   key={l.key}
-                  onClick={() => toggle(l.key)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggle(l.key);
+                  }}
                   className="w-full flex items-center justify-between group"
                 >
                   <span className="flex items-center gap-2">
@@ -571,8 +626,12 @@ export function MapPanel({ service, onServiceChange }: Props) {
             <div className="grid grid-cols-2 gap-1.5">
               {bases.map((b) => (
                 <button
+                  type="button"
                   key={b.key}
-                  onClick={() => setBase(b.key)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    selectBase(b.key);
+                  }}
                   className={`text-[10px] font-bold py-1.5 rounded border transition ${
                     base === b.key
                       ? "bg-kairos-blue text-white border-white/10"
@@ -584,7 +643,11 @@ export function MapPanel({ service, onServiceChange }: Props) {
               ))}
             </div>
             <button
-              onClick={() => fileRef.current?.click()}
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                fileRef.current?.click();
+              }}
               className="mt-2 w-full text-[10px] font-bold py-1.5 rounded border border-dashed border-white/15 text-kairos-gold hover:bg-white/5 transition"
             >
               + Upload Aerial Imagery
@@ -617,6 +680,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
               const on = tool === t.k;
               return (
                 <button
+                  type="button"
                   key={t.k}
                   onClick={() => {
                     setDraft([]);
@@ -648,6 +712,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
           <div className="mt-3 flex gap-1.5">
             <button
+              type="button"
               onClick={finishPath}
               disabled={!tool || tool === "closure" || draft.length < 2}
               className="flex-1 text-[10px] font-bold py-1.5 rounded bg-kairos-blue text-white disabled:opacity-30 disabled:cursor-not-allowed"
@@ -655,12 +720,14 @@ export function MapPanel({ service, onServiceChange }: Props) {
               Finish
             </button>
             <button
+              type="button"
               onClick={undo}
               className="flex-1 text-[10px] font-bold py-1.5 rounded bg-white/5 text-slate-300 hover:text-white border border-white/5"
             >
               Undo
             </button>
             <button
+              type="button"
               onClick={cancelDraft}
               className="flex-1 text-[10px] font-bold py-1.5 rounded bg-white/5 text-slate-300 hover:text-white border border-white/5"
             >
@@ -669,6 +736,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
           </div>
           <div className="mt-1.5 grid grid-cols-2 gap-1.5">
             <button
+              type="button"
               onClick={exportAnnotations}
               disabled={!annotations.length}
               className="text-[10px] font-bold py-1.5 rounded border border-kairos-blue/40 text-kairos-blue hover:bg-kairos-blue/10 transition disabled:opacity-30 disabled:cursor-not-allowed"
@@ -676,6 +744,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
               ↓ Export JSON
             </button>
             <button
+              type="button"
               onClick={() => importRef.current?.click()}
               className="text-[10px] font-bold py-1.5 rounded border border-kairos-gold/40 text-kairos-gold hover:bg-kairos-gold/10 transition"
             >
@@ -690,6 +759,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
             />
           </div>
           <button
+            type="button"
             onClick={clearAll}
             className="mt-1.5 w-full text-[10px] font-bold py-1.5 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition"
           >
@@ -703,6 +773,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
       <div className="absolute bottom-4 right-4 lg:bottom-6 lg:right-6 flex gap-2 z-10">
         {(["7:00 AM", "10:00 AM", "1:00 PM"] as const).map((s) => (
           <button
+            type="button"
             key={s}
             onClick={() => onServiceChange(s)}
             className={`px-3 py-2 rounded-lg text-[11px] font-bold transition-all border ${
@@ -727,6 +798,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
         <div className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 shadow-2xl">
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={togglePlay}
               disabled={!playbackSeq.length}
               className="size-9 rounded-full bg-kairos-blue text-white grid place-items-center hover:brightness-110 transition disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
@@ -744,6 +816,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
               )}
             </button>
             <button
+              type="button"
               onClick={() => {
                 setPlaying(false);
                 setProgress(0);
@@ -811,6 +884,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
             <div className="flex gap-1 shrink-0">
               {([0.5, 1, 2, 4] as const).map((s) => (
                 <button
+                  type="button"
                   key={s}
                   onClick={() => setSpeed(s)}
                   className={`text-[10px] font-bold px-2 py-1 rounded transition ${
@@ -826,6 +900,107 @@ export function MapPanel({ service, onServiceChange }: Props) {
           </div>
         </div>
       </div>
+
+      {pendingImport && (
+        <div className="absolute inset-0 z-30 bg-bg-deep/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-surface border border-white/10 rounded-2xl p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-kairos-gold">
+                  Import Annotations
+                </p>
+                <h4 className="mt-1 text-lg font-bold text-white">
+                  Pick base layers
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPendingImport(null)}
+                className="size-8 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition"
+                aria-label="Close import picker"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {(["street", "aerial", "lot", "custom"] as BaseKey[]).map((baseKey) => {
+                const count = pendingImport.annotations.filter((a) => a.base === baseKey).length;
+                const disabled = count === 0;
+                const label =
+                  baseKey === "lot"
+                    ? "Lot Plan"
+                    : baseKey === "custom"
+                      ? "Custom Upload"
+                      : baseKey[0].toUpperCase() + baseKey.slice(1);
+                return (
+                  <label
+                    key={baseKey}
+                    className={`flex items-center justify-between rounded-xl border px-3 py-2.5 transition ${
+                      disabled
+                        ? "border-white/5 bg-white/[0.02] opacity-45"
+                        : "border-white/10 bg-white/5 hover:bg-white/10"
+                    }`}
+                  >
+                    <span className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={pendingImport.selectedBases[baseKey]}
+                        disabled={disabled}
+                        onChange={(event) => setImportBase(baseKey, event.target.checked)}
+                        className="size-4 accent-kairos-blue"
+                      />
+                      <span className="text-sm font-bold text-white">{label}</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-500">
+                      {count} item{count === 1 ? "" : "s"}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {(["merge", "replace"] as ImportMode[]).map((mode) => (
+                <button
+                  type="button"
+                  key={mode}
+                  onClick={() =>
+                    setPendingImport((current) =>
+                      current ? { ...current, mode } : current,
+                    )
+                  }
+                  className={`rounded-lg border py-2 text-[10px] font-bold uppercase tracking-widest transition ${
+                    pendingImport.mode === mode
+                      ? "bg-kairos-blue text-white border-white/10"
+                      : "bg-white/5 text-slate-400 border-white/10 hover:text-white"
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setPendingImport(null)}
+                className="flex-1 rounded-lg border border-white/10 bg-white/5 py-2 text-xs font-bold text-slate-300 hover:text-white transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={commitImport}
+                disabled={!pendingImport.annotations.some((a) => pendingImport.selectedBases[a.base])}
+                className="flex-1 rounded-lg bg-kairos-gold py-2 text-xs font-black text-bg-deep transition hover:brightness-110 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Import Selected
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
