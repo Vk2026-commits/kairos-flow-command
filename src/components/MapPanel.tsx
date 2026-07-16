@@ -2027,7 +2027,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
               if (hidden) return null;
               const reveal = isDone ? 1 : frac;
               if (renderStyle === "cars") {
-                const spacing = Math.max(1.2, strokeW * 3.2);
+                const spacing = Math.max(4.5, strokeW * 5);
                 const cars = sampleCarsOnPath(a.points, spacing, reveal);
                 return (
                   <g
