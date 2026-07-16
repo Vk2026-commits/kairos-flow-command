@@ -28,6 +28,7 @@ const BASES: { key: BaseKey; label: string; src?: string }[] = [
   { key: "street", label: "Street", src: streetAsset.url },
   { key: "aerial", label: "Aerial", src: aerialAsset.url },
   { key: "lot", label: "Lot Plan", src: lotAsset.url },
+  { key: "live", label: "Live Map" },
 ];
 
 const STOPS = [
