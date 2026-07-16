@@ -600,9 +600,19 @@ export function MapPanel({ service, onServiceChange }: Props) {
             <h4 className="text-xs font-bold uppercase tracking-widest text-white">
               Map Layers
             </h4>
-            <span className="text-[9px] font-mono text-slate-500">
-              {Object.values(layers).filter(Boolean).length}/{LAYERS.length}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-mono text-slate-500">
+                {Object.values(layers).filter(Boolean).length}/{LAYERS.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => setLayersOpen(false)}
+                className="size-5 rounded bg-white/5 border border-white/10 text-slate-400 hover:text-white grid place-items-center text-[10px]"
+                title="Minimize"
+              >
+                –
+              </button>
+            </div>
           </div>
           <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
             {LAYERS.map((l) => {
