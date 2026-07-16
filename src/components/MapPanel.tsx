@@ -732,21 +732,29 @@ export function MapPanel({ service, onServiceChange }: Props) {
       </div>
 
       {/* Annotation toolbar */}
-      <div className="absolute top-4 right-4 lg:top-6 lg:right-6 w-64 z-10">
+      <div
+        className="absolute top-4 right-4 lg:top-6 lg:right-6 w-64 z-10"
+        style={{ transform: `translate(${annotateOff.x}px, ${annotateOff.y}px)` }}
+      >
         {!annotateOpen && (
           <button
             type="button"
             onClick={() => setAnnotateOpen(true)}
-            className="ml-auto block bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition"
+            {...makeDragHandlers(annotateOff, setAnnotateOff)}
+            className="ml-auto block bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition cursor-grab active:cursor-grabbing"
           >
-            ▸ Annotate
+            ⋮⋮ Annotate
           </button>
         )}
         {annotateOpen && (
         <div className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-white">
-              Annotate
+            <h4
+              {...makeDragHandlers(annotateOff, setAnnotateOff)}
+              className="text-xs font-bold uppercase tracking-widest text-white cursor-grab active:cursor-grabbing select-none"
+              title="Drag to move"
+            >
+              ⋮⋮ Annotate
             </h4>
             <div className="flex items-center gap-2">
               <span className="text-[9px] font-mono text-kairos-gold">
