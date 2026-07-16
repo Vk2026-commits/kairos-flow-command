@@ -1011,14 +1011,40 @@ export function MapPanel({ service, onServiceChange }: Props) {
                     className="absolute top-full right-0 mt-1 w-72 lg:w-80 bg-bg-deep/98 border border-white/10 rounded-md shadow-xl z-40 overflow-hidden"
                     onMouseDown={(e) => e.preventDefault()}
                   >
-                    {landmarks.length > 0 && (
-                      <>
-                        <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/5">
-                          <span className="text-[9px] font-bold uppercase tracking-widest text-kairos-gold">
-                            📍 Landmarks
-                          </span>
-                          <span className="text-[9px] font-mono text-slate-500">{landmarks.length}</span>
+                    <>
+                      <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/5 gap-1">
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-kairos-gold">
+                          📍 Landmarks
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={exportLandmarks}
+                            disabled={!landmarks.length}
+                            title="Export landmarks as JSON"
+                            className="text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-kairos-blue disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            ↓ Export
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => landmarksImportRef.current?.click()}
+                            title="Import landmarks from JSON"
+                            className="text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-kairos-gold"
+                          >
+                            ↑ Import
+                          </button>
+                          <input
+                            ref={landmarksImportRef}
+                            type="file"
+                            accept="application/json,.json"
+                            hidden
+                            onChange={onImportLandmarks}
+                          />
+                          <span className="text-[9px] font-mono text-slate-500 ml-1">{landmarks.length}</span>
                         </div>
+                      </div>
+                      {landmarks.length > 0 && (
                         <ul className="max-h-40 overflow-y-auto border-b border-white/5">
                           {landmarks.map((l) => (
                             <li key={l.id} className="flex items-center gap-1 hover:bg-white/5 group">
@@ -1053,8 +1079,9 @@ export function MapPanel({ service, onServiceChange }: Props) {
                             </li>
                           ))}
                         </ul>
-                      </>
-                    )}
+                      )}
+                    </>
+
                     <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/5">
                       <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
                         Recent Searches
