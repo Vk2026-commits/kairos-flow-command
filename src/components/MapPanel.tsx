@@ -2204,6 +2204,73 @@ export function MapPanel({ service, onServiceChange }: Props) {
               </div>
             )}
 
+            {personnelOpen && (
+              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-white">
+                    Personnel <span className="text-kairos-gold font-mono ml-1">{annotations.filter((a) => a.base === base && a.kind === "personnel").length} on {base}</span>
+                  </h4>
+                  <button type="button" onClick={() => setPersonnelOpen(false)} className="text-[10px] text-slate-400 hover:text-white">✕</button>
+                </div>
+                <div className="text-[10px] text-slate-400 leading-relaxed mb-2">
+                  Pick a role, then click the map to place a person directing traffic. Saves with your Traffic Plans.
+                </div>
+                <div className="space-y-1.5">
+                  {(Object.keys(PERSONNEL_META) as PersonnelRole[]).map((role) => {
+                    const meta = PERSONNEL_META[role];
+                    const on = tool === role;
+                    const count = annotations.filter((a) => a.base === base && a.kind === "personnel" && a.role === role).length;
+                    return (
+                      <button
+                        type="button"
+                        key={role}
+                        onClick={() => {
+                          setDraft([]);
+                          setTool(on ? null : role);
+                        }}
+                        className={`w-full flex items-center justify-between gap-2 py-2 px-2 rounded border transition ${
+                          on ? "text-white border-white/30" : "bg-white/5 text-slate-200 border-white/10 hover:text-white"
+                        }`}
+                        style={on ? { background: meta.color } : undefined}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="size-5 rounded-full border-2 border-white flex items-center justify-center"
+                            style={{ background: meta.color }}
+                          >
+                            <svg viewBox="0 0 24 24" className="w-3 h-3 text-white" fill="currentColor" aria-hidden="true">
+                              <circle cx="12" cy="7" r="3.2" />
+                              <path d="M4.5 20c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5v.5h-15V20z" />
+                            </svg>
+                          </span>
+                          <span className="text-[11px] font-bold">{meta.label}</span>
+                        </span>
+                        <span className="text-[10px] font-mono opacity-80">{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {(tool === "hpd" || tool === "security" || tool === "ministry") && (
+                  <div className="mt-2 text-[10px] text-slate-300 leading-relaxed">
+                    Click the map to drop a <b>{PERSONNEL_META[tool].label}</b> marker.
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const roleCount = annotations.filter((a) => a.base === base && a.kind === "personnel").length;
+                    if (!roleCount) return;
+                    if (!window.confirm(`Delete all ${roleCount} personnel markers on ${base}?`)) return;
+                    setAnnotations((prev) => prev.filter((a) => !(a.base === base && a.kind === "personnel")));
+                  }}
+                  className="mt-2 w-full text-[10px] font-bold py-1.5 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition"
+                >
+                  Clear Personnel on {base}
+                </button>
+              </div>
+            )}
+
+
             {playbackOpen && (
               <div className="rounded-lg border border-white/10 bg-white/5 p-3">
                 <div className="flex items-center justify-between mb-2">
