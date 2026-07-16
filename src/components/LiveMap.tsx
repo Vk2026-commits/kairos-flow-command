@@ -209,6 +209,119 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
           return { ok: false as const, error: `Search failed: ${msg}` };
         }
       },
+      getSuggestions: async (input: string) => {
+        const q = input.trim();
+        if (q.length < 2) return [];
+        try {
+          const g = await loadGoogleMaps();
+          const places = (await g.maps.importLibrary("places")) as google.maps.PlacesLibrary;
+          const { AutocompleteSuggestion, AutocompleteSessionToken } = places as unknown as {
+            AutocompleteSuggestion: {
+              fetchAutocompleteSuggestions: (req: {
+                input: string;
+                sessionToken?: google.maps.places.AutocompleteSessionToken;
+                locationBias?: google.maps.LatLngBounds | google.maps.LatLngLiteral;
+              }) => Promise<{ suggestions: Array<{ placePrediction: {
+                placeId: string;
+                text: { text: string };
+                mainText?: { text: string };
+                secondaryText?: { text: string };
+              } | null }> }>;
+            };
+            AutocompleteSessionToken: new () => google.maps.places.AutocompleteSessionToken;
+          };
+          if (!sessionTokenRef.current) sessionTokenRef.current = new AutocompleteSessionToken();
+          const c = mapInst.current?.getCenter();
+          const bias = c ? { lat: c.lat(), lng: c.lng() } : undefined;
+          const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({
+            input: q,
+            sessionToken: sessionTokenRef.current,
+            ...(bias ? { locationBias: bias } : {}),
+          });
+          return suggestions
+            .map((s) => s.placePrediction)
+            .filter((p): p is NonNullable<typeof p> => !!p)
+            .map((p) => ({
+              placeId: p.placeId,
+              primary: p.mainText?.text ?? p.text.text,
+              secondary: p.secondaryText?.text ?? "",
+              full: p.text.text,
+            }));
+        } catch {
+          return [];
+        }
+      },
+      searchPlace: async (placeId: string, fallbackText?: string) => {
+        try {
+          const g = await loadGoogleMaps();
+          if (!mapInst.current) return { ok: false as const, error: "Map not ready." };
+          const places = (await g.maps.importLibrary("places")) as google.maps.PlacesLibrary;
+          const { Place } = places as unknown as {
+            Place: new (opts: { id: string }) => {
+              fetchFields: (opts: { fields: string[] }) => Promise<void>;
+              location?: { lat: () => number; lng: () => number } | null;
+              formattedAddress?: string | null;
+              displayName?: string | null;
+            };
+          };
+          const place = new Place({ id: placeId });
+          await place.fetchFields({ fields: ["location", "formattedAddress", "displayName"] });
+          if (!place.location) {
+            if (fallbackText) {
+              // Fall back to geocoding by text if place has no location.
+              return (this as unknown as LiveMapHandle).search(fallbackText);
+            }
+            return { ok: false as const, error: "Place has no location." };
+          }
+          const pos = { lat: place.location.lat(), lng: place.location.lng() };
+          const address = place.formattedAddress ?? place.displayName ?? fallbackText ?? "";
+          const m = mapInst.current;
+          m.panTo(pos);
+          m.setZoom(18);
+          markerInst.current?.setPosition(pos);
+          markerInst.current?.setTitle(address);
+          const sv = svInst.current;
+          if (sv) {
+            try {
+              const svService = new g.maps.StreetViewService();
+              const pano = await svService.getPanorama({
+                location: pos,
+                radius: 80,
+                source: g.maps.StreetViewSource.OUTDOOR,
+              });
+              const panoPos = pano.data.location?.latLng;
+              if (panoPos) {
+                const target = new g.maps.LatLng(pos.lat, pos.lng);
+                const heading = g.maps.geometry?.spherical
+                  ? g.maps.geometry.spherical.computeHeading(panoPos, target)
+                  : 0;
+                sv.setPano(pano.data.location!.pano!);
+                sv.setPov({ heading, pitch: 0 });
+                sv.setZoom(1);
+              } else {
+                sv.setPosition(pos);
+              }
+            } catch {
+              sv.setPosition(pos);
+            }
+          }
+          // Reset the session token after a place is selected (Places billing session ends).
+          sessionTokenRef.current = null;
+          return { ok: true as const, address };
+        } catch (e) {
+          if (fallbackText) {
+            // Any Places API error → try classic geocode via search.
+            const r = await (mapInst.current
+              ? (async () => {
+                  const handle = { search: undefined as unknown };
+                  return { ok: false as const, error: e instanceof Error ? e.message : String(e) };
+                })()
+              : Promise.resolve({ ok: false as const, error: "Map not ready." }));
+            return r;
+          }
+          return { ok: false as const, error: e instanceof Error ? e.message : String(e) };
+        }
+      },
       getView: () => {
         const m = mapInst.current;
         if (!m) return null;
