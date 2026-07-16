@@ -230,6 +230,98 @@ export function MapPanel({ service, onServiceChange }: Props) {
     setLandmarks((prev) => prev.filter((l) => l.id !== id));
   }
 
+  // Traffic Plans — save the whole map state (annotations + base + layers + live view)
+  // as a named plan so operators can pull it up for any traffic scenario.
+  type TrafficPlan = {
+    id: string;
+    name: string;
+    savedAt: number;
+    base: BaseKey;
+    layers: Record<LayerKey, boolean>;
+    annotations: Annotation[];
+    liveView?: LiveMapView | null;
+    liveMapType?: LiveMapType;
+    streetView?: boolean;
+    service?: Props["service"];
+  };
+  const PLANS_KEY = "kairos:traffic-plans:v1";
+  const [plans, setPlans] = useState<TrafficPlan[]>([]);
+  const [plansOpen, setPlansOpen] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PLANS_KEY);
+      if (raw) setPlans(JSON.parse(raw));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(PLANS_KEY, JSON.stringify(plans));
+    } catch {
+      /* ignore */
+    }
+  }, [plans]);
+
+  function savePlan() {
+    const suggested = `${service} · ${base} · ${new Date().toLocaleDateString()}`;
+    const name = window.prompt("Traffic plan name:", suggested)?.trim();
+    if (!name) return;
+    const liveView = base === "live" ? liveMapRef.current?.getView() ?? null : null;
+    const plan: TrafficPlan = {
+      id: crypto.randomUUID(),
+      name,
+      savedAt: Date.now(),
+      base,
+      layers: { ...layers },
+      annotations: annotations.map((a) => ({ ...a })),
+      liveView,
+      liveMapType,
+      streetView,
+      service,
+    };
+    setPlans((prev) => [plan, ...prev.filter((p) => p.name.toLowerCase() !== name.toLowerCase())]);
+    setPlansOpen(true);
+  }
+
+  function loadPlan(id: string) {
+    const plan = plans.find((p) => p.id === id);
+    if (!plan) return;
+    const replace =
+      annotations.length === 0 ||
+      window.confirm(
+        `Load "${plan.name}"?\n\nOK = Replace current annotations\nCancel = Merge into current annotations`,
+      );
+    setBase(plan.base);
+    setLayers(plan.layers);
+    const incoming = plan.annotations.map((a) => ({ ...a, id: crypto.randomUUID() }));
+    setAnnotations((prev) => (replace ? incoming : [...prev, ...incoming]));
+    if (plan.liveMapType) setLiveMapType(plan.liveMapType);
+    if (typeof plan.streetView === "boolean") setStreetView(plan.streetView);
+    if (plan.service) onServiceChange(plan.service);
+    if (plan.base === "live" && plan.liveView) {
+      // Defer until LiveMap mounts / becomes visible.
+      window.setTimeout(() => liveMapRef.current?.setView(plan.liveView!), 300);
+    }
+    setPlansOpen(true);
+  }
+
+  function renamePlan(id: string) {
+    const cur = plans.find((p) => p.id === id);
+    if (!cur) return;
+    const name = window.prompt("Rename plan:", cur.name)?.trim();
+    if (!name) return;
+    setPlans((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)));
+  }
+
+  function deletePlan(id: string) {
+    const cur = plans.find((p) => p.id === id);
+    if (!cur) return;
+    if (!window.confirm(`Delete plan "${cur.name}"?`)) return;
+    setPlans((prev) => prev.filter((p) => p.id !== id));
+  }
+
+
 
   const [mapLocked, setMapLocked] = useState(false);
   useEffect(() => {
