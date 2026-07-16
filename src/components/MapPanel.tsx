@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import aerialAsset from "@/assets/wheeler-aerial.jpg.asset.json";
 import streetAsset from "@/assets/wheeler-street.jpg.asset.json";
 import lotAsset from "@/assets/wheeler-lot.jpg.asset.json";
-import { LiveMap } from "./LiveMap";
+import { LiveMap, type LiveMapHandle } from "./LiveMap";
 
 type LayerKey =
   | "ingress"
@@ -190,6 +190,38 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
   const fileRef = useRef<HTMLInputElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const liveMapRef = useRef<LiveMapHandle>(null);
+
+  // Zoom & pan for image bases (street/aerial/lot/custom).
+  const [imgZoom, setImgZoom] = useState(1);
+  const [imgPan, setImgPan] = useState({ x: 0, y: 0 });
+  const panDrag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+
+  function zoomIn() {
+    if (base === "live") liveMapRef.current?.zoomIn();
+    else setImgZoom((z) => Math.min(5, +(z + 0.25).toFixed(2)));
+  }
+  function zoomOut() {
+    if (base === "live") liveMapRef.current?.zoomOut();
+    else
+      setImgZoom((z) => {
+        const nz = Math.max(1, +(z - 0.25).toFixed(2));
+        if (nz === 1) setImgPan({ x: 0, y: 0 });
+        return nz;
+      });
+  }
+  function resetView() {
+    if (base === "live") liveMapRef.current?.reset();
+    else {
+      setImgZoom(1);
+      setImgPan({ x: 0, y: 0 });
+    }
+  }
+  useEffect(() => {
+    // Reset image zoom/pan whenever the base layer changes.
+    setImgZoom(1);
+    setImgPan({ x: 0, y: 0 });
+  }, [base]);
 
 
   // Load / persist annotations
@@ -236,14 +268,46 @@ export function MapPanel({ service, onServiceChange }: Props) {
     setProgress(0);
   }
 
+  const contentRef = useRef<HTMLDivElement>(null);
+
   function ptFromEvent(e: React.MouseEvent): Pt | null {
-    const el = surfaceRef.current;
+    const el = contentRef.current ?? surfaceRef.current;
     if (!el) return null;
     const r = el.getBoundingClientRect();
     return {
       x: ((e.clientX - r.left) / r.width) * 100,
       y: ((e.clientY - r.top) / r.height) * 100,
     };
+  }
+
+  // Pan-drag when zoomed and no drawing tool active.
+  function onSurfacePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (tool || base === "live" || imgZoom <= 1) return;
+    const surf = surfaceRef.current;
+    if (!surf) return;
+    panDrag.current = { x: e.clientX, y: e.clientY, ox: imgPan.x, oy: imgPan.y };
+    surf.setPointerCapture(e.pointerId);
+  }
+  function onSurfacePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!panDrag.current) return;
+    const surf = surfaceRef.current;
+    if (!surf) return;
+    const r = surf.getBoundingClientRect();
+    const dx = ((e.clientX - panDrag.current.x) / r.width) * 100;
+    const dy = ((e.clientY - panDrag.current.y) / r.height) * 100;
+    // Limit pan so scaled content stays over the map.
+    const maxPan = ((imgZoom - 1) / imgZoom) * 50;
+    const nx = Math.max(-maxPan, Math.min(maxPan, panDrag.current.ox + dx));
+    const ny = Math.max(-maxPan, Math.min(maxPan, panDrag.current.oy + dy));
+    setImgPan({ x: nx, y: ny });
+  }
+  function onSurfacePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    panDrag.current = null;
+    try {
+      surfaceRef.current?.releasePointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
   }
 
   function onSurfaceClick(e: React.MouseEvent) {
@@ -752,11 +816,30 @@ export function MapPanel({ service, onServiceChange }: Props) {
         onClick={onSurfaceClick}
         onMouseMove={onSurfaceMove}
         onDoubleClick={finishPath}
-        className={`relative flex-1 min-h-0 overflow-hidden ${tool ? "cursor-crosshair" : ""}`}
+        onPointerDown={onSurfacePointerDown}
+        onPointerMove={onSurfacePointerMove}
+        onPointerUp={onSurfacePointerUp}
+        onPointerCancel={onSurfacePointerUp}
+        className={`relative flex-1 min-h-0 overflow-hidden ${
+          tool ? "cursor-crosshair" : imgZoom > 1 && base !== "live" ? (panDrag.current ? "cursor-grabbing" : "cursor-grab") : ""
+        }`}
       >
+        <div
+          ref={contentRef}
+          className="absolute inset-0"
+          style={
+            base === "live"
+              ? undefined
+              : {
+                  transform: `translate(${imgPan.x}%, ${imgPan.y}%) scale(${imgZoom})`,
+                  transformOrigin: "center",
+                  transition: panDrag.current ? "none" : "transform 150ms ease-out",
+                }
+          }
+        >
         {base === "live" ? (
           <div className="absolute inset-0">
-            <LiveMap mapType={liveMapType} streetView={streetView} />
+            <LiveMap ref={liveMapRef} mapType={liveMapType} streetView={streetView} />
           </div>
         ) : (
           <>
@@ -942,13 +1025,73 @@ export function MapPanel({ service, onServiceChange }: Props) {
               </span>
             </div>
           ))}
+        </div>
+        {/* /transformed content wrapper */}
 
-        {/* Site label — small overlay inside the map */}
+        {/* Site label — small overlay inside the map, unaffected by zoom */}
         <div className="absolute bottom-3 left-3 z-10 bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 pointer-events-none">
           <p className="text-[9px] font-mono text-slate-500 uppercase">Site</p>
           <p className="text-xs font-bold text-white">Wheeler Ave Baptist Church</p>
         </div>
+
+        {/* ============ Compact floating map toolbar ============ */}
+        <div
+          className="absolute top-3 right-3 z-20 flex flex-col gap-1 rounded-lg border border-white/10 bg-surface/85 backdrop-blur-xl p-1 shadow-lg"
+          onClick={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {(
+            [
+              { key: "in", label: "+", title: "Zoom in", onClick: zoomIn },
+              { key: "out", label: "−", title: "Zoom out", onClick: zoomOut },
+              { key: "reset", label: "⟳", title: "Reset view", onClick: resetView },
+              {
+                key: "layers",
+                label: "☰",
+                title: layersOpen ? "Hide layers" : "Show layers",
+                active: layersOpen,
+                onClick: () => setLayersOpen((v) => !v),
+              },
+              {
+                key: "annot",
+                label: "✎",
+                title: annotateOpen ? "Hide annotate" : "Show annotate",
+                active: annotateOpen,
+                onClick: () => setAnnotateOpen((v) => !v),
+              },
+              {
+                key: "full",
+                label: fullscreen ? "⤡" : "⤢",
+                title: fullscreen ? "Exit fullscreen" : "Fullscreen",
+                active: fullscreen,
+                onClick: () => setFullscreen((v) => !v),
+              },
+            ] as const
+          ).map((b) => (
+            <button
+              key={b.key}
+              type="button"
+              onClick={b.onClick}
+              title={b.title}
+              aria-label={b.title}
+              className={`size-8 grid place-items-center rounded text-sm font-bold transition ${
+                "active" in b && b.active
+                  ? "bg-kairos-blue text-white"
+                  : "bg-white/5 text-slate-200 hover:bg-white/10"
+              }`}
+            >
+              {b.label}
+            </button>
+          ))}
+          {base !== "live" && imgZoom !== 1 && (
+            <div className="text-[9px] font-mono text-slate-400 text-center pt-0.5">
+              {Math.round(imgZoom * 100)}%
+            </div>
+          )}
+        </div>
       </div>
+
 
 
       {pendingImport && (
