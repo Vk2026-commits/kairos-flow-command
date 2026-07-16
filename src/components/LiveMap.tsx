@@ -104,7 +104,32 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
           m.setZoom(18);
           markerInst.current?.setPosition(pos);
           markerInst.current?.setTitle(hit.formatted_address);
-          svInst.current?.setPosition(pos);
+
+          // Sync Street View: find nearest panorama and aim camera at the target.
+          const sv = svInst.current;
+          if (sv) {
+            try {
+              const svService = new g.maps.StreetViewService();
+              const pano = await svService.getPanorama({
+                location: pos,
+                radius: 80,
+                source: g.maps.StreetViewSource.OUTDOOR,
+              });
+              const panoPos = pano.data.location?.latLng;
+              if (panoPos) {
+                const heading = g.maps.geometry?.spherical
+                  ? g.maps.geometry.spherical.computeHeading(panoPos, loc)
+                  : 0;
+                sv.setPano(pano.data.location!.pano!);
+                sv.setPov({ heading, pitch: 0 });
+                sv.setZoom(1);
+              } else {
+                sv.setPosition(pos);
+              }
+            } catch {
+              sv.setPosition(pos);
+            }
+          }
           return { ok: true as const, address: hit.formatted_address };
         } catch (e) {
           return { ok: false as const, error: e instanceof Error ? e.message : "Search failed." };
