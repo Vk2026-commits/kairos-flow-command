@@ -754,13 +754,21 @@ export function MapPanel({ service, onServiceChange }: Props) {
         onDoubleClick={finishPath}
         className={`relative flex-1 min-h-0 overflow-hidden ${tool ? "cursor-crosshair" : ""}`}
       >
-        <img
-          src={activeSrc}
-          alt="Wheeler Avenue campus map"
-          className="w-full h-full object-contain pointer-events-none"
-        />
-        <div className="absolute inset-0 map-grid opacity-40 pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-t from-bg-deep/70 via-transparent to-bg-deep/20 pointer-events-none" />
+        {base === "live" ? (
+          <div className="absolute inset-0">
+            <LiveMap mapType={liveMapType} streetView={streetView} />
+          </div>
+        ) : (
+          <>
+            <img
+              src={activeSrc}
+              alt="Wheeler Avenue campus map"
+              className="w-full h-full object-contain pointer-events-none"
+            />
+            <div className="absolute inset-0 map-grid opacity-40 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-bg-deep/70 via-transparent to-bg-deep/20 pointer-events-none" />
+          </>
+        )}
 
         {/* Overlay SVG */}
         <svg
