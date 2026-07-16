@@ -256,6 +256,11 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const RECENT_CAP = 10;
   const [recent, setRecent] = useState<RecentSearch[]>([]);
   const [recentOpen, setRecentOpen] = useState(false);
+  type Suggestion = { placeId: string; primary: string; secondary: string; full: string };
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [sugLoading, setSugLoading] = useState(false);
+  const [activeSug, setActiveSug] = useState(-1);
+  const sugSeqRef = useRef(0);
   useEffect(() => {
     try {
       const raw = localStorage.getItem(RECENT_KEY);
