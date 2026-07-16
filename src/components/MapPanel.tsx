@@ -808,7 +808,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
               </span>
               <button
                 type="button"
-                onClick={() => setAnnotateOpen(false)}
+                onClick={() => collapsePanel(setAnnotateOpen, setAnnotateOff)}
                 className="size-5 rounded bg-white/5 border border-white/10 text-slate-400 hover:text-white grid place-items-center text-[10px]"
                 title="Minimize"
               >
