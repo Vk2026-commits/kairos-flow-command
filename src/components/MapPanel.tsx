@@ -972,6 +972,10 @@ export function MapPanel({ service, onServiceChange }: Props) {
     setAnnotations([]);
   }
 
+  function removeAnnotation(id: string) {
+    setAnnotations((a) => a.filter((x) => x.id !== id));
+  }
+
   function exportAnnotations() {
     const payload = {
       app: "kairos-command",
