@@ -1054,7 +1054,7 @@ function Slide18Timeline() {
 function Slide19Pricing() {
   const cards = [
     { t: "Sunday Operations", p: "$7,150", per: "per Sunday", items: ["3 services covered", "Full staffing", "Command center", "Live reporting"], featured: true },
-    { t: "Wednesday Services", p: "$X,XXX", per: "per service", items: ["Right-sized team", "Same platform", "Same standards"] },
+    { t: "Wednesday Services", p: "TBD", per: "hourly rate", items: ["Hourly rate for staff and personnel", "Hourly rate for vehicles"] },
     { t: "Special Events", p: "Custom", per: "quoted per event", items: ["Conferences", "Weddings", "Community events", "Holiday services"] },
   ];
   return (
