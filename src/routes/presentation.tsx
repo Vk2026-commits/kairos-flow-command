@@ -295,28 +295,33 @@ function IconTile({ icon: Icon, title, desc }: { icon: React.ComponentType<{ cla
 ============================================================ */
 function Slide1Welcome() {
   return (
-    <div className="relative min-h-[80vh] overflow-hidden flex items-center justify-center">
-      <div className="absolute inset-0 map-grid opacity-30" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,98,255,0.2),transparent_70%)]" />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-bg-deep" />
-      <div className="relative text-center px-6 fade-in-up">
-        <div className="flex items-center justify-center gap-6 mb-8">
-          <div className="px-4 py-2 rounded-lg border border-kairos-blue/40 bg-kairos-blue/10 text-xs font-mono tracking-widest text-kairos-blue">
-            KAIROS SECURITY
+    <div className="pb-10">
+      <div className="relative min-h-[80vh] overflow-hidden flex items-center justify-center">
+        <div className="absolute inset-0 map-grid opacity-30" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,98,255,0.2),transparent_70%)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-bg-deep" />
+        <div className="relative text-center px-6 fade-in-up">
+          <div className="flex items-center justify-center gap-6 mb-8">
+            <div className="px-4 py-2 rounded-lg border border-kairos-blue/40 bg-kairos-blue/10 text-xs font-mono tracking-widest text-kairos-blue">
+              KAIROS SECURITY
+            </div>
+            <div className="w-8 h-px bg-white/20" />
+            <div className="px-4 py-2 rounded-lg border border-kairos-gold/40 bg-kairos-gold/10 text-xs font-mono tracking-widest text-kairos-gold">
+              WHEELER AVENUE
+            </div>
           </div>
-          <div className="w-8 h-px bg-white/20" />
-          <div className="px-4 py-2 rounded-lg border border-kairos-gold/40 bg-kairos-gold/10 text-xs font-mono tracking-widest text-kairos-gold">
-            WHEELER AVENUE
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-glow-blue max-w-4xl mx-auto">
+            Transportation Excellence
+            <br />
+            <span className="text-kairos-gold italic">Begins Before Worship.</span>
+          </h1>
+          <div className="mt-10 text-[10px] font-mono tracking-widest text-muted-foreground">
+            PRESS <kbd className="px-2 py-1 rounded bg-white/10">→</kbd> TO BEGIN PRESENTATION
           </div>
         </div>
-        <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-glow-blue max-w-4xl mx-auto">
-          Transportation Excellence
-          <br />
-          <span className="text-kairos-gold italic">Begins Before Worship.</span>
-        </h1>
-        <div className="mt-10 text-[10px] font-mono tracking-widest text-muted-foreground">
-          PRESS <kbd className="px-2 py-1 rounded bg-white/10">→</kbd> TO BEGIN PRESENTATION
-        </div>
+      </div>
+      <div className="px-8 md:px-12 max-w-[1600px] mx-auto">
+        <SpeakerNotes n={1} />
       </div>
     </div>
   );
