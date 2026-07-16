@@ -268,14 +268,46 @@ export function MapPanel({ service, onServiceChange }: Props) {
     setProgress(0);
   }
 
+  const contentRef = useRef<HTMLDivElement>(null);
+
   function ptFromEvent(e: React.MouseEvent): Pt | null {
-    const el = surfaceRef.current;
+    const el = contentRef.current ?? surfaceRef.current;
     if (!el) return null;
     const r = el.getBoundingClientRect();
     return {
       x: ((e.clientX - r.left) / r.width) * 100,
       y: ((e.clientY - r.top) / r.height) * 100,
     };
+  }
+
+  // Pan-drag when zoomed and no drawing tool active.
+  function onSurfacePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (tool || base === "live" || imgZoom <= 1) return;
+    const surf = surfaceRef.current;
+    if (!surf) return;
+    panDrag.current = { x: e.clientX, y: e.clientY, ox: imgPan.x, oy: imgPan.y };
+    surf.setPointerCapture(e.pointerId);
+  }
+  function onSurfacePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!panDrag.current) return;
+    const surf = surfaceRef.current;
+    if (!surf) return;
+    const r = surf.getBoundingClientRect();
+    const dx = ((e.clientX - panDrag.current.x) / r.width) * 100;
+    const dy = ((e.clientY - panDrag.current.y) / r.height) * 100;
+    // Limit pan so scaled content stays over the map.
+    const maxPan = ((imgZoom - 1) / imgZoom) * 50;
+    const nx = Math.max(-maxPan, Math.min(maxPan, panDrag.current.ox + dx));
+    const ny = Math.max(-maxPan, Math.min(maxPan, panDrag.current.oy + dy));
+    setImgPan({ x: nx, y: ny });
+  }
+  function onSurfacePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    panDrag.current = null;
+    try {
+      surfaceRef.current?.releasePointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
   }
 
   function onSurfaceClick(e: React.MouseEvent) {
