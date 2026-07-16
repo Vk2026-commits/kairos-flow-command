@@ -90,6 +90,46 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const [annotateOpen, setAnnotateOpen] = useState(true);
   const [playbackOpen, setPlaybackOpen] = useState(true);
 
+  // Panel drag offsets (pixels from their default anchor).
+  const [layersOff, setLayersOff] = useState({ x: 0, y: 0 });
+  const [annotateOff, setAnnotateOff] = useState({ x: 0, y: 0 });
+  const [playbackOff, setPlaybackOff] = useState({ x: 0, y: 0 });
+
+  function makeDragHandlers(
+    off: { x: number; y: number },
+    setOff: (p: { x: number; y: number }) => void,
+  ) {
+    return {
+      onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
+        e.stopPropagation();
+        const el = e.currentTarget;
+        el.setPointerCapture(e.pointerId);
+        const start = { x: e.clientX, y: e.clientY, ox: off.x, oy: off.y };
+        (el as HTMLElement & { __drag?: typeof start }).__drag = start;
+      },
+      onPointerMove: (e: React.PointerEvent<HTMLElement>) => {
+        const el = e.currentTarget as HTMLElement & {
+          __drag?: { x: number; y: number; ox: number; oy: number };
+        };
+        if (!el.__drag) return;
+        setOff({
+          x: el.__drag.ox + e.clientX - el.__drag.x,
+          y: el.__drag.oy + e.clientY - el.__drag.y,
+        });
+      },
+      onPointerUp: (e: React.PointerEvent<HTMLElement>) => {
+        const el = e.currentTarget as HTMLElement & { __drag?: unknown };
+        el.__drag = undefined;
+        try {
+          el.releasePointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+      },
+    };
+  }
+
+
   // Playback state — animates ingress/egress/shuttle arrows in saved order.
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
