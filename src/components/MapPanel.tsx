@@ -786,6 +786,33 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const surfaceRef = useRef<HTMLDivElement>(null);
   const liveMapRef = useRef<LiveMapHandle>(null);
 
+  async function captureScreenshot() {
+    const node = surfaceRef.current;
+    if (!node) return;
+    try {
+      const { toPng } = await import("html-to-image");
+      const dataUrl = await toPng(node, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: "#0b1220",
+      });
+      const a = document.createElement("a");
+      const ts = new Date().toISOString().replace(/[:.]/g, "-");
+      a.download = `kairos-map-${base}-${ts}.png`;
+      a.href = dataUrl;
+      a.click();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("Screenshot failed", err);
+      alert(
+        base === "live"
+          ? "Screenshot of the Live Map is blocked by Google Maps for security. Switch to Street / Aerial / Lot to capture annotations."
+          : `Screenshot failed: ${msg}`,
+      );
+    }
+  }
+
+
   // Zoom & pan for image bases (street/aerial/lot/custom).
   const [imgZoom, setImgZoom] = useState(1);
   const [imgPan, setImgPan] = useState({ x: 0, y: 0 });
