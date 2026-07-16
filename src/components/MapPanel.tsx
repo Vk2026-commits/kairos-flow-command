@@ -571,7 +571,16 @@ export function MapPanel({ service, onServiceChange }: Props) {
     setLayers((s) => ({ ...s, [k]: !s[k] }));
   }
 
+  // Preserve the Live Map camera (center/zoom/type) across base switches so
+  // annotations stay pinned over the exact same geographic area.
+  const [savedLiveView, setSavedLiveView] = useState<LiveMapView | null>(null);
+
   function selectBase(nextBase: BaseKey) {
+    // Snapshot the Live view before we unmount LiveMap.
+    if (base === "live" && nextBase !== "live") {
+      const v = liveMapRef.current?.getView();
+      if (v) setSavedLiveView(v);
+    }
     setBase(nextBase);
     setTool(null);
     setDraft([]);
