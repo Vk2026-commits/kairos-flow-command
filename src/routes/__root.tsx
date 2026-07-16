@@ -77,22 +77,26 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Kairos Command™ — Transportation & Operations Platform" },
+      { title: "Kairos Command™ — Live Operations Dashboard" },
       {
         name: "description",
         content:
-          "Kairos Command is a live operations, parking, traffic flow, and shuttle command center built for Wheeler Avenue Baptist Church.",
+          "Executive command center for Wheeler Avenue Baptist Church transportation, parking, and shuttle operations.",
       },
       { name: "author", content: "Kairos Security" },
       { name: "theme-color", content: "#05070a" },
-      { property: "og:title", content: "Kairos Command™ — Operations Platform" },
+      { property: "og:title", content: "Kairos Command™ — Live Operations Dashboard" },
       {
         property: "og:description",
         content:
-          "Executive command center for transportation, parking, traffic, and shuttle operations.",
+          "Executive command center for Wheeler Avenue Baptist Church transportation, parking, and shuttle operations.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Kairos Command™ — Live Operations Dashboard" },
+      { name: "twitter:description", content: "Executive command center for Wheeler Avenue Baptist Church transportation, parking, and shuttle operations." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/787dbefa-470e-4e22-a703-b8535266947a/id-preview-ca2ea76e--a0102e20-48bb-49db-a822-f96fab77d3ab.lovable.app-1784175685225.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/787dbefa-470e-4e22-a703-b8535266947a/id-preview-ca2ea76e--a0102e20-48bb-49db-a822-f96fab77d3ab.lovable.app-1784175685225.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
