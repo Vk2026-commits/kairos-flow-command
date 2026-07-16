@@ -94,8 +94,9 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMsg, setSearchMsg] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
   const [searching, setSearching] = useState(false);
-  type RecentSearch = { query: string; address: string; at: number };
+  type RecentSearch = { query: string; address: string; at: number; pinned?: boolean };
   const RECENT_KEY = "kairos:recent-searches:v1";
+  const RECENT_CAP = 10;
   const [recent, setRecent] = useState<RecentSearch[]>([]);
   const [recentOpen, setRecentOpen] = useState(false);
   useEffect(() => {
@@ -114,6 +115,23 @@ export function MapPanel({ service, onServiceChange }: Props) {
     }
   }, [recent]);
 
+  function sortRecent(list: RecentSearch[]) {
+    return [...list].sort((a, b) => {
+      if (!!b.pinned !== !!a.pinned) return b.pinned ? 1 : -1;
+      return b.at - a.at;
+    });
+  }
+
+  function togglePin(entry: RecentSearch) {
+    setRecent((prev) =>
+      sortRecent(
+        prev.map((p) =>
+          p.at === entry.at && p.address === entry.address ? { ...p, pinned: !p.pinned } : p,
+        ),
+      ),
+    );
+  }
+
   async function runSearch(q: string) {
     if (!liveMapRef.current || !q.trim()) return;
     setSearching(true);
@@ -124,11 +142,26 @@ export function MapPanel({ service, onServiceChange }: Props) {
     if (r.ok) {
       setSearchMsg({ tone: "ok", text: r.address });
       setRecent((prev) => {
-        const entry: RecentSearch = { query: q.trim(), address: r.address, at: Date.now() };
-        const deduped = prev.filter(
-          (p) => p.address !== entry.address && p.query.toLowerCase() !== entry.query.toLowerCase(),
+        const existing = prev.find(
+          (p) => p.address === r.address || p.query.toLowerCase() === q.trim().toLowerCase(),
         );
-        return [entry, ...deduped].slice(0, 10);
+        const entry: RecentSearch = {
+          query: q.trim(),
+          address: r.address,
+          at: Date.now(),
+          pinned: existing?.pinned,
+        };
+        const rest = prev.filter(
+          (p) => p.address !== r.address && p.query.toLowerCase() !== q.trim().toLowerCase(),
+        );
+        // Cap only unpinned; pinned entries never get evicted.
+        const pinned = rest.filter((p) => p.pinned);
+        const unpinned = rest.filter((p) => !p.pinned);
+        const nextUnpinned = entry.pinned
+          ? unpinned
+          : [entry, ...unpinned].slice(0, RECENT_CAP);
+        const nextPinned = entry.pinned ? [entry, ...pinned] : pinned;
+        return sortRecent([...nextPinned, ...nextUnpinned]);
       });
     } else {
       setSearchMsg({ tone: "err", text: r.error });
@@ -142,8 +175,9 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
   const filteredRecent = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return recent;
-    return recent.filter(
+    const sorted = sortRecent(recent);
+    if (!q) return sorted;
+    return sorted.filter(
       (r) => r.query.toLowerCase().includes(q) || r.address.toLowerCase().includes(q),
     );
   }, [recent, searchQuery]);
@@ -768,9 +802,9 @@ export function MapPanel({ service, onServiceChange }: Props) {
                       <button
                         type="button"
                         onClick={() => {
-                          setRecent([]);
-                          setRecentOpen(false);
+                          setRecent((prev) => prev.filter((p) => p.pinned));
                         }}
+                        title="Clear unpinned searches (pinned stay)"
                         className="text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-red-400"
                       >
                         Clear
@@ -783,14 +817,31 @@ export function MapPanel({ service, onServiceChange }: Props) {
                         </li>
                       ) : (
                         filteredRecent.map((r) => (
-                          <li key={`${r.at}-${r.address}`} className="flex items-center gap-1 hover:bg-white/5 group">
+                          <li
+                            key={`${r.at}-${r.address}`}
+                            className={`flex items-center gap-1 hover:bg-white/5 group ${
+                              r.pinned ? "bg-kairos-gold/5" : ""
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => togglePin(r)}
+                              title={r.pinned ? "Unpin" : "Pin to top"}
+                              className={`px-2 py-1.5 text-[11px] transition ${
+                                r.pinned
+                                  ? "text-kairos-gold"
+                                  : "text-slate-600 opacity-60 group-hover:opacity-100 hover:text-kairos-gold"
+                              }`}
+                            >
+                              {r.pinned ? "★" : "☆"}
+                            </button>
                             <button
                               type="button"
                               onClick={() => {
                                 setSearchQuery(r.query);
                                 void runSearch(r.query);
                               }}
-                              className="flex-1 text-left px-2.5 py-1.5 min-w-0"
+                              className="flex-1 text-left px-1 py-1.5 min-w-0"
                             >
                               <div className="text-[11px] text-white truncate">{r.query}</div>
                               <div className="text-[10px] text-slate-500 truncate">{r.address}</div>
