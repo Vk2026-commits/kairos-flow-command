@@ -106,6 +106,12 @@ export function MapPanel({ service, onServiceChange }: Props) {
     else setSearchMsg({ tone: "err", text: r.error });
   }
 
+  const [mapLocked, setMapLocked] = useState(false);
+  useEffect(() => {
+    if (base !== "live") return;
+    liveMapRef.current?.setInteractive(!mapLocked);
+  }, [mapLocked, base, streetView]);
+
 
   // Panel visibility — collapse to get panels out of the way while drawing.
   const [layersOpen, setLayersOpen] = useState(true);
