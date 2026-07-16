@@ -2145,15 +2145,31 @@ export function MapPanel({ service, onServiceChange }: Props) {
             const playbackIds = playing || progress > 0
               ? new Set(playbackSeq.map((a) => a.id))
               : null;
+            const editable = !tool && !playing;
+            const onDelClick = (id: string) => (e: React.MouseEvent) => {
+              e.stopPropagation();
+              if (window.confirm("Delete this annotation?")) removeAnnotation(id);
+            };
             return visibleAnnotations.map((a) => {
               if (a.kind === "closure") return null;
-              // Playback overrides normal render for arrows in the sequence.
               if (playbackIds?.has(a.id)) return null;
               if (renderStyle === "cars") {
                 const spacing = Math.max(4.5, strokeW * 5);
                 const cars = sampleCarsOnPath(a.points, spacing, 1);
                 return (
-                  <g key={a.id}>
+                  <g
+                    key={a.id}
+                    onClick={editable ? onDelClick(a.id) : undefined}
+                    style={{ cursor: editable ? "pointer" : undefined, pointerEvents: editable ? "auto" : "none" }}
+                  >
+                    {editable && (
+                      <path
+                        d={pathD(a.points)}
+                        stroke="transparent"
+                        strokeWidth={Math.max(6, strokeW * 4)}
+                        fill="none"
+                      />
+                    )}
                     {cars.map((c, i) => (
                       <CarGlyph key={i} x={c.x} y={c.y} angle={c.angle} color={TOOL_COLORS[a.kind]} />
                     ))}
@@ -2161,15 +2177,28 @@ export function MapPanel({ service, onServiceChange }: Props) {
                 );
               }
               return (
-                <path
+                <g
                   key={a.id}
-                  d={pathD(a.points)}
-                  stroke={TOOL_COLORS[a.kind]}
-                  strokeWidth={strokeW}
-                  fill="none"
-                  markerEnd={`url(#arr-${a.kind})`}
-                  className="flow-dash"
-                />
+                  onClick={editable ? onDelClick(a.id) : undefined}
+                  style={{ cursor: editable ? "pointer" : undefined, pointerEvents: editable ? "auto" : "none" }}
+                >
+                  {editable && (
+                    <path
+                      d={pathD(a.points)}
+                      stroke="transparent"
+                      strokeWidth={Math.max(6, strokeW * 4)}
+                      fill="none"
+                    />
+                  )}
+                  <path
+                    d={pathD(a.points)}
+                    stroke={TOOL_COLORS[a.kind]}
+                    strokeWidth={strokeW}
+                    fill="none"
+                    markerEnd={`url(#arr-${a.kind})`}
+                    className="flow-dash"
+                  />
+                </g>
               );
             });
           })()}
