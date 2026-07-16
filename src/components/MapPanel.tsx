@@ -1160,7 +1160,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
       }
     >
       {/* ============ Docked toolbar (above the map, never on it) ============ */}
-      <div className="shrink-0 border-b border-white/10 bg-surface/95 backdrop-blur-md">
+      <div className="relative shrink-0 border-b border-white/10 bg-surface/95 backdrop-blur-md">
         <div className="flex flex-wrap items-center gap-1.5 px-3 py-2">
           <button
             type="button"
