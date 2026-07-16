@@ -3,6 +3,7 @@ import aerialAsset from "@/assets/wheeler-aerial.jpg.asset.json";
 import streetAsset from "@/assets/wheeler-street.jpg.asset.json";
 import lotAsset from "@/assets/wheeler-lot.jpg.asset.json";
 import { LiveMap, type LiveMapHandle, type LiveMapView } from "./LiveMap";
+import { supabase } from "@/integrations/supabase/client";
 
 type LayerKey =
   | "ingress"
