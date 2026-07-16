@@ -84,6 +84,38 @@ export function MapPanel({ service, onServiceChange }: Props) {
   });
 
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
+
+  // Per-base annotation stroke width. Each base layer keeps its own so lines
+  // look right on aerial/lot/street imagery vs the Live Map.
+  const STROKE_KEY = "kairos:stroke-widths:v1";
+  const DEFAULT_STROKE: Record<BaseKey, number> = {
+    street: 0.9,
+    aerial: 0.9,
+    lot: 0.9,
+    live: 0.6,
+    custom: 0.9,
+  };
+  const [strokeWidths, setStrokeWidths] = useState<Record<BaseKey, number>>(DEFAULT_STROKE);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STROKE_KEY);
+      if (raw) setStrokeWidths({ ...DEFAULT_STROKE, ...JSON.parse(raw) });
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(STROKE_KEY, JSON.stringify(strokeWidths));
+    } catch {
+      /* ignore */
+    }
+  }, [strokeWidths]);
+  const strokeW = strokeWidths[base] ?? 0.9;
+  function setBaseStroke(v: number) {
+    setStrokeWidths((prev) => ({ ...prev, [base]: v }));
+  }
   const [tool, setTool] = useState<Tool>(null);
   const [draft, setDraft] = useState<Pt[]>([]);
   const [cursor, setCursor] = useState<Pt | null>(null);
