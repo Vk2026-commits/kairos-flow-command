@@ -689,7 +689,7 @@ function Slide10Shuttle() {
   return (
     <SlideShell eyebrow="CHAPTER 10" title="Shuttle Operations" subtitle="Live tracking of every shuttle in the cycle.">
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <Stat label="Active Shuttles" value={String(shuttles.length)} />
+        <Stat label="Active Shuttles" value="2 active shuttles, one golf cart" />
         <Stat label="Avg Wait Time" value={formatCycle(live.avgWaitSec)} sub="Target < 5:00" accent="gold" />
         <Stat label="Avg Cycle Time" value={`${live.avgShuttleCycleMin.toFixed(1)} min`} />
         <Stat label="Passengers / Hour" value={String(live.passengersPerHour)} />
