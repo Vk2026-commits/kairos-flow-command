@@ -713,7 +713,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
         <img
           src={activeSrc}
           alt="Wheeler Avenue campus map"
-          className="w-full h-full object-cover pointer-events-none"
+          className="w-full h-full object-contain pointer-events-none"
         />
         <div className="absolute inset-0 map-grid opacity-40 pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-t from-bg-deep/70 via-transparent to-bg-deep/20 pointer-events-none" />
