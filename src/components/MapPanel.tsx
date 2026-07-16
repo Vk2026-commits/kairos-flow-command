@@ -85,6 +85,11 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const [draft, setDraft] = useState<Pt[]>([]);
   const [cursor, setCursor] = useState<Pt | null>(null);
 
+  // Panel visibility — collapse to get panels out of the way while drawing.
+  const [layersOpen, setLayersOpen] = useState(true);
+  const [annotateOpen, setAnnotateOpen] = useState(true);
+  const [playbackOpen, setPlaybackOpen] = useState(true);
+
   // Playback state — animates ingress/egress/shuttle arrows in saved order.
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -580,14 +585,34 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
       {/* Layer control panel */}
       <div className="absolute top-4 left-4 lg:top-6 lg:left-6 w-64 z-10">
+        {!layersOpen && (
+          <button
+            type="button"
+            onClick={() => setLayersOpen(true)}
+            className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition"
+          >
+            ▸ Map Layers
+          </button>
+        )}
+        {layersOpen && (
         <div className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-xs font-bold uppercase tracking-widest text-white">
               Map Layers
             </h4>
-            <span className="text-[9px] font-mono text-slate-500">
-              {Object.values(layers).filter(Boolean).length}/{LAYERS.length}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-mono text-slate-500">
+                {Object.values(layers).filter(Boolean).length}/{LAYERS.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => setLayersOpen(false)}
+                className="size-5 rounded bg-white/5 border border-white/10 text-slate-400 hover:text-white grid place-items-center text-[10px]"
+                title="Minimize"
+              >
+                –
+              </button>
+            </div>
           </div>
           <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
             {LAYERS.map((l) => {
@@ -655,18 +680,39 @@ export function MapPanel({ service, onServiceChange }: Props) {
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={onUpload} />
           </div>
         </div>
+        )}
       </div>
 
       {/* Annotation toolbar */}
       <div className="absolute top-4 right-4 lg:top-6 lg:right-6 w-64 z-10">
+        {!annotateOpen && (
+          <button
+            type="button"
+            onClick={() => setAnnotateOpen(true)}
+            className="ml-auto block bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition"
+          >
+            ▸ Annotate
+          </button>
+        )}
+        {annotateOpen && (
         <div className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-xs font-bold uppercase tracking-widest text-white">
               Annotate
             </h4>
-            <span className="text-[9px] font-mono text-kairos-gold">
-              {annotations.filter((a) => a.base === base).length} on {base}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-mono text-kairos-gold">
+                {annotations.filter((a) => a.base === base).length} on {base}
+              </span>
+              <button
+                type="button"
+                onClick={() => setAnnotateOpen(false)}
+                className="size-5 rounded bg-white/5 border border-white/10 text-slate-400 hover:text-white grid place-items-center text-[10px]"
+                title="Minimize"
+              >
+                –
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             {(
@@ -767,6 +813,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
           </button>
 
         </div>
+        )}
       </div>
 
       {/* Service selector */}
@@ -795,7 +842,25 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
       {/* Playback panel */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 lg:bottom-6 z-10 w-[min(560px,calc(100%-2rem))]">
-        <div className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 shadow-2xl">
+        {!playbackOpen && (
+          <button
+            type="button"
+            onClick={() => setPlaybackOpen(true)}
+            className="mx-auto block bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition"
+          >
+            ▸ Traffic Flow Playback
+          </button>
+        )}
+        {playbackOpen && (
+        <div className="relative bg-surface/85 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 shadow-2xl">
+          <button
+            type="button"
+            onClick={() => setPlaybackOpen(false)}
+            className="absolute top-1 right-1 size-5 rounded bg-white/5 border border-white/10 text-slate-400 hover:text-white grid place-items-center text-[10px]"
+            title="Minimize"
+          >
+            –
+          </button>
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -899,6 +964,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {pendingImport && (
