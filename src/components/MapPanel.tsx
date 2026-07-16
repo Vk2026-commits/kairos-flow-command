@@ -294,6 +294,28 @@ export function MapPanel({ service, onServiceChange }: Props) {
     );
   }
 
+  function recordRecent(q: string, address: string) {
+    setRecent((prev) => {
+      const existing = prev.find(
+        (p) => p.address === address || p.query.toLowerCase() === q.trim().toLowerCase(),
+      );
+      const entry: RecentSearch = {
+        query: q.trim(),
+        address,
+        at: Date.now(),
+        pinned: existing?.pinned,
+      };
+      const rest = prev.filter(
+        (p) => p.address !== address && p.query.toLowerCase() !== q.trim().toLowerCase(),
+      );
+      const pinned = rest.filter((p) => p.pinned);
+      const unpinned = rest.filter((p) => !p.pinned);
+      const nextUnpinned = entry.pinned ? unpinned : [entry, ...unpinned].slice(0, RECENT_CAP);
+      const nextPinned = entry.pinned ? [entry, ...pinned] : pinned;
+      return sortRecent([...nextPinned, ...nextUnpinned]);
+    });
+  }
+
   async function runSearch(q: string) {
     if (!liveMapRef.current || !q.trim()) return;
     setSearching(true);
@@ -303,35 +325,42 @@ export function MapPanel({ service, onServiceChange }: Props) {
     setSearching(false);
     if (r.ok) {
       setSearchMsg({ tone: "ok", text: r.address });
-      setRecent((prev) => {
-        const existing = prev.find(
-          (p) => p.address === r.address || p.query.toLowerCase() === q.trim().toLowerCase(),
-        );
-        const entry: RecentSearch = {
-          query: q.trim(),
-          address: r.address,
-          at: Date.now(),
-          pinned: existing?.pinned,
-        };
-        const rest = prev.filter(
-          (p) => p.address !== r.address && p.query.toLowerCase() !== q.trim().toLowerCase(),
-        );
-        // Cap only unpinned; pinned entries never get evicted.
-        const pinned = rest.filter((p) => p.pinned);
-        const unpinned = rest.filter((p) => !p.pinned);
-        const nextUnpinned = entry.pinned
-          ? unpinned
-          : [entry, ...unpinned].slice(0, RECENT_CAP);
-        const nextPinned = entry.pinned ? [entry, ...pinned] : pinned;
-        return sortRecent([...nextPinned, ...nextUnpinned]);
-      });
+      recordRecent(q, r.address);
     } else {
       setSearchMsg({ tone: "err", text: r.error });
     }
   }
 
+  async function pickSuggestion(s: Suggestion) {
+    if (!liveMapRef.current) return;
+    setSearching(true);
+    setSearchMsg(null);
+    setRecentOpen(false);
+    setSuggestions([]);
+    setSearchQuery(s.full);
+    const r = await liveMapRef.current.searchPlace(s.placeId, s.full);
+    setSearching(false);
+    if (r.ok) {
+      setSearchMsg({ tone: "ok", text: r.address });
+      recordRecent(s.full, r.address);
+    } else {
+      // Fallback to text geocode
+      const r2 = await liveMapRef.current.search(s.full);
+      if (r2.ok) {
+        setSearchMsg({ tone: "ok", text: r2.address });
+        recordRecent(s.full, r2.address);
+      } else {
+        setSearchMsg({ tone: "err", text: r2.error });
+      }
+    }
+  }
+
   async function submitSearch(e: React.FormEvent) {
     e.preventDefault();
+    if (activeSug >= 0 && suggestions[activeSug]) {
+      await pickSuggestion(suggestions[activeSug]);
+      return;
+    }
     await runSearch(searchQuery);
   }
 
