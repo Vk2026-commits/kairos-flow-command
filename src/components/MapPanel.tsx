@@ -942,6 +942,17 @@ export function MapPanel({ service, onServiceChange }: Props) {
         <p className="text-xs font-bold text-white">Wheeler Ave Baptist Church</p>
       </div>
 
+      {/* Fullscreen toggle (presentation) */}
+      <button
+        type="button"
+        onClick={() => setFullscreen((v) => !v)}
+        className="absolute top-4 right-4 lg:top-6 lg:right-6 z-20 bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition"
+        style={{ transform: "translateY(-2.75rem)" }}
+        title={fullscreen ? "Exit fullscreen (Esc)" : "Fullscreen map"}
+      >
+        {fullscreen ? "⤢ Exit Fullscreen" : "⤢ Fullscreen Map"}
+      </button>
+
       {/* Playback panel */}
       <div
         data-drag-panel
