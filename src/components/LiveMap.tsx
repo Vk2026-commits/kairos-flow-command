@@ -306,16 +306,6 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
           sessionTokenRef.current = null;
           return { ok: true as const, address };
         } catch (e) {
-          if (fallbackText) {
-            // Any Places API error → try classic geocode via search.
-            const r = await (mapInst.current
-              ? (async () => {
-                  const handle = { search: undefined as unknown };
-                  return { ok: false as const, error: e instanceof Error ? e.message : String(e) };
-                })()
-              : Promise.resolve({ ok: false as const, error: "Map not ready." }));
-            return r;
-          }
           return { ok: false as const, error: e instanceof Error ? e.message : String(e) };
         }
       },
