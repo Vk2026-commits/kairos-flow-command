@@ -657,8 +657,35 @@ export function MapPanel({ service, onServiceChange }: Props) {
               >
                 {streetView ? "◨ Street View On" : "◨ Street View"}
               </button>
+              <form onSubmit={submitSearch} className="flex items-center gap-1 relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search address or intersection…"
+                  className="w-56 lg:w-72 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-[11px] text-white placeholder:text-slate-500 focus:outline-none focus:border-kairos-blue"
+                />
+                <button
+                  type="submit"
+                  disabled={searching}
+                  className="text-[10px] font-bold px-2 py-1.5 rounded border border-white/10 bg-kairos-blue text-white hover:opacity-90 disabled:opacity-50"
+                >
+                  {searching ? "…" : "Go"}
+                </button>
+                {searchMsg && (
+                  <span
+                    className={`absolute top-full left-0 mt-1 text-[10px] font-mono px-2 py-1 rounded bg-bg-deep/90 border border-white/10 max-w-xs truncate ${
+                      searchMsg.tone === "ok" ? "text-green-400" : "text-red-400"
+                    }`}
+                    title={searchMsg.text}
+                  >
+                    {searchMsg.text}
+                  </span>
+                )}
+              </form>
             </>
           )}
+
 
           {/* Service selector pushed to the right */}
           <div className="ml-auto flex gap-1">
