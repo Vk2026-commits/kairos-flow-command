@@ -1093,22 +1093,32 @@ function Slide20Why() {
 /* SLIDE 21 — Questions */
 function Slide21Questions() {
   return (
-    <div className="relative min-h-[80vh] overflow-hidden flex items-center justify-center">
-      <div className="absolute inset-0 map-grid opacity-30" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.15),transparent_70%)]" />
-      <div className="relative text-center px-6 max-w-3xl fade-in-up">
-        <div className="text-[10px] tracking-[0.4em] text-kairos-gold font-mono mb-4">CHAPTER 21</div>
-        <h1 className="text-7xl md:text-8xl font-bold tracking-tight text-glow-blue">Thank You.</h1>
-        <div className="mt-6 text-xl text-muted-foreground">Questions & Discussion</div>
-        <div className="mt-12 pt-8 border-t border-white/10">
-          <div className="text-sm tracking-[0.3em] text-muted-foreground">KAIROS SECURITY</div>
-          <div className="text-lg mt-1">Professional Transportation Operations Partner</div>
-          <div className="mt-6 grid grid-cols-3 gap-4 text-sm">
-            <div><div className="text-[10px] text-muted-foreground tracking-widest">CONTACT</div><div className="mt-1">operations@kairossecurity.com</div></div>
-            <div><div className="text-[10px] text-muted-foreground tracking-widest">PHONE</div><div className="mt-1">(713) 555-0100</div></div>
-            <div><div className="text-[10px] text-muted-foreground tracking-widest">HOUSTON, TX</div><div className="mt-1">HUB · MBE Certified</div></div>
+    <div className="pb-10">
+      <div className="relative min-h-[80vh] overflow-hidden flex items-center justify-center">
+        <div className="absolute inset-0 map-grid opacity-30" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.15),transparent_70%)]" />
+        <div className="relative text-center px-6 max-w-3xl fade-in-up">
+          <div className="text-[10px] tracking-[0.4em] text-kairos-gold font-mono mb-4">CHAPTER 21</div>
+          <h1 className="text-6xl md:text-7xl font-bold tracking-tight text-glow-blue">Thank You.</h1>
+          <div className="mt-6 text-xl text-muted-foreground">Questions & Discussion</div>
+          <div className="mt-8 p-6 rounded-2xl border border-kairos-gold/30 bg-gradient-to-br from-kairos-gold/10 to-transparent">
+            <div className="text-lg md:text-xl italic text-white leading-relaxed">
+              "Moving People With Excellence. Serving Wheeler Avenue Baptist Church with professionalism, hospitality, safety, and operational excellence."
+            </div>
+          </div>
+          <div className="mt-12 pt-8 border-t border-white/10">
+            <div className="text-sm tracking-[0.3em] text-muted-foreground">KAIROS SECURITY</div>
+            <div className="text-lg mt-1">Professional Transportation Operations Partner</div>
+            <div className="mt-6 grid grid-cols-3 gap-4 text-sm">
+              <div><div className="text-[10px] text-muted-foreground tracking-widest">CONTACT</div><div className="mt-1">operations@kairossecurity.com</div></div>
+              <div><div className="text-[10px] text-muted-foreground tracking-widest">PHONE</div><div className="mt-1">(713) 555-0100</div></div>
+              <div><div className="text-[10px] text-muted-foreground tracking-widest">HOUSTON, TX</div><div className="mt-1">HUB · MBE Certified</div></div>
+            </div>
           </div>
         </div>
+      </div>
+      <div className="px-8 md:px-12 max-w-[1600px] mx-auto">
+        <SpeakerNotes n={21} />
       </div>
     </div>
   );
