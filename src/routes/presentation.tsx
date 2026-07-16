@@ -21,7 +21,7 @@ export const Route = createFileRoute("/presentation")({
   component: PresentationApp,
 });
 
-type Chapter = { n: number; title: string; icon: React.ComponentType<{ className?: string }>; render: () => JSX.Element };
+type Chapter = { n: number; title: string; icon: React.ComponentType<{ className?: string }>; render: () => React.ReactElement };
 
 function PresentationApp() {
   const [started, setStarted] = useState(false);
