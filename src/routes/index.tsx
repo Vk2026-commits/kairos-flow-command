@@ -155,23 +155,30 @@ function CommandDashboard() {
         <div className="flex-1 p-4 lg:p-6 grid grid-cols-12 auto-rows-min lg:grid-rows-6 gap-4 lg:gap-6 overflow-y-auto lg:overflow-hidden">
           <KpiCard
             label="Total Parking Capacity"
-            value="84"
+            value={live.parkingFillPct.toFixed(0)}
             unit="%"
-            progress={84}
+            progress={live.parkingFillPct}
           />
           <KpiCard
             label="Avg Shuttle Cycle"
-            value="12.4"
+            value={live.avgShuttleCycleMin.toFixed(1)}
             unit="min"
-            spark={[40, 60, 45, 80, 100]}
+            spark={spark}
           />
           <KpiCard
             label="Active Personnel"
-            value="58"
-            unit="/62"
+            value={String(live.activePersonnel)}
+            unit={`/${live.totalPersonnel}`}
             personnel
+            personnelExtra={Math.max(0, live.activePersonnel - 3)}
           />
-          <KpiCard label="Security Status" value="NOMINAL" statusNominal />
+          <KpiCard
+            label="Security Status"
+            value={live.incidentsOpen === 0 ? "NOMINAL" : "ALERT"}
+            statusNominal={live.incidentsOpen === 0}
+            incidentsOpen={live.incidentsOpen}
+          />
+
 
           <MapPanel
             service={service}
