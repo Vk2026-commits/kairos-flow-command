@@ -1779,6 +1779,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
           className="absolute inset-0 w-full h-full pointer-events-none"
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
+          style={{ ["--flow-dash-duration" as string]: `${flowDuration}s` }}
         >
           <defs>
             {(["ingress", "egress", "shuttle"] as const).map((k) => (
