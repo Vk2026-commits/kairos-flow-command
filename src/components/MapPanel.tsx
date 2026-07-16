@@ -17,13 +17,25 @@ type LayerKey =
 type BaseKey = "street" | "aerial" | "lot" | "live" | "custom";
 type LiveMapType = "roadmap" | "satellite" | "hybrid";
 
-type Tool = "ingress" | "egress" | "shuttle" | "closure" | null;
+type PersonnelRole = "hpd" | "security" | "ministry";
+type Tool = "ingress" | "egress" | "shuttle" | "closure" | PersonnelRole | null;
 type ImportMode = "merge" | "replace";
+
+const POINT_TOOLS: readonly Tool[] = ["closure", "hpd", "security", "ministry"] as const;
+const isPointTool = (t: Tool): t is "closure" | PersonnelRole =>
+  t !== null && (POINT_TOOLS as readonly Tool[]).includes(t);
 
 type Pt = { x: number; y: number };
 type Annotation =
   | { id: string; kind: "ingress" | "egress" | "shuttle"; base: BaseKey; points: Pt[]; label?: string }
-  | { id: string; kind: "closure"; base: BaseKey; point: Pt; label: string };
+  | { id: string; kind: "closure"; base: BaseKey; point: Pt; label: string }
+  | { id: string; kind: "personnel"; role: PersonnelRole; base: BaseKey; point: Pt; label?: string };
+
+const PERSONNEL_META: Record<PersonnelRole, { color: string; label: string; short: string }> = {
+  hpd: { color: "#3b82f6", label: "HPD Officer", short: "HPD" },
+  security: { color: "#ef4444", label: "Private Security", short: "SEC" },
+  ministry: { color: "#22c55e", label: "First Touch Ministry", short: "FTM" },
+};
 
 const BASES: { key: BaseKey; label: string; src?: string }[] = [
   { key: "street", label: "Street", src: streetAsset.url },
@@ -57,12 +69,16 @@ const LAYERS: { key: LayerKey; label: string; color: string }[] = [
   { key: "parking", label: "Parking Occupancy", color: "#22c55e" },
 ];
 
-const TOOL_COLORS: Record<Exclude<Tool, null>, string> = {
+const TOOL_COLORS: Record<"ingress" | "egress" | "shuttle" | "closure", string> = {
   ingress: "#facc15",
   egress: "#ef4444",
   shuttle: "#0062ff",
   closure: "#ef4444",
 };
+const toolColor = (t: Exclude<Tool, null>): string =>
+  t === "hpd" || t === "security" || t === "ministry"
+    ? PERSONNEL_META[t].color
+    : TOOL_COLORS[t];
 
 const STORAGE_KEY = "kairos:annotations:v1";
 const RENDER_STYLE_KEY = "kairos:annotation-render-style:v1";
@@ -773,6 +789,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
   // Panel visibility — collapse to get panels out of the way while drawing.
   const [layersOpen, setLayersOpen] = useState(true);
   const [annotateOpen, setAnnotateOpen] = useState(true);
+  const [personnelOpen, setPersonnelOpen] = useState(false);
   const [playbackOpen, setPlaybackOpen] = useState(true);
 
   // Panel drag offsets (pixels from their default anchor).
@@ -1109,16 +1126,32 @@ export function MapPanel({ service, onServiceChange }: Props) {
       ]);
       return;
     }
+    if (tool === "hpd" || tool === "security" || tool === "ministry") {
+      const meta = PERSONNEL_META[tool];
+      const label = window.prompt(`${meta.label} label (optional):`, "") ?? "";
+      setAnnotations((a) => [
+        ...a,
+        {
+          id: crypto.randomUUID(),
+          kind: "personnel",
+          role: tool as PersonnelRole,
+          base,
+          point: p,
+          label: label || undefined,
+        },
+      ]);
+      return;
+    }
     setDraft((d) => [...d, p]);
   }
 
   function onSurfaceMove(e: React.MouseEvent) {
-    if (!tool || tool === "closure") return;
+    if (!tool || isPointTool(tool)) return;
     setCursor(ptFromEvent(e));
   }
 
   function finishPath() {
-    if (!tool || tool === "closure" || draft.length < 2) {
+    if (!tool || isPointTool(tool) || draft.length < 2) {
       setDraft([]);
       return;
     }
@@ -1277,6 +1310,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const visibleAnnotations = annotations.filter((a) => {
     if (a.base !== base) return false;
     if (a.kind === "closure") return layers.closures;
+    if (a.kind === "personnel") return true;
     return layers[a.kind];
   });
 
@@ -1284,7 +1318,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
   // in the order they were saved (ingress → egress → shuttle by save order).
   const playbackSeq = annotations.filter(
     (a): a is Extract<Annotation, { kind: "ingress" | "egress" | "shuttle" }> =>
-      a.base === base && a.kind !== "closure",
+      a.base === base && (a.kind === "ingress" || a.kind === "egress" || a.kind === "shuttle"),
   );
 
   // Stop playing if the sequence becomes empty (e.g. layer switched).
@@ -1332,7 +1366,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
   }
 
 
-  const anyPanelOpen = layersOpen || annotateOpen || playbackOpen;
+  const anyPanelOpen = layersOpen || annotateOpen || personnelOpen || playbackOpen;
 
   return (
     <div
@@ -1360,7 +1394,8 @@ export function MapPanel({ service, onServiceChange }: Props) {
           {(
             [
               { key: "layers", label: "Map Layers", open: layersOpen, set: setLayersOpen, badge: `${Object.values(layers).filter(Boolean).length}/${LAYERS.length}` },
-              { key: "annotate", label: "Annotate", open: annotateOpen, set: setAnnotateOpen, badge: `${annotations.filter((a) => a.base === base).length}` },
+              { key: "annotate", label: "Annotate", open: annotateOpen, set: setAnnotateOpen, badge: `${annotations.filter((a) => a.base === base && a.kind !== "personnel").length}` },
+              { key: "personnel", label: "Personnel", open: personnelOpen, set: setPersonnelOpen, badge: `${annotations.filter((a) => a.base === base && a.kind === "personnel").length}` },
               { key: "playback", label: "Playback", open: playbackOpen, set: setPlaybackOpen, badge: playbackSeq.length ? `${playbackSeq.length}` : undefined },
             ] as const
           ).map((p) => (
@@ -1851,7 +1886,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
                     );
                   })}
                 </div>
-                {tool && tool !== "closure" && (
+                {tool && !isPointTool(tool) && (
                   <div className="mt-2 text-[10px] text-slate-400 leading-relaxed">
                     Click the map to drop points ({draft.length} placed). <b className="text-white">Double-click</b> or press <b className="text-white">Finish</b> to save.
                   </div>
@@ -1862,7 +1897,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   </div>
                 )}
                 <div className="mt-2 flex gap-1.5">
-                  <button type="button" onClick={finishPath} disabled={!tool || tool === "closure" || draft.length < 2} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-kairos-blue text-white disabled:opacity-30 disabled:cursor-not-allowed">Finish</button>
+                  <button type="button" onClick={finishPath} disabled={!tool || isPointTool(tool) || draft.length < 2} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-kairos-blue text-white disabled:opacity-30 disabled:cursor-not-allowed">Finish</button>
                   <button type="button" onClick={undo} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-white/5 text-slate-300 hover:text-white border border-white/5">Undo</button>
                   <button type="button" onClick={cancelDraft} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-white/5 text-slate-300 hover:text-white border border-white/5">Cancel</button>
                 </div>
@@ -2169,6 +2204,73 @@ export function MapPanel({ service, onServiceChange }: Props) {
               </div>
             )}
 
+            {personnelOpen && (
+              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-white">
+                    Personnel <span className="text-kairos-gold font-mono ml-1">{annotations.filter((a) => a.base === base && a.kind === "personnel").length} on {base}</span>
+                  </h4>
+                  <button type="button" onClick={() => setPersonnelOpen(false)} className="text-[10px] text-slate-400 hover:text-white">✕</button>
+                </div>
+                <div className="text-[10px] text-slate-400 leading-relaxed mb-2">
+                  Pick a role, then click the map to place a person directing traffic. Saves with your Traffic Plans.
+                </div>
+                <div className="space-y-1.5">
+                  {(Object.keys(PERSONNEL_META) as PersonnelRole[]).map((role) => {
+                    const meta = PERSONNEL_META[role];
+                    const on = tool === role;
+                    const count = annotations.filter((a) => a.base === base && a.kind === "personnel" && a.role === role).length;
+                    return (
+                      <button
+                        type="button"
+                        key={role}
+                        onClick={() => {
+                          setDraft([]);
+                          setTool(on ? null : role);
+                        }}
+                        className={`w-full flex items-center justify-between gap-2 py-2 px-2 rounded border transition ${
+                          on ? "text-white border-white/30" : "bg-white/5 text-slate-200 border-white/10 hover:text-white"
+                        }`}
+                        style={on ? { background: meta.color } : undefined}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="size-5 rounded-full border-2 border-white flex items-center justify-center"
+                            style={{ background: meta.color }}
+                          >
+                            <svg viewBox="0 0 24 24" className="w-3 h-3 text-white" fill="currentColor" aria-hidden="true">
+                              <circle cx="12" cy="7" r="3.2" />
+                              <path d="M4.5 20c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5v.5h-15V20z" />
+                            </svg>
+                          </span>
+                          <span className="text-[11px] font-bold">{meta.label}</span>
+                        </span>
+                        <span className="text-[10px] font-mono opacity-80">{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {(tool === "hpd" || tool === "security" || tool === "ministry") && (
+                  <div className="mt-2 text-[10px] text-slate-300 leading-relaxed">
+                    Click the map to drop a <b>{PERSONNEL_META[tool].label}</b> marker.
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const roleCount = annotations.filter((a) => a.base === base && a.kind === "personnel").length;
+                    if (!roleCount) return;
+                    if (!window.confirm(`Delete all ${roleCount} personnel markers on ${base}?`)) return;
+                    setAnnotations((prev) => prev.filter((a) => !(a.base === base && a.kind === "personnel")));
+                  }}
+                  className="mt-2 w-full text-[10px] font-bold py-1.5 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition"
+                >
+                  Clear Personnel on {base}
+                </button>
+              </div>
+            )}
+
+
             {playbackOpen && (
               <div className="rounded-lg border border-white/10 bg-white/5 p-3">
                 <div className="flex items-center justify-between mb-2">
@@ -2353,7 +2455,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
               if (window.confirm("Delete this annotation?")) removeAnnotation(id);
             };
             return visibleAnnotations.map((a) => {
-              if (a.kind === "closure") return null;
+              if (a.kind === "closure" || a.kind === "personnel") return null;
               if (playbackIds?.has(a.id)) return null;
               if (renderStyle === "cars") {
                 const spacing = Math.max(4.5, strokeW * 5);
@@ -2453,48 +2555,86 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
 
           {/* Draft */}
-          {tool && tool !== "closure" && draft.length > 0 && (
+          {tool && !isPointTool(tool) && draft.length > 0 && (
             <>
               <path
                 d={pathD(cursor ? [...draft, cursor] : draft)}
-                stroke={TOOL_COLORS[tool]}
+                stroke={toolColor(tool)}
                 strokeWidth={strokeW}
                 fill="none"
                 strokeDasharray="1.5 1.5"
                 opacity="0.9"
               />
               {draft.map((p, i) => (
-                <circle key={i} cx={p.x} cy={p.y} r="0.8" fill={TOOL_COLORS[tool]} />
+                <circle key={i} cx={p.x} cy={p.y} r="0.8" fill={toolColor(tool)} />
               ))}
             </>
           )}
         </svg>
 
-        {/* Closure pins (annotations + HTML) */}
+        {/* Closure pins, personnel markers, path labels (HTML overlays) */}
         {visibleAnnotations.map((a) => {
           const editable = !tool && !playing;
-          return a.kind === "closure" ? (
-            <div
-              key={a.id}
-              onClick={(e) => {
-                if (!editable) return;
-                e.stopPropagation();
-                if (window.confirm("Delete this closure pin?")) removeAnnotation(a.id);
-              }}
-              className={`absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 group ${
-                editable ? "cursor-pointer" : "pointer-events-none"
-              }`}
-              style={{ left: `${a.point.x}%`, top: `${a.point.y}%` }}
-              title={editable ? "Click to delete this closure" : undefined}
-            >
-              <div className="size-6 rounded bg-red-500/90 border border-white/20 flex items-center justify-center text-white font-black text-sm shadow-lg group-hover:ring-2 group-hover:ring-white/60">
-                ✕
+          if (a.kind === "closure") {
+            return (
+              <div
+                key={a.id}
+                onClick={(e) => {
+                  if (!editable) return;
+                  e.stopPropagation();
+                  if (window.confirm("Delete this closure pin?")) removeAnnotation(a.id);
+                }}
+                className={`absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 group ${
+                  editable ? "cursor-pointer" : "pointer-events-none"
+                }`}
+                style={{ left: `${a.point.x}%`, top: `${a.point.y}%` }}
+                title={editable ? "Click to delete this closure" : undefined}
+              >
+                <div className="size-6 rounded bg-red-500/90 border border-white/20 flex items-center justify-center text-white font-black text-sm shadow-lg group-hover:ring-2 group-hover:ring-white/60">
+                  ✕
+                </div>
+                <span className="text-[9px] font-bold text-red-300 bg-bg-deep/80 px-1.5 py-0.5 rounded whitespace-nowrap">
+                  {a.label}
+                </span>
               </div>
-              <span className="text-[9px] font-bold text-red-300 bg-bg-deep/80 px-1.5 py-0.5 rounded whitespace-nowrap">
-                {a.label}
-              </span>
-            </div>
-          ) : a.label ? (
+            );
+          }
+          if (a.kind === "personnel") {
+            const meta = PERSONNEL_META[a.role];
+            return (
+              <div
+                key={a.id}
+                onClick={(e) => {
+                  if (!editable) return;
+                  e.stopPropagation();
+                  if (window.confirm(`Delete this ${meta.label} marker?`)) removeAnnotation(a.id);
+                }}
+                className={`absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 group ${
+                  editable ? "cursor-pointer" : "pointer-events-none"
+                }`}
+                style={{ left: `${a.point.x}%`, top: `${a.point.y}%` }}
+                title={editable ? `Click to delete this ${meta.label} marker` : meta.label}
+              >
+                <div
+                  className="size-6 rounded-full border-2 border-white shadow-lg flex items-center justify-center group-hover:ring-2 group-hover:ring-white/60"
+                  style={{ background: meta.color }}
+                >
+                  {/* silhouette */}
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 text-white" fill="currentColor" aria-hidden="true">
+                    <circle cx="12" cy="7" r="3.2" />
+                    <path d="M4.5 20c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5v.5h-15V20z" />
+                  </svg>
+                </div>
+                <span
+                  className="text-[9px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap bg-bg-deep/80 border border-white/10"
+                  style={{ color: meta.color }}
+                >
+                  {a.label || meta.short}
+                </span>
+              </div>
+            );
+          }
+          return a.label ? (
             <div
               key={`lbl-${a.id}`}
               className="absolute -translate-x-1/2 -translate-y-full pointer-events-none"
