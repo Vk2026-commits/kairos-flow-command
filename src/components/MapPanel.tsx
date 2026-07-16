@@ -469,21 +469,246 @@ export function MapPanel({ service, onServiceChange }: Props) {
   }
 
 
+  const anyPanelOpen = layersOpen || annotateOpen || playbackOpen;
+
   return (
     <div
       className={
         fullscreen
-          ? "fixed inset-0 z-50 bg-surface border-0 rounded-none overflow-hidden"
-          : "col-span-12 lg:col-span-8 lg:row-span-5 bg-surface border border-white/5 rounded-3xl relative overflow-hidden min-h-[520px]"
+          ? "fixed inset-0 z-50 bg-surface flex flex-col overflow-hidden"
+          : "col-span-12 lg:col-span-8 lg:row-span-5 bg-surface border border-white/5 rounded-3xl overflow-hidden min-h-[520px] flex flex-col relative"
       }
     >
-      {/* Base image + click surface */}
+      {/* ============ Docked toolbar (above the map, never on it) ============ */}
+      <div className="shrink-0 border-b border-white/10 bg-surface/95 backdrop-blur-md">
+        <div className="flex flex-wrap items-center gap-1.5 px-3 py-2">
+          <button
+            type="button"
+            onClick={() => setFullscreen((v) => !v)}
+            className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded border border-white/10 bg-white/5 text-white hover:bg-white/10 transition"
+            title={fullscreen ? "Exit fullscreen (Esc)" : "Fullscreen map"}
+          >
+            {fullscreen ? "⤢ Exit Full" : "⤢ Fullscreen"}
+          </button>
+
+          <div className="mx-1 h-5 w-px bg-white/10" />
+
+          {/* Panel toggle buttons */}
+          {(
+            [
+              { key: "layers", label: "Map Layers", open: layersOpen, set: setLayersOpen, badge: `${Object.values(layers).filter(Boolean).length}/${LAYERS.length}` },
+              { key: "annotate", label: "Annotate", open: annotateOpen, set: setAnnotateOpen, badge: `${annotations.filter((a) => a.base === base).length}` },
+              { key: "playback", label: "Playback", open: playbackOpen, set: setPlaybackOpen, badge: playbackSeq.length ? `${playbackSeq.length}` : undefined },
+            ] as const
+          ).map((p) => (
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => p.set(!p.open)}
+              className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded border transition flex items-center gap-1.5 ${
+                p.open
+                  ? "bg-kairos-blue text-white border-white/10"
+                  : "bg-white/5 text-slate-300 border-white/10 hover:text-white"
+              }`}
+            >
+              {p.label}
+              {p.badge && (
+                <span className="text-[9px] font-mono opacity-80">{p.badge}</span>
+              )}
+              <span className="text-[9px] opacity-70">{p.open ? "▴" : "▾"}</span>
+            </button>
+          ))}
+
+          {/* Quick base layer chips */}
+          <div className="mx-1 h-5 w-px bg-white/10" />
+          <div className="flex gap-1">
+            {bases.map((b) => (
+              <button
+                key={b.key}
+                type="button"
+                onClick={() => selectBase(b.key)}
+                className={`text-[10px] font-bold px-2 py-1.5 rounded border transition ${
+                  base === b.key
+                    ? "bg-kairos-gold text-bg-deep border-white/10"
+                    : "bg-white/5 text-slate-300 border-white/10 hover:text-white"
+                }`}
+              >
+                {b.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Service selector pushed to the right */}
+          <div className="ml-auto flex gap-1">
+            {(["7:00 AM", "10:00 AM", "1:00 PM"] as const).map((s) => (
+              <button
+                type="button"
+                key={s}
+                onClick={() => onServiceChange(s)}
+                className={`px-2.5 py-1.5 rounded text-[10px] font-bold transition border ${
+                  service === s
+                    ? "bg-kairos-blue text-white border-white/10"
+                    : "bg-white/5 border-white/10 hover:bg-white/10 text-slate-300"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Expanded panel bodies — inline, push the map down; never overlap it */}
+        {anyPanelOpen && (
+          <div className="border-t border-white/10 px-3 py-3 grid gap-3 md:grid-cols-3 max-h-[40vh] overflow-y-auto bg-surface/90">
+            {layersOpen && (
+              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-white">Map Layers</h4>
+                  <button type="button" onClick={() => setLayersOpen(false)} className="text-[10px] text-slate-400 hover:text-white">✕</button>
+                </div>
+                <div className="space-y-1.5">
+                  {LAYERS.map((l) => {
+                    const on = layers[l.key];
+                    return (
+                      <button
+                        type="button"
+                        key={l.key}
+                        onClick={() => toggle(l.key)}
+                        className="w-full flex items-center justify-between group"
+                      >
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="size-2 rounded-full"
+                            style={{ background: l.color, boxShadow: on ? `0 0 8px ${l.color}` : "none" }}
+                          />
+                          <span className="text-[11px] text-slate-300 group-hover:text-white transition">
+                            {l.label}
+                          </span>
+                        </span>
+                        <div className={`w-8 h-4 rounded-full relative transition-colors ${on ? "bg-kairos-blue" : "bg-white/10"}`}>
+                          <div className={`absolute top-1 size-2 rounded-full transition-all ${on ? "right-1 bg-white" : "left-1 bg-slate-500"}`} />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="mt-3 w-full text-[10px] font-bold py-1.5 rounded border border-dashed border-white/15 text-kairos-gold hover:bg-white/5 transition"
+                >
+                  + Upload Aerial Imagery
+                </button>
+                <input ref={fileRef} type="file" accept="image/*" hidden onChange={onUpload} />
+              </div>
+            )}
+
+            {annotateOpen && (
+              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-white">
+                    Annotate <span className="text-kairos-gold font-mono ml-1">{annotations.filter((a) => a.base === base).length} on {base}</span>
+                  </h4>
+                  <button type="button" onClick={() => setAnnotateOpen(false)} className="text-[10px] text-slate-400 hover:text-white">✕</button>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {(
+                    [
+                      { k: "ingress", label: "Ingress →" },
+                      { k: "egress", label: "Egress →" },
+                      { k: "shuttle", label: "Shuttle →" },
+                      { k: "closure", label: "✕ Closure" },
+                    ] as const
+                  ).map((t) => {
+                    const on = tool === t.k;
+                    return (
+                      <button
+                        type="button"
+                        key={t.k}
+                        onClick={() => {
+                          setDraft([]);
+                          setTool(on ? null : t.k);
+                        }}
+                        className={`text-[10px] font-bold py-2 rounded border transition ${
+                          on ? "text-white border-white/20" : "bg-white/5 text-slate-300 border-white/5 hover:text-white"
+                        }`}
+                        style={on ? { background: TOOL_COLORS[t.k] } : undefined}
+                      >
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {tool && tool !== "closure" && (
+                  <div className="mt-2 text-[10px] text-slate-400 leading-relaxed">
+                    Click the map to drop points ({draft.length} placed). <b className="text-white">Double-click</b> or press <b className="text-white">Finish</b> to save.
+                  </div>
+                )}
+                {tool === "closure" && (
+                  <div className="mt-2 text-[10px] text-slate-400 leading-relaxed">
+                    Click a point on the map to drop a closure marker.
+                  </div>
+                )}
+                <div className="mt-2 flex gap-1.5">
+                  <button type="button" onClick={finishPath} disabled={!tool || tool === "closure" || draft.length < 2} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-kairos-blue text-white disabled:opacity-30 disabled:cursor-not-allowed">Finish</button>
+                  <button type="button" onClick={undo} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-white/5 text-slate-300 hover:text-white border border-white/5">Undo</button>
+                  <button type="button" onClick={cancelDraft} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-white/5 text-slate-300 hover:text-white border border-white/5">Cancel</button>
+                </div>
+                <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                  <button type="button" onClick={exportAnnotations} disabled={!annotations.length} className="text-[10px] font-bold py-1.5 rounded border border-kairos-blue/40 text-kairos-blue hover:bg-kairos-blue/10 transition disabled:opacity-30 disabled:cursor-not-allowed">↓ Export JSON</button>
+                  <button type="button" onClick={() => importRef.current?.click()} className="text-[10px] font-bold py-1.5 rounded border border-kairos-gold/40 text-kairos-gold hover:bg-kairos-gold/10 transition">↑ Import JSON</button>
+                  <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={onImportFile} />
+                </div>
+                <button type="button" onClick={clearAll} className="mt-1.5 w-full text-[10px] font-bold py-1.5 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition">Clear All Annotations</button>
+              </div>
+            )}
+
+            {playbackOpen && (
+              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-white">Traffic Flow Playback</h4>
+                  <button type="button" onClick={() => setPlaybackOpen(false)} className="text-[10px] text-slate-400 hover:text-white">✕</button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={togglePlay} disabled={!playbackSeq.length} className="size-9 rounded-full bg-kairos-blue text-white grid place-items-center hover:brightness-110 transition disabled:opacity-30 disabled:cursor-not-allowed shrink-0" title={playing ? "Pause" : "Play"}>
+                    {playing ? (
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1" width="3" height="10" rx="1" /><rect x="7" y="1" width="3" height="10" rx="1" /></svg>
+                    ) : (
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1 L11 6 L2 11 Z" /></svg>
+                    )}
+                  </button>
+                  <button type="button" onClick={() => { setPlaying(false); setProgress(0); }} disabled={!playbackSeq.length} className="size-9 rounded-full bg-white/5 border border-white/10 text-slate-300 grid place-items-center hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed shrink-0" title="Restart">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 1 v4 L1 3 Z" /><rect x="1" y="1" width="2" height="10" rx="0.5" /></svg>
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-[10px] font-mono text-slate-400">
+                        {playbackSeq.length ? `${Math.min(Math.ceil(progress), playbackSeq.length)} / ${playbackSeq.length}` : "no arrows"}
+                      </p>
+                    </div>
+                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                      <div className="h-full bg-kairos-blue transition-[width] duration-100" style={{ width: playbackSeq.length ? `${(progress / playbackSeq.length) * 100}%` : "0%" }} />
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-2 flex gap-1 justify-end">
+                  {([0.5, 1, 2, 4] as const).map((s) => (
+                    <button type="button" key={s} onClick={() => setSpeed(s)} className={`text-[10px] font-bold px-2 py-1 rounded transition ${speed === s ? "bg-kairos-gold text-bg-deep" : "bg-white/5 text-slate-400 hover:text-white"}`}>{s}×</button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ============ Map surface (fills remaining space) ============ */}
       <div
         ref={surfaceRef}
         onClick={onSurfaceClick}
         onMouseMove={onSurfaceMove}
         onDoubleClick={finishPath}
-        className={`absolute inset-0 ${tool ? "cursor-crosshair" : ""}`}
+        className={`relative flex-1 min-h-0 overflow-hidden ${tool ? "cursor-crosshair" : ""}`}
       >
         <img
           src={activeSrc}
