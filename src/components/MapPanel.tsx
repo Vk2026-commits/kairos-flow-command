@@ -1526,6 +1526,38 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   <button type="button" onClick={cancelDraft} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-white/5 text-slate-300 hover:text-white border border-white/5">Cancel</button>
                 </div>
 
+                {/* Render style — draw arrows as animated lines or as a stream of little cars. */}
+                <div className="mt-2 rounded border border-white/10 bg-white/5 px-2 py-1.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                      Arrow Style
+                    </span>
+                    <span className="text-[10px] font-mono text-kairos-gold">{renderStyle}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {(["lines", "cars"] as const).map((s) => {
+                      const on = renderStyle === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setRenderStyle(s)}
+                          className={`text-[10px] font-bold py-1.5 rounded border transition ${
+                            on
+                              ? "bg-kairos-blue text-white border-kairos-blue"
+                              : "bg-white/5 text-slate-300 border-white/5 hover:text-white"
+                          }`}
+                          title={s === "lines" ? "Animated dashed lines with arrowheads" : "Stream of small cars along the path"}
+                        >
+                          {s === "lines" ? "Lines →" : "🚗 Cars"}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+
+
                 {/* Line thickness — per-base so animated arrows stay readable on any map. */}
                 <div className="mt-2 rounded border border-white/10 bg-white/5 px-2 py-1.5">
                   <div className="flex items-center justify-between mb-1">
