@@ -1006,7 +1006,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
                       : `⚠ ${searchMsg?.text}`}
                   </span>
                 )}
-                {recentOpen && (recent.length > 0 || landmarks.length > 0) && (
+                {recentOpen && (
                   <div
                     className="absolute top-full right-0 mt-1 w-72 lg:w-80 bg-bg-deep/98 border border-white/10 rounded-md shadow-xl z-40 overflow-hidden"
                     onMouseDown={(e) => e.preventDefault()}
