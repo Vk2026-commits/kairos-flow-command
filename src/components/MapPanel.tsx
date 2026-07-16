@@ -17,13 +17,25 @@ type LayerKey =
 type BaseKey = "street" | "aerial" | "lot" | "live" | "custom";
 type LiveMapType = "roadmap" | "satellite" | "hybrid";
 
-type Tool = "ingress" | "egress" | "shuttle" | "closure" | null;
+type PersonnelRole = "hpd" | "security" | "ministry";
+type Tool = "ingress" | "egress" | "shuttle" | "closure" | PersonnelRole | null;
 type ImportMode = "merge" | "replace";
+
+const POINT_TOOLS: readonly Tool[] = ["closure", "hpd", "security", "ministry"] as const;
+const isPointTool = (t: Tool): t is "closure" | PersonnelRole =>
+  t !== null && (POINT_TOOLS as readonly Tool[]).includes(t);
 
 type Pt = { x: number; y: number };
 type Annotation =
   | { id: string; kind: "ingress" | "egress" | "shuttle"; base: BaseKey; points: Pt[]; label?: string }
-  | { id: string; kind: "closure"; base: BaseKey; point: Pt; label: string };
+  | { id: string; kind: "closure"; base: BaseKey; point: Pt; label: string }
+  | { id: string; kind: "personnel"; role: PersonnelRole; base: BaseKey; point: Pt; label?: string };
+
+const PERSONNEL_META: Record<PersonnelRole, { color: string; label: string; short: string }> = {
+  hpd: { color: "#3b82f6", label: "HPD Officer", short: "HPD" },
+  security: { color: "#ef4444", label: "Private Security", short: "SEC" },
+  ministry: { color: "#22c55e", label: "First Touch Ministry", short: "FTM" },
+};
 
 const BASES: { key: BaseKey; label: string; src?: string }[] = [
   { key: "street", label: "Street", src: streetAsset.url },
