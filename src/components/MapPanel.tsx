@@ -344,6 +344,30 @@ export function MapPanel({ service, onServiceChange }: Props) {
     );
   }, [recent, searchQuery]);
 
+  // Debounced Places autocomplete
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 2 || !liveMapRef.current) {
+      setSuggestions([]);
+      setSugLoading(false);
+      return;
+    }
+    const seq = ++sugSeqRef.current;
+    setSugLoading(true);
+    const t = window.setTimeout(async () => {
+      try {
+        const res = await liveMapRef.current!.getSuggestions(q);
+        if (seq === sugSeqRef.current) {
+          setSuggestions(res);
+          setActiveSug(-1);
+        }
+      } finally {
+        if (seq === sugSeqRef.current) setSugLoading(false);
+      }
+    }, 220);
+    return () => window.clearTimeout(t);
+  }, [searchQuery]);
+
   // Named landmarks — saved from recent searches for reuse during annotate/playback.
   type Landmark = { id: string; label: string; query: string; address: string; at: number };
   const LANDMARKS_KEY = "kairos:landmarks:v1";
