@@ -944,6 +944,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
       {/* Playback panel */}
       <div
+        data-drag-panel
         className="absolute bottom-4 left-1/2 lg:bottom-6 z-10 w-[min(560px,calc(100%-2rem))]"
         style={{
           transform: `translate(calc(-50% + ${playbackOff.x}px), ${playbackOff.y}px)`,
