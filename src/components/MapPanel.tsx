@@ -283,10 +283,57 @@ export function MapPanel({ service, onServiceChange }: Props) {
     return layers[a.kind];
   });
 
+  // Playback sequence: only path-based arrows on the current base layer,
+  // in the order they were saved (ingress → egress → shuttle by save order).
+  const playbackSeq = annotations.filter(
+    (a): a is Extract<Annotation, { kind: "ingress" | "egress" | "shuttle" }> =>
+      a.base === base && a.kind !== "closure",
+  );
+
+  // Stop playing if the sequence becomes empty (e.g. layer switched).
+  useEffect(() => {
+    if (playing && playbackSeq.length === 0) setPlaying(false);
+  }, [playing, playbackSeq.length]);
+
+  // Reset progress when leaving playback or switching base layers.
+  useEffect(() => {
+    setPlaying(false);
+    setProgress(0);
+  }, [base]);
+
+  // rAF loop — advance progress at 1 arrow / (2s / speed).
+  useEffect(() => {
+    if (!playing) return;
+    let raf = 0;
+    let last = performance.now();
+    const step = (now: number) => {
+      const dt = (now - last) / 1000;
+      last = now;
+      setProgress((p) => {
+        const next = p + (dt * speed) / 2;
+        if (next >= playbackSeq.length) {
+          setPlaying(false);
+          return playbackSeq.length;
+        }
+        return next;
+      });
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [playing, speed, playbackSeq.length]);
+
+  function togglePlay() {
+    if (!playbackSeq.length) return;
+    if (progress >= playbackSeq.length) setProgress(0);
+    setPlaying((p) => !p);
+  }
+
   function pathD(pts: Pt[]) {
     if (!pts.length) return "";
     return pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x},${p.y}`).join(" ");
   }
+
 
   return (
     <div className="col-span-12 lg:col-span-8 lg:row-span-5 bg-surface border border-white/5 rounded-3xl relative overflow-hidden min-h-[520px]">
