@@ -453,6 +453,7 @@ function Slide5Solution() {
 /* SLIDE 6 — Interactive Map */
 function Slide6Map() {
   const [mode, setMode] = useState<"arrival" | "departure" | "transition">("arrival");
+  const [service, setService] = useState<"7:00 AM" | "10:00 AM" | "1:00 PM">("10:00 AM");
   return (
     <div className="p-6 max-w-[1600px] mx-auto">
       <div className="flex items-end justify-between mb-4">
