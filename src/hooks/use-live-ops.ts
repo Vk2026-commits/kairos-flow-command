@@ -75,10 +75,9 @@ function seed(): LiveOps {
     incidentRatePct: 0.02,
     trafficClearanceMin: 13,
     shuttles: [
-      { id: "S-01", loc: "UH Lot 12",         pax: 24, cycleSec: 12 * 60 + 40, status: "Loading" },
-      { id: "S-02", loc: "Enroute → Church",  pax: 31, cycleSec: 11 * 60 + 20, status: "Moving" },
-      { id: "S-03", loc: "Church Curb",       pax: 0,  cycleSec: 13 * 60 + 5,  status: "Departure" },
-      { id: "S-04", loc: "TSU Overflow",      pax: 18, cycleSec: 14 * 60 + 10, status: "Loading" },
+      { id: "S-01", type: "shuttle", loc: "UH Lot 12",         pax: 24, cycleSec: 12 * 60 + 40, status: "Loading", trips: 4 },
+      { id: "S-02", type: "shuttle", loc: "Enroute → Church",  pax: 31, cycleSec: 11 * 60 + 20, status: "Moving",  trips: 5 },
+      { id: "GC-01", type: "golf-cart", loc: "Church Curb",    pax: 2,  cycleSec: 6 * 60 + 15,  status: "Loading", trips: 12 },
     ],
   };
 }
