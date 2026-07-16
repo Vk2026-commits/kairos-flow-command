@@ -674,7 +674,7 @@ function Slide10Shuttle() {
               </div>
               <div className="text-right">
                 <div className="text-xs text-muted-foreground">CYCLE</div>
-                <div className="font-mono font-bold text-kairos-gold">{s.cycle}</div>
+                <div className="font-mono font-bold text-kairos-gold">{formatCycle(s.cycleSec)}</div>
               </div>
             </div>
           ))}
