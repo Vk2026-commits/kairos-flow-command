@@ -980,6 +980,30 @@ export function MapPanel({ service, onServiceChange }: Props) {
               >
                 {mapLocked ? "🔒 Map Locked" : "🔓 Lock Map"}
               </button>
+              {landmarks.length > 0 && (
+                <div
+                  className="flex items-center gap-1 pl-2 ml-1 border-l border-white/10 max-w-[280px] lg:max-w-[420px] overflow-x-auto"
+                  title="Saved landmarks — click to jump (works while annotating or playing back)"
+                >
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 shrink-0">
+                    📍
+                  </span>
+                  {landmarks.map((l) => (
+                    <button
+                      key={l.id}
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery(l.query);
+                        void runSearch(l.query);
+                      }}
+                      title={l.address}
+                      className="text-[10px] font-bold px-2 py-1.5 rounded border border-kairos-gold/30 bg-kairos-gold/10 text-kairos-gold hover:bg-kairos-gold/20 whitespace-nowrap"
+                    >
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </>
           )}
 
