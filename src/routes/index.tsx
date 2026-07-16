@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { MapPanel } from "@/components/MapPanel";
 
@@ -108,6 +108,13 @@ function CommandDashboard() {
           </div>
 
           <div className="flex items-center gap-4 lg:gap-6">
+            <Link
+              to="/presentation"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-kairos-blue/10 hover:bg-kairos-blue/20 border border-kairos-blue/40 text-xs font-semibold text-kairos-blue transition"
+            >
+              <span className="size-1.5 rounded-full bg-kairos-blue animate-pulse" />
+              EXECUTIVE PRESENTATION
+            </Link>
             <button
               onClick={() => setPresentation((v) => !v)}
               className="flex items-center gap-3 bg-white/5 hover:bg-white/10 rounded-lg px-3 lg:px-4 py-2 border border-white/5 transition-all"
