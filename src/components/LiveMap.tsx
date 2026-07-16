@@ -17,6 +17,7 @@ export type LiveMapHandle = {
   zoomOut: () => void;
   reset: () => void;
   search: (query: string) => Promise<{ ok: true; address: string } | { ok: false; error: string }>;
+  setInteractive: (enabled: boolean) => void;
 };
 
 let mapsLoader: Promise<typeof google> | null = null;
@@ -133,8 +134,44 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
           }
           return { ok: true as const, address: hit.formatted_address };
         } catch (e) {
-          return { ok: false as const, error: e instanceof Error ? e.message : "Search failed." };
+          const msg = e instanceof Error ? e.message : String(e);
+          if (/ZERO_RESULTS/i.test(msg)) {
+            return { ok: false as const, error: "No matches for that address." };
+          }
+          if (/OVER_QUERY_LIMIT|OVER_DAILY_LIMIT/i.test(msg)) {
+            return { ok: false as const, error: "Search quota exceeded. Try again later." };
+          }
+          if (/REQUEST_DENIED/i.test(msg)) {
+            return { ok: false as const, error: "Search request denied (API key/permissions)." };
+          }
+          if (/INVALID_REQUEST/i.test(msg)) {
+            return { ok: false as const, error: "Invalid search query." };
+          }
+          if (/network|Failed to fetch/i.test(msg)) {
+            return { ok: false as const, error: "Network error — check your connection." };
+          }
+          return { ok: false as const, error: `Search failed: ${msg}` };
         }
+      },
+      setInteractive: (enabled: boolean) => {
+        const opts: google.maps.MapOptions = {
+          draggable: enabled,
+          scrollwheel: enabled,
+          disableDoubleClickZoom: !enabled,
+          keyboardShortcuts: enabled,
+          gestureHandling: enabled ? "auto" : "none",
+          zoomControl: enabled,
+          streetViewControl: enabled,
+        };
+        mapInst.current?.setOptions(opts);
+        svInst.current?.setOptions({
+          clickToGo: enabled,
+          scrollwheel: enabled,
+          disableDoubleClickZoom: !enabled,
+          linksControl: enabled,
+          panControl: enabled,
+          zoomControl: enabled,
+        });
       },
     }),
     [center],

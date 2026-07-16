@@ -106,6 +106,12 @@ export function MapPanel({ service, onServiceChange }: Props) {
     else setSearchMsg({ tone: "err", text: r.error });
   }
 
+  const [mapLocked, setMapLocked] = useState(false);
+  useEffect(() => {
+    if (base !== "live") return;
+    liveMapRef.current?.setInteractive(!mapLocked);
+  }, [mapLocked, base, streetView]);
+
 
   // Panel visibility — collapse to get panels out of the way while drawing.
   const [layersOpen, setLayersOpen] = useState(true);
@@ -661,30 +667,61 @@ export function MapPanel({ service, onServiceChange }: Props) {
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (searchMsg) setSearchMsg(null);
+                  }}
                   placeholder="Search address or intersection…"
                   className="w-56 lg:w-72 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-[11px] text-white placeholder:text-slate-500 focus:outline-none focus:border-kairos-blue"
                 />
                 <button
                   type="submit"
-                  disabled={searching}
-                  className="text-[10px] font-bold px-2 py-1.5 rounded border border-white/10 bg-kairos-blue text-white hover:opacity-90 disabled:opacity-50"
+                  disabled={searching || !searchQuery.trim()}
+                  className="text-[10px] font-bold px-2 py-1.5 rounded border border-white/10 bg-kairos-blue text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-1"
                 >
-                  {searching ? "…" : "Go"}
+                  {searching && (
+                    <span className="inline-block size-2.5 border border-white/60 border-t-transparent rounded-full animate-spin" />
+                  )}
+                  {searching ? "Searching…" : "Go"}
                 </button>
-                {searchMsg && (
+                {(searching || searchMsg) && (
                   <span
-                    className={`absolute top-full left-0 mt-1 text-[10px] font-mono px-2 py-1 rounded bg-bg-deep/90 border border-white/10 max-w-xs truncate ${
-                      searchMsg.tone === "ok" ? "text-green-400" : "text-red-400"
+                    className={`absolute top-full left-0 mt-1 text-[10px] font-mono px-2 py-1 rounded bg-bg-deep/95 border max-w-sm truncate z-30 ${
+                      searching
+                        ? "text-slate-300 border-white/10"
+                        : searchMsg?.tone === "ok"
+                        ? "text-green-400 border-green-500/30"
+                        : "text-red-400 border-red-500/30"
                     }`}
-                    title={searchMsg.text}
+                    title={searching ? "Geocoding…" : searchMsg?.text}
                   >
-                    {searchMsg.text}
+                    {searching
+                      ? "Geocoding address…"
+                      : searchMsg?.tone === "ok"
+                      ? `✓ ${searchMsg.text}`
+                      : `⚠ ${searchMsg?.text}`}
                   </span>
                 )}
               </form>
+              <button
+                type="button"
+                onClick={() => setMapLocked((v) => !v)}
+                className={`text-[10px] font-bold px-2 py-1.5 rounded border transition ${
+                  mapLocked
+                    ? "bg-red-500/80 text-white border-white/10"
+                    : "bg-white/5 text-slate-300 border-white/10 hover:text-white"
+                }`}
+                title={
+                  mapLocked
+                    ? "Map is locked — pan/zoom disabled so annotations stay put"
+                    : "Lock the map so annotations stay aligned"
+                }
+              >
+                {mapLocked ? "🔒 Map Locked" : "🔓 Lock Map"}
+              </button>
             </>
           )}
+
 
 
           {/* Service selector pushed to the right */}
