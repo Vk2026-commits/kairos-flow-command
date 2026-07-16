@@ -370,6 +370,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
           street: clean.some((a) => a.base === "street"),
           aerial: clean.some((a) => a.base === "aerial"),
           lot: clean.some((a) => a.base === "lot"),
+          live: clean.some((a) => a.base === "live"),
           custom: clean.some((a) => a.base === "custom"),
         },
         mode: "merge",
