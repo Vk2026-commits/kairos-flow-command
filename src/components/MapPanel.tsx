@@ -2470,18 +2470,18 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
 
           {/* Draft */}
-          {tool && tool !== "closure" && draft.length > 0 && (
+          {tool && !isPointTool(tool) && draft.length > 0 && (
             <>
               <path
                 d={pathD(cursor ? [...draft, cursor] : draft)}
-                stroke={TOOL_COLORS[tool]}
+                stroke={toolColor(tool)}
                 strokeWidth={strokeW}
                 fill="none"
                 strokeDasharray="1.5 1.5"
                 opacity="0.9"
               />
               {draft.map((p, i) => (
-                <circle key={i} cx={p.x} cy={p.y} r="0.8" fill={TOOL_COLORS[tool]} />
+                <circle key={i} cx={p.x} cy={p.y} r="0.8" fill={toolColor(tool)} />
               ))}
             </>
           )}
