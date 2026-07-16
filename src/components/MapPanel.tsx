@@ -263,6 +263,13 @@ export function MapPanel({ service, onServiceChange }: Props) {
     );
   }
 
+  type LandmarkImportPreview = {
+    incoming: Landmark[];
+    duplicateKeys: Set<string>;
+    fileName: string;
+  };
+  const [landmarkImport, setLandmarkImport] = useState<LandmarkImportPreview | null>(null);
+
   async function onImportLandmarks(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = "";
@@ -274,35 +281,45 @@ export function MapPanel({ service, onServiceChange }: Props) {
       if (!Array.isArray(list)) throw new Error("No landmarks array found.");
       const clean = list.filter(isValidLandmark) as Landmark[];
       if (!clean.length) throw new Error("File contained no valid landmarks.");
-      const mode = window.confirm(
-        `Import ${clean.length} landmark(s)?\n\nOK = Merge with existing (skip duplicates)\nCancel = Replace all current landmarks`,
-      )
-        ? "merge"
-        : "replace";
-      setLandmarks((prev) => {
-        const incoming = clean.map((l) => ({
-          id: crypto.randomUUID(),
-          label: l.label,
-          query: l.query,
-          address: l.address,
-          at: typeof l.at === "number" ? l.at : Date.now(),
-        }));
-        if (mode === "replace") return incoming;
-        const seen = new Set(
-          prev.map((p) => `${p.label.toLowerCase()}::${p.address.toLowerCase()}`),
-        );
-        const deduped = incoming.filter(
-          (l) => !seen.has(`${l.label.toLowerCase()}::${l.address.toLowerCase()}`),
-        );
-        return [...deduped, ...prev];
-      });
-      setRecentOpen(true);
+      const existingKeys = new Set(
+        landmarks.map((p) => `${p.label.toLowerCase()}::${p.address.toLowerCase()}`),
+      );
+      const duplicateKeys = new Set(
+        clean
+          .map((l) => `${l.label.toLowerCase()}::${l.address.toLowerCase()}`)
+          .filter((k) => existingKeys.has(k)),
+      );
+      setLandmarkImport({ incoming: clean, duplicateKeys, fileName: f.name });
     } catch (err) {
       window.alert(
         `Import failed: ${err instanceof Error ? err.message : "invalid file"}`,
       );
     }
   }
+
+  function commitLandmarkImport(mode: "merge" | "replace") {
+    if (!landmarkImport) return;
+    const incoming = landmarkImport.incoming.map((l) => ({
+      id: crypto.randomUUID(),
+      label: l.label,
+      query: l.query,
+      address: l.address,
+      at: typeof l.at === "number" ? l.at : Date.now(),
+    }));
+    setLandmarks((prev) => {
+      if (mode === "replace") return incoming;
+      const seen = new Set(
+        prev.map((p) => `${p.label.toLowerCase()}::${p.address.toLowerCase()}`),
+      );
+      const deduped = incoming.filter(
+        (l) => !seen.has(`${l.label.toLowerCase()}::${l.address.toLowerCase()}`),
+      );
+      return [...deduped, ...prev];
+    });
+    setLandmarkImport(null);
+    setRecentOpen(true);
+  }
+
 
 
   // Traffic Plans — save the whole map state (annotations + base + layers + live view)
@@ -375,7 +392,9 @@ export function MapPanel({ service, onServiceChange }: Props) {
     if (typeof plan.streetView === "boolean") setStreetView(plan.streetView);
     if (plan.service) onServiceChange(plan.service);
     if (plan.base === "live" && plan.liveView) {
-      // Defer until LiveMap mounts / becomes visible.
+      // Seed initialView so a fresh LiveMap mount lands on the saved camera,
+      // and also try setView in case LiveMap is already mounted.
+      setSavedLiveView(plan.liveView);
       window.setTimeout(() => liveMapRef.current?.setView(plan.liveView!), 300);
     }
     setPlansOpen(true);
@@ -571,7 +590,16 @@ export function MapPanel({ service, onServiceChange }: Props) {
     setLayers((s) => ({ ...s, [k]: !s[k] }));
   }
 
+  // Preserve the Live Map camera (center/zoom/type) across base switches so
+  // annotations stay pinned over the exact same geographic area.
+  const [savedLiveView, setSavedLiveView] = useState<LiveMapView | null>(null);
+
   function selectBase(nextBase: BaseKey) {
+    // Snapshot the Live view before we unmount LiveMap.
+    if (base === "live" && nextBase !== "live") {
+      const v = liveMapRef.current?.getView();
+      if (v) setSavedLiveView(v);
+    }
     setBase(nextBase);
     setTool(null);
     setDraft([]);
@@ -1464,7 +1492,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
         >
         {base === "live" ? (
           <div className="absolute inset-0">
-            <LiveMap ref={liveMapRef} mapType={liveMapType} streetView={streetView} />
+            <LiveMap ref={liveMapRef} mapType={liveMapType} streetView={streetView} initialView={savedLiveView} />
           </div>
         ) : (
           <>
@@ -1819,6 +1847,98 @@ export function MapPanel({ service, onServiceChange }: Props) {
           </div>
         </div>
       )}
+
+      {landmarkImport && (() => {
+        const total = landmarkImport.incoming.length;
+        const dupCount = landmarkImport.duplicateKeys.size;
+        const newCount = total - dupCount;
+        return (
+          <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="w-full max-w-lg bg-surface border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-white">Import Landmarks · Preview</h3>
+                  <p className="text-[10px] font-mono text-slate-500 truncate max-w-xs" title={landmarkImport.fileName}>
+                    {landmarkImport.fileName}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLandmarkImport(null)}
+                  className="text-slate-400 hover:text-white text-lg leading-none"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="px-5 py-4 space-y-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-center">
+                    <div className="text-[9px] font-bold uppercase tracking-widest text-slate-500">In File</div>
+                    <div className="text-xl font-mono font-bold text-white">{total}</div>
+                  </div>
+                  <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-3 text-center">
+                    <div className="text-[9px] font-bold uppercase tracking-widest text-green-400">New</div>
+                    <div className="text-xl font-mono font-bold text-green-400">{newCount}</div>
+                  </div>
+                  <div className="rounded-lg border border-kairos-gold/30 bg-kairos-gold/5 p-3 text-center">
+                    <div className="text-[9px] font-bold uppercase tracking-widest text-kairos-gold">Duplicates</div>
+                    <div className="text-xl font-mono font-bold text-kairos-gold">{dupCount}</div>
+                  </div>
+                </div>
+                <div className="text-[10px] text-slate-400 leading-relaxed">
+                  You currently have <b className="text-white">{landmarks.length}</b> landmark{landmarks.length === 1 ? "" : "s"} saved.
+                </div>
+                <ul className="max-h-52 overflow-y-auto rounded-lg border border-white/10 divide-y divide-white/5">
+                  {landmarkImport.incoming.map((l, i) => {
+                    const key = `${l.label.toLowerCase()}::${l.address.toLowerCase()}`;
+                    const isDup = landmarkImport.duplicateKeys.has(key);
+                    return (
+                      <li key={i} className="flex items-center gap-2 px-3 py-1.5">
+                        <span className={`text-[9px] font-bold uppercase tracking-widest w-14 shrink-0 ${isDup ? "text-kairos-gold" : "text-green-400"}`}>
+                          {isDup ? "DUP" : "NEW"}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[11px] font-semibold text-white truncate">{l.label}</div>
+                          <div className="text-[10px] text-slate-500 truncate">{l.address}</div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div className="text-[10px] text-slate-500 leading-relaxed">
+                  <b className="text-slate-300">Merge</b> adds {newCount} new landmark{newCount === 1 ? "" : "s"} and skips {dupCount} duplicate{dupCount === 1 ? "" : "s"}.
+                  <br />
+                  <b className="text-slate-300">Replace</b> deletes your current {landmarks.length} landmark{landmarks.length === 1 ? "" : "s"} and installs all {total} from the file.
+                </div>
+              </div>
+              <div className="px-5 py-3 border-t border-white/10 flex items-center justify-end gap-2 bg-white/[0.02]">
+                <button
+                  type="button"
+                  onClick={() => setLandmarkImport(null)}
+                  className="text-[10px] font-bold px-3 py-1.5 rounded border border-white/10 bg-white/5 text-slate-300 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => commitLandmarkImport("replace")}
+                  className="text-[10px] font-bold px-3 py-1.5 rounded border border-red-500/40 text-red-400 hover:bg-red-500/10"
+                >
+                  Replace All ({total})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => commitLandmarkImport("merge")}
+                  disabled={newCount === 0}
+                  className="text-[10px] font-bold px-3 py-1.5 rounded bg-kairos-blue text-white hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Merge (+{newCount})
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );
