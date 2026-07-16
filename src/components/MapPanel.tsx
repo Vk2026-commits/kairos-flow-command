@@ -573,41 +573,141 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const PLANS_KEY = "kairos:traffic-plans:v1";
   const [plans, setPlans] = useState<TrafficPlan[]>([]);
   const [plansOpen, setPlansOpen] = useState(false);
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(PLANS_KEY);
-      if (raw) setPlans(JSON.parse(raw));
-    } catch {
-      /* ignore */
-    }
-  }, []);
-  useEffect(() => {
-    try {
-      localStorage.setItem(PLANS_KEY, JSON.stringify(plans));
-    } catch {
-      /* ignore */
-    }
-  }, [plans]);
 
-  function savePlan() {
+  // Row → TrafficPlan mapper (DB uses snake_case columns).
+  function rowToPlan(r: Record<string, unknown>): TrafficPlan {
+    return {
+      id: r.id as string,
+      name: r.name as string,
+      savedAt: Number(r.saved_at ?? 0),
+      base: r.base as BaseKey,
+      layers: (r.layers ?? {}) as Record<LayerKey, boolean>,
+      annotations: (r.annotations ?? []) as Annotation[],
+      liveView: (r.live_view ?? null) as LiveMapView | null,
+      liveMapType: (r.live_map_type ?? undefined) as LiveMapType | undefined,
+      streetView: (r.street_view ?? undefined) as boolean | undefined,
+      service: (r.service ?? undefined) as Props["service"] | undefined,
+    };
+  }
+
+  // Initial load from Lovable Cloud + one-time migration of any legacy
+  // localStorage plans so existing users don't lose their work.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        // One-time migration: upload local plans, then clear the key.
+        const raw = localStorage.getItem(PLANS_KEY);
+        if (raw) {
+          try {
+            const local = JSON.parse(raw) as TrafficPlan[];
+            if (Array.isArray(local) && local.length > 0) {
+              await supabase.from("traffic_plans").insert(
+                local.map((p) => ({
+                  name: p.name,
+                  saved_at: p.savedAt,
+                  base: p.base,
+                  layers: p.layers,
+                  annotations: p.annotations,
+                  live_view: p.liveView ?? null,
+                  live_map_type: p.liveMapType ?? null,
+                  street_view: p.streetView ?? null,
+                  service: p.service ?? null,
+                })),
+              );
+            }
+          } catch {
+            /* ignore malformed local data */
+          }
+          localStorage.removeItem(PLANS_KEY);
+        }
+
+        const { data, error } = await supabase
+          .from("traffic_plans")
+          .select("*")
+          .order("saved_at", { ascending: false });
+        if (error) throw error;
+        if (!cancelled && data) setPlans(data.map(rowToPlan));
+      } catch (e) {
+        console.error("Failed to load traffic plans", e);
+      }
+    })();
+
+    // Realtime: sync across devices/browsers.
+    const channel = supabase
+      .channel("traffic_plans_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "traffic_plans" },
+        (payload) => {
+          setPlans((prev) => {
+            if (payload.eventType === "INSERT") {
+              const p = rowToPlan(payload.new as Record<string, unknown>);
+              if (prev.some((x) => x.id === p.id)) return prev;
+              return [p, ...prev].sort((a, b) => b.savedAt - a.savedAt);
+            }
+            if (payload.eventType === "UPDATE") {
+              const p = rowToPlan(payload.new as Record<string, unknown>);
+              return prev.map((x) => (x.id === p.id ? p : x));
+            }
+            if (payload.eventType === "DELETE") {
+              const oldId = (payload.old as { id?: string })?.id;
+              return prev.filter((x) => x.id !== oldId);
+            }
+            return prev;
+          });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  async function savePlan() {
     const suggested = `${service} · ${base} · ${new Date().toLocaleDateString()}`;
     const name = window.prompt("Traffic plan name:", suggested)?.trim();
     if (!name) return;
     const liveView = base === "live" ? liveMapRef.current?.getView() ?? null : null;
-    const plan: TrafficPlan = {
-      id: crypto.randomUUID(),
+    const payload = {
       name,
-      savedAt: Date.now(),
+      saved_at: Date.now(),
       base,
       layers: { ...layers },
       annotations: annotations.map((a) => ({ ...a })),
-      liveView,
-      liveMapType,
-      streetView,
+      live_view: liveView,
+      live_map_type: liveMapType,
+      street_view: streetView,
       service,
     };
-    setPlans((prev) => [plan, ...prev.filter((p) => p.name.toLowerCase() !== name.toLowerCase())]);
-    setPlansOpen(true);
+    // Overwrite same-name plan (case-insensitive) — mirrors old behavior.
+    const existing = plans.find((p) => p.name.toLowerCase() === name.toLowerCase());
+    try {
+      if (existing) {
+        const { data, error } = await supabase
+          .from("traffic_plans")
+          .update(payload)
+          .eq("id", existing.id)
+          .select()
+          .single();
+        if (error) throw error;
+        if (data) setPlans((prev) => [rowToPlan(data), ...prev.filter((p) => p.id !== existing.id)]);
+      } else {
+        const { data, error } = await supabase
+          .from("traffic_plans")
+          .insert(payload)
+          .select()
+          .single();
+        if (error) throw error;
+        if (data) setPlans((prev) => [rowToPlan(data), ...prev]);
+      }
+      setPlansOpen(true);
+    } catch (e) {
+      console.error("Failed to save traffic plan", e);
+      window.alert("Could not save traffic plan. Please try again.");
+    }
   }
 
   function loadPlan(id: string) {
@@ -626,28 +726,39 @@ export function MapPanel({ service, onServiceChange }: Props) {
     if (typeof plan.streetView === "boolean") setStreetView(plan.streetView);
     if (plan.service) onServiceChange(plan.service);
     if (plan.base === "live" && plan.liveView) {
-      // Seed initialView so a fresh LiveMap mount lands on the saved camera,
-      // and also try setView in case LiveMap is already mounted.
       setSavedLiveView(plan.liveView);
       window.setTimeout(() => liveMapRef.current?.setView(plan.liveView!), 300);
     }
     setPlansOpen(true);
   }
 
-  function renamePlan(id: string) {
+  async function renamePlan(id: string) {
     const cur = plans.find((p) => p.id === id);
     if (!cur) return;
     const name = window.prompt("Rename plan:", cur.name)?.trim();
     if (!name) return;
-    setPlans((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)));
+    try {
+      const { error } = await supabase.from("traffic_plans").update({ name }).eq("id", id);
+      if (error) throw error;
+      setPlans((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)));
+    } catch (e) {
+      console.error("Failed to rename plan", e);
+    }
   }
 
-  function deletePlan(id: string) {
+  async function deletePlan(id: string) {
     const cur = plans.find((p) => p.id === id);
     if (!cur) return;
     if (!window.confirm(`Delete plan "${cur.name}"?`)) return;
-    setPlans((prev) => prev.filter((p) => p.id !== id));
+    try {
+      const { error } = await supabase.from("traffic_plans").delete().eq("id", id);
+      if (error) throw error;
+      setPlans((prev) => prev.filter((p) => p.id !== id));
+    } catch (e) {
+      console.error("Failed to delete plan", e);
+    }
   }
+
 
 
 
