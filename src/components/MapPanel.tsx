@@ -1630,8 +1630,8 @@ export function MapPanel({ service, onServiceChange }: Props) {
                 viewBox="0 0 10 10"
                 refX="8"
                 refY="5"
-                markerWidth="4"
-                markerHeight="4"
+                markerWidth={markerSize}
+                markerHeight={markerSize}
                 orient="auto"
               >
                 <path d="M 0 0 L 10 5 L 0 10 z" fill={TOOL_COLORS[k]} />
