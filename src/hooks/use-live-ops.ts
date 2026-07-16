@@ -99,12 +99,14 @@ function step(prev: LiveOps): LiveOps {
     staffAttendancePct: Math.max(98, Math.min(100, jitter(prev.staffAttendancePct, 0.1, 1))),
     incidentRatePct: 0.02,
     trafficClearanceMin: Math.max(11, Math.min(15, Math.round(jitter(prev.trafficClearanceMin, 0.5)))),
-    shuttles: prev.shuttles.map((s, i) => {
+    shuttles: prev.shuttles.map((s) => {
       const cycleSec = (s.cycleSec + 5) % (15 * 60);
-      const status = STATUSES[(STATUSES.indexOf(s.status) + (Math.random() < 0.08 ? 1 : 0)) % STATUSES.length];
+      const nextStatus = STATUSES[(STATUSES.indexOf(s.status) + (Math.random() < 0.08 ? 1 : 0)) % STATUSES.length];
       const loc = Math.random() < 0.08 ? LOCS[(LOCS.indexOf(s.loc) + 1) % LOCS.length] : s.loc;
-      const pax = status === "Departure" ? 0 : Math.max(0, Math.min(36, s.pax + (Math.random() < 0.3 ? (Math.random() < 0.5 ? -1 : 1) : 0)));
-      return { id: s.id, loc, pax, cycleSec, status };
+      const capacity = s.type === "golf-cart" ? 6 : 36;
+      const pax = nextStatus === "Departure" ? 0 : Math.max(0, Math.min(capacity, s.pax + (Math.random() < 0.3 ? (Math.random() < 0.5 ? -1 : 1) : 0)));
+      const trips = nextStatus === "Departure" && s.status !== "Departure" ? s.trips + 1 : s.trips;
+      return { ...s, loc, pax, cycleSec, status: nextStatus, trips };
     }),
   };
 }
