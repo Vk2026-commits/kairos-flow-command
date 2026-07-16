@@ -941,6 +941,14 @@ export function MapPanel({ service, onServiceChange }: Props) {
                             </button>
                             <button
                               type="button"
+                              onClick={() => saveAsLandmark({ query: r.query, address: r.address })}
+                              title="Save as landmark"
+                              className="opacity-0 group-hover:opacity-100 text-[11px] text-slate-500 hover:text-kairos-gold px-1.5"
+                            >
+                              📍
+                            </button>
+                            <button
+                              type="button"
                               onClick={() =>
                                 setRecent((prev) => prev.filter((p) => p.at !== r.at || p.address !== r.address))
                               }
