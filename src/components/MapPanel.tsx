@@ -786,11 +786,55 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const surfaceRef = useRef<HTMLDivElement>(null);
   const liveMapRef = useRef<LiveMapHandle>(null);
 
+  const [capturing, setCapturing] = useState(false);
+
   async function captureScreenshot() {
     const node = surfaceRef.current;
     if (!node) return;
+    setCapturing(true);
+    let liveWrapper: HTMLElement | null = null;
+    let placeholderImg: HTMLImageElement | null = null;
+    let prevDisplay = "";
     try {
       const { toPng } = await import("html-to-image");
+
+      // For the Live map, swap the Google Maps div for a Static Maps PNG so
+      // html-to-image can serialize a CORS-clean canvas.
+      if (base === "live") {
+        const view = liveMapRef.current?.getView();
+        if (!view) throw new Error("Live map not ready");
+        const rect = node.getBoundingClientRect();
+        const { fetchStaticMap } = await import("@/lib/static-map.functions");
+        const result = await fetchStaticMap({
+          data: {
+            lat: view.center.lat,
+            lng: view.center.lng,
+            zoom: view.zoom,
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+            mapType: view.mapType === "satellite" ? "satellite" : view.mapType === "roadmap" ? "roadmap" : "hybrid",
+            markerLabel: "W",
+          },
+        });
+        // Find the Live map wrapper (first child inside contentRef when base==="live").
+        liveWrapper = contentRef.current?.querySelector<HTMLElement>(":scope > div") ?? null;
+        if (liveWrapper) {
+          prevDisplay = liveWrapper.style.display;
+          liveWrapper.style.display = "none";
+        }
+        placeholderImg = document.createElement("img");
+        placeholderImg.src = result.dataUrl;
+        placeholderImg.style.position = "absolute";
+        placeholderImg.style.inset = "0";
+        placeholderImg.style.width = "100%";
+        placeholderImg.style.height = "100%";
+        placeholderImg.style.objectFit = "cover";
+        placeholderImg.style.pointerEvents = "none";
+        contentRef.current?.insertBefore(placeholderImg, contentRef.current.firstChild);
+        // Wait for decode so html-to-image sees a rendered pixel.
+        await placeholderImg.decode().catch(() => undefined);
+      }
+
       const dataUrl = await toPng(node, {
         cacheBust: true,
         pixelRatio: 2,
@@ -804,11 +848,11 @@ export function MapPanel({ service, onServiceChange }: Props) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("Screenshot failed", err);
-      alert(
-        base === "live"
-          ? "Screenshot of the Live Map is blocked by Google Maps for security. Switch to Street / Aerial / Lot to capture annotations."
-          : `Screenshot failed: ${msg}`,
-      );
+      alert(`Screenshot failed: ${msg}`);
+    } finally {
+      if (placeholderImg?.parentNode) placeholderImg.parentNode.removeChild(placeholderImg);
+      if (liveWrapper) liveWrapper.style.display = prevDisplay;
+      setCapturing(false);
     }
   }
 
