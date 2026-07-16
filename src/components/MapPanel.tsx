@@ -569,7 +569,23 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
   // Playback state — animates ingress/egress/shuttle arrows in saved order.
   const [playing, setPlaying] = useState(false);
+  const SPEED_KEY = "kairos:playback-speed:v1";
   const [speed, setSpeed] = useState(1);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SPEED_KEY);
+      if (raw) {
+        const n = Number(JSON.parse(raw));
+        if (Number.isFinite(n) && n > 0) setSpeed(Math.min(8, Math.max(0.25, n)));
+      }
+    } catch { /* ignore */ }
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem(SPEED_KEY, JSON.stringify(speed)); } catch { /* ignore */ }
+  }, [speed]);
+  function bumpSpeed(delta: number) {
+    setSpeed((s) => +Math.min(8, Math.max(0.25, +(s + delta).toFixed(2))).toFixed(2));
+  }
   // progress is measured in "arrows": integer part = fully drawn count,
   // fractional part = reveal progress of the current arrow.
   const [progress, setProgress] = useState(0);
