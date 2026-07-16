@@ -285,27 +285,37 @@ export const speakerNotes: Record<number, SpeakerNote> = {
 
   10: {
     summary:
-      "Route A, Route B, Route C, ADA transportation, continuous circulation, and service windows.",
+      "Shuttle Operations: fleet deployment, multi-route service, ADA options, and continuous circulation model.",
     blocks: [
       {
-        heading: "Shuttle Routes",
+        heading: "Shuttle Operations",
         body:
-          "Route A serves church campus overflow. Route B serves the University of Houston. Route C serves Texas Southern University. Each route is engineered for continuous cycling with predictable wait times.",
+          "Kairos Security will operate a continuous, multi-route shuttle system designed to provide safe, reliable, and efficient transportation throughout the Wheeler Avenue Baptist Church campus and overflow parking locations.\n\nOur transportation plan is designed to minimize guest wait times, maintain continuous vehicle circulation, and provide a welcoming experience for every member and guest.",
       },
       {
-        heading: "ADA Transportation",
+        heading: "Fleet Deployment",
         body:
-          "ADA-equipped shuttles operate on demand and on schedule. Kairos operators are trained in accessibility procedures and hospitality, so every guest is welcomed and cared for at boarding and drop-off.",
+          "The proposed fleet consists of:\n\nTwo (2) 12-Passenger Shuttle Vans dedicated to transporting guests between the church campus and overflow parking locations.\n\nOne (1) Six-Passenger Golf Cart providing on-campus mobility assistance for seniors, families with young children, and guests requiring assistance between shuttle drop-off locations and building entrances.\n\nADA Accessible Transportation – To Be Determined in partnership with Wheeler Avenue Baptist Church. Kairos will work with church leadership to determine the most appropriate ADA-compliant transportation solution prior to implementation.\n\nChurch-Owned Vans – To Be Determined. Kairos is prepared to operate church-owned vehicles as directed by Wheeler Avenue Baptist Church leadership using properly licensed and approved Kairos drivers when additional transportation capacity is required.",
       },
       {
-        heading: "Continuous Circulation",
+        heading: "Route A – University of Houston Overflow Parking to Wheeler Avenue Baptist Church",
         body:
-          "Shuttles circulate continuously through the service window. There is no idle time between runs. Load, roll, unload, return — repeat.",
+          "Highest volume transportation route.\nContinuous shuttle circulation.\nTarget wait time of eight (8) minutes or less.",
       },
       {
-        heading: "Service Windows",
+        heading: "Route B – Texas Southern University Overflow Parking to Wheeler Avenue Baptist Church",
         body:
-          "Shuttle cycle plans adjust for each service window — earliest cycles compressed for early arrivals, mid-service cycles balanced for overlap, and late cycles extended for lingering departures.",
+          "Scheduled shuttle loop.\nFlexible deployment based on attendance.\nAdditional support during peak service transitions.",
+      },
+      {
+        heading: "Route C – On-Campus Mobility Service",
+        body:
+          "Golf cart transportation.\nSenior assistance.\nFamily assistance.\nADA support.\nVIP guest transportation as needed.",
+      },
+      {
+        heading: "Operational Philosophy",
+        body:
+          "Kairos will utilize a continuous circulation model rather than a \"fill-and-go\" model. Shuttle vehicles will depart on scheduled intervals to reduce perceived wait times, improve predictability, and maintain steady passenger movement throughout all three worship services.\n\nOur objective is to provide a transportation experience that reflects Wheeler Avenue Baptist Church's commitment to excellence, hospitality, safety, and operational efficiency.",
       },
     ],
   },
