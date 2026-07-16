@@ -64,6 +64,57 @@ const TOOL_COLORS: Record<Exclude<Tool, null>, string> = {
 };
 
 const STORAGE_KEY = "kairos:annotations:v1";
+const RENDER_STYLE_KEY = "kairos:annotation-render-style:v1";
+
+type RenderStyle = "lines" | "cars";
+
+// Sample evenly-spaced positions along a polyline, returning {x,y,angle}
+// for each car. Coordinates are in the same units as the input points
+// (viewBox 0..100). Angle is in degrees.
+function sampleCarsOnPath(points: Pt[], spacing: number, revealFrac = 1) {
+  if (points.length < 2) return [] as { x: number; y: number; angle: number }[];
+  const segs = [] as { x1: number; y1: number; x2: number; y2: number; len: number; angle: number }[];
+  let total = 0;
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i], b = points[i + 1];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy);
+    if (len === 0) continue;
+    segs.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y, len, angle: (Math.atan2(dy, dx) * 180) / Math.PI });
+    total += len;
+  }
+  if (total === 0) return [];
+  const limit = total * Math.max(0, Math.min(1, revealFrac));
+  const cars: { x: number; y: number; angle: number }[] = [];
+  // Start half a spacing in so cars aren't glued to the origin point.
+  for (let d = spacing / 2; d <= limit; d += spacing) {
+    let acc = 0;
+    for (const s of segs) {
+      if (d <= acc + s.len) {
+        const t = (d - acc) / s.len;
+        cars.push({ x: s.x1 + (s.x2 - s.x1) * t, y: s.y1 + (s.y2 - s.y1) * t, angle: s.angle });
+        break;
+      }
+      acc += s.len;
+    }
+  }
+  return cars;
+}
+
+// Small top-down car glyph, ~2.2 units long. Rendered inside the main
+// viewBox (0..100) so scale matches the annotation stroke width.
+function CarGlyph({ x, y, angle, color }: { x: number; y: number; angle: number; color: string }) {
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${angle})`}>
+      {/* body */}
+      <rect x="-1.1" y="-0.55" width="2.2" height="1.1" rx="0.25" fill={color} stroke="rgba(0,0,0,0.55)" strokeWidth="0.08" />
+      {/* windshield hint */}
+      <rect x="0.15" y="-0.4" width="0.55" height="0.8" rx="0.1" fill="rgba(255,255,255,0.55)" />
+      {/* nose */}
+      <circle cx="1.05" cy="0" r="0.15" fill="rgba(255,255,255,0.85)" />
+    </g>
+  );
+}
 
 type Props = {
   service: "7:00 AM" | "10:00 AM" | "1:00 PM";
@@ -84,6 +135,27 @@ export function MapPanel({ service, onServiceChange }: Props) {
   });
 
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
+
+  // How saved arrow annotations are drawn on the map: as animated lines
+  // (default) or as a stream of small car glyphs along the same path.
+  const [renderStyle, setRenderStyle] = useState<RenderStyle>("lines");
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(RENDER_STYLE_KEY);
+      if (raw === "cars" || raw === "lines") setRenderStyle(raw);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(RENDER_STYLE_KEY, renderStyle);
+    } catch {
+      /* ignore */
+    }
+  }, [renderStyle]);
+
+
 
   // Per-base annotation stroke width. Each base layer keeps its own so lines
   // look right on aerial/lot/street imagery vs the Live Map.
@@ -1454,6 +1526,38 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   <button type="button" onClick={cancelDraft} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-white/5 text-slate-300 hover:text-white border border-white/5">Cancel</button>
                 </div>
 
+                {/* Render style — draw arrows as animated lines or as a stream of little cars. */}
+                <div className="mt-2 rounded border border-white/10 bg-white/5 px-2 py-1.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                      Arrow Style
+                    </span>
+                    <span className="text-[10px] font-mono text-kairos-gold">{renderStyle}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {(["lines", "cars"] as const).map((s) => {
+                      const on = renderStyle === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setRenderStyle(s)}
+                          className={`text-[10px] font-bold py-1.5 rounded border transition ${
+                            on
+                              ? "bg-kairos-blue text-white border-kairos-blue"
+                              : "bg-white/5 text-slate-300 border-white/5 hover:text-white"
+                          }`}
+                          title={s === "lines" ? "Animated dashed lines with arrowheads" : "Stream of small cars along the path"}
+                        >
+                          {s === "lines" ? "Lines →" : "🚗 Cars"}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+
+
                 {/* Line thickness — per-base so animated arrows stay readable on any map. */}
                 <div className="mt-2 rounded border border-white/10 bg-white/5 px-2 py-1.5">
                   <div className="flex items-center justify-between mb-1">
@@ -1880,6 +1984,17 @@ export function MapPanel({ service, onServiceChange }: Props) {
               if (a.kind === "closure") return null;
               // Playback overrides normal render for arrows in the sequence.
               if (playbackIds?.has(a.id)) return null;
+              if (renderStyle === "cars") {
+                const spacing = Math.max(1.2, strokeW * 3.2);
+                const cars = sampleCarsOnPath(a.points, spacing, 1);
+                return (
+                  <g key={a.id}>
+                    {cars.map((c, i) => (
+                      <CarGlyph key={i} x={c.x} y={c.y} angle={c.angle} color={TOOL_COLORS[a.kind]} />
+                    ))}
+                  </g>
+                );
+              }
               return (
                 <path
                   key={a.id}
@@ -1903,6 +2018,22 @@ export function MapPanel({ service, onServiceChange }: Props) {
               const hidden = !isDone && !isCurrent;
               if (hidden) return null;
               const reveal = isDone ? 1 : frac;
+              if (renderStyle === "cars") {
+                const spacing = Math.max(1.2, strokeW * 3.2);
+                const cars = sampleCarsOnPath(a.points, spacing, reveal);
+                return (
+                  <g
+                    key={`pb-${a.id}`}
+                    style={{
+                      filter: isCurrent ? `drop-shadow(0 0 2px ${TOOL_COLORS[a.kind]})` : undefined,
+                    }}
+                  >
+                    {cars.map((c, j) => (
+                      <CarGlyph key={j} x={c.x} y={c.y} angle={c.angle} color={TOOL_COLORS[a.kind]} />
+                    ))}
+                  </g>
+                );
+              }
               return (
                 <path
                   key={`pb-${a.id}`}
