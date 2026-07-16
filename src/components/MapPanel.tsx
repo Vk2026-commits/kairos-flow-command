@@ -90,6 +90,46 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const [annotateOpen, setAnnotateOpen] = useState(true);
   const [playbackOpen, setPlaybackOpen] = useState(true);
 
+  // Panel drag offsets (pixels from their default anchor).
+  const [layersOff, setLayersOff] = useState({ x: 0, y: 0 });
+  const [annotateOff, setAnnotateOff] = useState({ x: 0, y: 0 });
+  const [playbackOff, setPlaybackOff] = useState({ x: 0, y: 0 });
+
+  function makeDragHandlers(
+    off: { x: number; y: number },
+    setOff: (p: { x: number; y: number }) => void,
+  ) {
+    return {
+      onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
+        e.stopPropagation();
+        const el = e.currentTarget;
+        el.setPointerCapture(e.pointerId);
+        const start = { x: e.clientX, y: e.clientY, ox: off.x, oy: off.y };
+        (el as HTMLElement & { __drag?: typeof start }).__drag = start;
+      },
+      onPointerMove: (e: React.PointerEvent<HTMLElement>) => {
+        const el = e.currentTarget as HTMLElement & {
+          __drag?: { x: number; y: number; ox: number; oy: number };
+        };
+        if (!el.__drag) return;
+        setOff({
+          x: el.__drag.ox + e.clientX - el.__drag.x,
+          y: el.__drag.oy + e.clientY - el.__drag.y,
+        });
+      },
+      onPointerUp: (e: React.PointerEvent<HTMLElement>) => {
+        const el = e.currentTarget as HTMLElement & { __drag?: unknown };
+        el.__drag = undefined;
+        try {
+          el.releasePointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+      },
+    };
+  }
+
+
   // Playback state — animates ingress/egress/shuttle arrows in saved order.
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -584,21 +624,29 @@ export function MapPanel({ service, onServiceChange }: Props) {
       </div>
 
       {/* Layer control panel */}
-      <div className="absolute top-4 left-4 lg:top-6 lg:left-6 w-64 z-10">
+      <div
+        className="absolute top-4 left-4 lg:top-6 lg:left-6 w-64 z-10"
+        style={{ transform: `translate(${layersOff.x}px, ${layersOff.y}px)` }}
+      >
         {!layersOpen && (
           <button
             type="button"
             onClick={() => setLayersOpen(true)}
-            className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition"
+            {...makeDragHandlers(layersOff, setLayersOff)}
+            className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition cursor-grab active:cursor-grabbing"
           >
-            ▸ Map Layers
+            ⋮⋮ Map Layers
           </button>
         )}
         {layersOpen && (
         <div className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-white">
-              Map Layers
+            <h4
+              {...makeDragHandlers(layersOff, setLayersOff)}
+              className="text-xs font-bold uppercase tracking-widest text-white cursor-grab active:cursor-grabbing select-none"
+              title="Drag to move"
+            >
+              ⋮⋮ Map Layers
             </h4>
             <div className="flex items-center gap-2">
               <span className="text-[9px] font-mono text-slate-500">
@@ -684,21 +732,29 @@ export function MapPanel({ service, onServiceChange }: Props) {
       </div>
 
       {/* Annotation toolbar */}
-      <div className="absolute top-4 right-4 lg:top-6 lg:right-6 w-64 z-10">
+      <div
+        className="absolute top-4 right-4 lg:top-6 lg:right-6 w-64 z-10"
+        style={{ transform: `translate(${annotateOff.x}px, ${annotateOff.y}px)` }}
+      >
         {!annotateOpen && (
           <button
             type="button"
             onClick={() => setAnnotateOpen(true)}
-            className="ml-auto block bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition"
+            {...makeDragHandlers(annotateOff, setAnnotateOff)}
+            className="ml-auto block bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition cursor-grab active:cursor-grabbing"
           >
-            ▸ Annotate
+            ⋮⋮ Annotate
           </button>
         )}
         {annotateOpen && (
         <div className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-white">
-              Annotate
+            <h4
+              {...makeDragHandlers(annotateOff, setAnnotateOff)}
+              className="text-xs font-bold uppercase tracking-widest text-white cursor-grab active:cursor-grabbing select-none"
+              title="Drag to move"
+            >
+              ⋮⋮ Annotate
             </h4>
             <div className="flex items-center gap-2">
               <span className="text-[9px] font-mono text-kairos-gold">
@@ -841,18 +897,31 @@ export function MapPanel({ service, onServiceChange }: Props) {
       </div>
 
       {/* Playback panel */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 lg:bottom-6 z-10 w-[min(560px,calc(100%-2rem))]">
+      <div
+        className="absolute bottom-4 left-1/2 lg:bottom-6 z-10 w-[min(560px,calc(100%-2rem))]"
+        style={{
+          transform: `translate(calc(-50% + ${playbackOff.x}px), ${playbackOff.y}px)`,
+        }}
+      >
         {!playbackOpen && (
           <button
             type="button"
             onClick={() => setPlaybackOpen(true)}
-            className="mx-auto block bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition"
+            {...makeDragHandlers(playbackOff, setPlaybackOff)}
+            className="mx-auto block bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition cursor-grab active:cursor-grabbing"
           >
-            ▸ Traffic Flow Playback
+            ⋮⋮ Traffic Flow Playback
           </button>
         )}
         {playbackOpen && (
         <div className="relative bg-surface/85 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 shadow-2xl">
+          <div
+            {...makeDragHandlers(playbackOff, setPlaybackOff)}
+            className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[10px] text-slate-400 hover:text-white cursor-grab active:cursor-grabbing select-none"
+            title="Drag to move"
+          >
+            ⋮⋮
+          </div>
           <button
             type="button"
             onClick={() => setPlaybackOpen(false)}
