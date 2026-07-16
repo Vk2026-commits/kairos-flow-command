@@ -202,7 +202,9 @@ function KpiCard({
   progress,
   spark,
   personnel,
+  personnelExtra,
   statusNominal,
+  incidentsOpen,
 }: {
   label: string;
   value: string;
@@ -210,7 +212,9 @@ function KpiCard({
   progress?: number;
   spark?: number[];
   personnel?: boolean;
+  personnelExtra?: number;
   statusNominal?: boolean;
+  incidentsOpen?: number;
 }) {
   return (
     <div className="col-span-6 lg:col-span-3 bg-surface border border-white/5 rounded-2xl p-5 flex flex-col justify-between hover:border-kairos-blue/30 transition-all fade-in-up">
