@@ -1238,7 +1238,21 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   }}
                   onFocus={() => setRecentOpen(true)}
                   onBlur={() => window.setTimeout(() => setRecentOpen(false), 150)}
-                  placeholder="Search address or intersection…"
+                  onKeyDown={(e) => {
+                    if (!suggestions.length) return;
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setActiveSug((i) => (i + 1) % suggestions.length);
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setActiveSug((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+                    } else if (e.key === "Escape") {
+                      setSuggestions([]);
+                      setActiveSug(-1);
+                    }
+                  }}
+                  placeholder="Search address, place, or intersection…"
+                  autoComplete="off"
                   className="w-56 lg:w-72 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-[11px] text-white placeholder:text-slate-500 focus:outline-none focus:border-kairos-blue"
                 />
                 <button
