@@ -2018,6 +2018,22 @@ export function MapPanel({ service, onServiceChange }: Props) {
               const hidden = !isDone && !isCurrent;
               if (hidden) return null;
               const reveal = isDone ? 1 : frac;
+              if (renderStyle === "cars") {
+                const spacing = Math.max(1.2, strokeW * 3.2);
+                const cars = sampleCarsOnPath(a.points, spacing, reveal);
+                return (
+                  <g
+                    key={`pb-${a.id}`}
+                    style={{
+                      filter: isCurrent ? `drop-shadow(0 0 2px ${TOOL_COLORS[a.kind]})` : undefined,
+                    }}
+                  >
+                    {cars.map((c, j) => (
+                      <CarGlyph key={j} x={c.x} y={c.y} angle={c.angle} color={TOOL_COLORS[a.kind]} />
+                    ))}
+                  </g>
+                );
+              }
               return (
                 <path
                   key={`pb-${a.id}`}
