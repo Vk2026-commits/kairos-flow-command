@@ -16,6 +16,7 @@ export type LiveMapHandle = {
   zoomIn: () => void;
   zoomOut: () => void;
   reset: () => void;
+  search: (query: string) => Promise<{ ok: true; address: string } | { ok: false; error: string }>;
 };
 
 let mapsLoader: Promise<typeof google> | null = null;
