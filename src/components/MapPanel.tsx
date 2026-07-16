@@ -84,6 +84,38 @@ export function MapPanel({ service, onServiceChange }: Props) {
   });
 
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
+
+  // Per-base annotation stroke width. Each base layer keeps its own so lines
+  // look right on aerial/lot/street imagery vs the Live Map.
+  const STROKE_KEY = "kairos:stroke-widths:v1";
+  const DEFAULT_STROKE: Record<BaseKey, number> = {
+    street: 0.9,
+    aerial: 0.9,
+    lot: 0.9,
+    live: 0.6,
+    custom: 0.9,
+  };
+  const [strokeWidths, setStrokeWidths] = useState<Record<BaseKey, number>>(DEFAULT_STROKE);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STROKE_KEY);
+      if (raw) setStrokeWidths({ ...DEFAULT_STROKE, ...JSON.parse(raw) });
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(STROKE_KEY, JSON.stringify(strokeWidths));
+    } catch {
+      /* ignore */
+    }
+  }, [strokeWidths]);
+  const strokeW = strokeWidths[base] ?? 0.9;
+  function setBaseStroke(v: number) {
+    setStrokeWidths((prev) => ({ ...prev, [base]: v }));
+  }
   const [tool, setTool] = useState<Tool>(null);
   const [draft, setDraft] = useState<Pt[]>([]);
   const [cursor, setCursor] = useState<Pt | null>(null);
@@ -1347,6 +1379,56 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   <button type="button" onClick={undo} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-white/5 text-slate-300 hover:text-white border border-white/5">Undo</button>
                   <button type="button" onClick={cancelDraft} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-white/5 text-slate-300 hover:text-white border border-white/5">Cancel</button>
                 </div>
+
+                {/* Line thickness — per-base so animated arrows stay readable on any map. */}
+                <div className="mt-2 rounded border border-white/10 bg-white/5 px-2 py-1.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                      Line Thickness
+                      <span className="ml-1 text-slate-500 font-mono normal-case">on {base}</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-kairos-gold">{strokeW.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBaseStroke(Math.max(0.2, +(strokeW - 0.1).toFixed(2)))}
+                      title="Thinner"
+                      className="size-6 rounded bg-white/5 border border-white/10 text-slate-300 hover:text-white grid place-items-center text-xs"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="range"
+                      min={0.2}
+                      max={3}
+                      step={0.1}
+                      value={strokeW}
+                      onChange={(e) => setBaseStroke(parseFloat(e.target.value))}
+                      className="flex-1 accent-kairos-gold"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setBaseStroke(Math.min(3, +(strokeW + 0.1).toFixed(2)))}
+                      title="Thicker"
+                      className="size-6 rounded bg-white/5 border border-white/10 text-slate-300 hover:text-white grid place-items-center text-xs"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBaseStroke(DEFAULT_STROKE[base])}
+                      title="Reset to default for this base"
+                      className="text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-white px-1"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  {/* Preview */}
+                  <svg viewBox="0 0 100 6" className="w-full h-3 mt-1" preserveAspectRatio="none">
+                    <line x1="2" y1="3" x2="98" y2="3" stroke="#facc15" strokeWidth={strokeW} strokeLinecap="round" />
+                  </svg>
+                </div>
                 <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                   <button type="button" onClick={exportAnnotations} disabled={!annotations.length} className="text-[10px] font-bold py-1.5 rounded border border-kairos-blue/40 text-kairos-blue hover:bg-kairos-blue/10 transition disabled:opacity-30 disabled:cursor-not-allowed">↓ Export JSON</button>
                   <button type="button" onClick={() => importRef.current?.click()} className="text-[10px] font-bold py-1.5 rounded border border-kairos-gold/40 text-kairos-gold hover:bg-kairos-gold/10 transition">↑ Import JSON</button>
@@ -1558,7 +1640,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   key={a.id}
                   d={pathD(a.points)}
                   stroke={TOOL_COLORS[a.kind]}
-                  strokeWidth="0.9"
+                  strokeWidth={strokeW}
                   fill="none"
                   markerEnd={`url(#arr-${a.kind})`}
                   className="flow-dash"
@@ -1581,7 +1663,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   key={`pb-${a.id}`}
                   d={pathD(a.points)}
                   stroke={TOOL_COLORS[a.kind]}
-                  strokeWidth="1.1"
+                  strokeWidth={+(strokeW * 1.25).toFixed(2)}
                   fill="none"
                   markerEnd={reveal > 0.95 ? `url(#arr-${a.kind})` : undefined}
                   pathLength={100}
@@ -1604,7 +1686,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
               <path
                 d={pathD(cursor ? [...draft, cursor] : draft)}
                 stroke={TOOL_COLORS[tool]}
-                strokeWidth="0.9"
+                strokeWidth={strokeW}
                 fill="none"
                 strokeDasharray="1.5 1.5"
                 opacity="0.9"
