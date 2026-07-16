@@ -2308,8 +2308,8 @@ export function MapPanel({ service, onServiceChange }: Props) {
                 {a.label}
               </span>
             </div>
-          ) : null,
-        )}
+          ) : null;
+        })}
 
         {layers.stops &&
           STOPS.map((s) => (
