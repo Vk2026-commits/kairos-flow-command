@@ -144,6 +144,23 @@ export function MapPanel({ service, onServiceChange }: Props) {
   function setBaseArrow(v: number) {
     setArrowScales((prev) => ({ ...prev, [base]: v }));
   }
+
+  // Flow-dash (marching ants) animation speed for saved annotation lines.
+  // Higher seconds = slower motion. Persists across sessions.
+  const FLOW_KEY = "kairos:flow-duration:v1";
+  const [flowDuration, setFlowDuration] = useState(5);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(FLOW_KEY);
+      if (raw) {
+        const n = Number(JSON.parse(raw));
+        if (Number.isFinite(n) && n > 0) setFlowDuration(Math.min(20, Math.max(1, n)));
+      }
+    } catch { /* ignore */ }
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem(FLOW_KEY, JSON.stringify(flowDuration)); } catch { /* ignore */ }
+  }, [flowDuration]);
   const [tool, setTool] = useState<Tool>(null);
   const [draft, setDraft] = useState<Pt[]>([]);
   const [cursor, setCursor] = useState<Pt | null>(null);
@@ -1546,6 +1563,51 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   </svg>
                 </div>
 
+                {/* Flow animation speed — controls marching-ants motion on saved arrows. */}
+                <div className="mt-1.5 rounded border border-white/10 bg-white/5 px-2 py-1.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Flow Speed</span>
+                    <span className="text-[9px] font-mono text-kairos-gold tabular-nums">{flowDuration}s / cycle</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setFlowDuration((d) => Math.min(20, +(d + 0.5).toFixed(1)))}
+                      title="Slower"
+                      className="size-6 rounded bg-white/5 border border-white/10 text-slate-300 hover:text-white grid place-items-center text-xs"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="range"
+                      min={1}
+                      max={20}
+                      step={0.5}
+                      value={flowDuration}
+                      onChange={(e) => setFlowDuration(parseFloat(e.target.value))}
+                      className="flex-1 accent-kairos-gold"
+                      aria-label="Flow animation speed"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFlowDuration((d) => Math.max(1, +(d - 0.5).toFixed(1)))}
+                      title="Faster"
+                      className="size-6 rounded bg-white/5 border border-white/10 text-slate-300 hover:text-white grid place-items-center text-xs"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFlowDuration(5)}
+                      title="Reset to default"
+                      className="text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-white px-1"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+
+
                 <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                   <button type="button" onClick={exportAnnotations} disabled={!annotations.length} className="text-[10px] font-bold py-1.5 rounded border border-kairos-blue/40 text-kairos-blue hover:bg-kairos-blue/10 transition disabled:opacity-30 disabled:cursor-not-allowed">↓ Export JSON</button>
                   <button type="button" onClick={() => importRef.current?.click()} className="text-[10px] font-bold py-1.5 rounded border border-kairos-gold/40 text-kairos-gold hover:bg-kairos-gold/10 transition">↑ Import JSON</button>
@@ -1762,6 +1824,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
           className="absolute inset-0 w-full h-full pointer-events-none"
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
+          style={{ ["--flow-dash-duration" as string]: `${flowDuration}s` }}
         >
           <defs>
             {(["ingress", "egress", "shuttle"] as const).map((k) => (
