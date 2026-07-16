@@ -136,6 +136,27 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
 
+  // How saved arrow annotations are drawn on the map: as animated lines
+  // (default) or as a stream of small car glyphs along the same path.
+  const [renderStyle, setRenderStyle] = useState<RenderStyle>("lines");
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(RENDER_STYLE_KEY);
+      if (raw === "cars" || raw === "lines") setRenderStyle(raw);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(RENDER_STYLE_KEY, renderStyle);
+    } catch {
+      /* ignore */
+    }
+  }, [renderStyle]);
+
+
+
   // Per-base annotation stroke width. Each base layer keeps its own so lines
   // look right on aerial/lot/street imagery vs the Live Map.
   const STROKE_KEY = "kairos:stroke-widths:v1";
