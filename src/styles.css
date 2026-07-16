@@ -122,7 +122,7 @@
 
 @utility flow-dash {
   stroke-dasharray: 10 10;
-  animation: kairos-dash 2.5s linear infinite;
+  animation: kairos-dash var(--flow-dash-duration, 5s) linear infinite;
 }
 
 @keyframes kairos-fade-in {
