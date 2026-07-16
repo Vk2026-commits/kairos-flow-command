@@ -632,19 +632,15 @@ function Slide9Parking() {
 
 /* SLIDE 10 — Shuttle */
 function Slide10Shuttle() {
-  const shuttles = [
-    { id: "S-01", loc: "UH Lot 12", pax: 24, cycle: "12:40", status: "Loading" },
-    { id: "S-02", loc: "Enroute → Church", pax: 31, cycle: "11:20", status: "Moving" },
-    { id: "S-03", loc: "Church Curb", pax: 0, cycle: "13:05", status: "Departure" },
-    { id: "S-04", loc: "TSU Overflow", pax: 18, cycle: "14:10", status: "Loading" },
-  ];
+  const live = useLiveOps();
+  const shuttles = live.shuttles;
   return (
     <SlideShell eyebrow="CHAPTER 10" title="Shuttle Operations" subtitle="Live tracking of every shuttle in the cycle.">
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <Stat label="Active Shuttles" value="4" />
-        <Stat label="Avg Wait Time" value="3:42" sub="Target < 5:00" accent="gold" />
-        <Stat label="Avg Cycle Time" value="12:38" />
-        <Stat label="Passengers / Hour" value="612" />
+        <Stat label="Active Shuttles" value={String(shuttles.length)} />
+        <Stat label="Avg Wait Time" value={formatCycle(live.avgWaitSec)} sub="Target < 5:00" accent="gold" />
+        <Stat label="Avg Cycle Time" value={`${live.avgShuttleCycleMin.toFixed(1)} min`} />
+        <Stat label="Passengers / Hour" value={String(live.passengersPerHour)} />
       </div>
       <div className="grid grid-cols-2 gap-6">
         <div className="rounded-2xl border border-white/5 bg-surface p-4 h-[400px] relative overflow-hidden">
