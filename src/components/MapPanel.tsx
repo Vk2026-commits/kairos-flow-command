@@ -1567,9 +1567,11 @@ export function MapPanel({ service, onServiceChange }: Props) {
           </div>
         </div>
 
-        {/* Expanded panel bodies — inline, push the map down; never overlap it */}
+        {/* Expanded panel bodies — overlay above the map so it never resizes
+            (keeps annotations pinned to the same map coordinates). */}
         {anyPanelOpen && (
-          <div className="border-t border-white/10 px-3 py-3 grid gap-3 md:grid-cols-3 max-h-[40vh] overflow-y-auto bg-surface/90">
+          <div className="absolute left-0 right-0 top-full z-30 border-t border-white/10 px-3 py-3 grid gap-3 md:grid-cols-3 max-h-[40vh] overflow-y-auto bg-surface/95 backdrop-blur-sm shadow-xl pointer-events-auto">
+
             {layersOpen && (
               <div className="rounded-lg border border-white/10 bg-white/5 p-3">
                 <div className="flex items-center justify-between mb-2">
