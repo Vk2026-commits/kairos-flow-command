@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useLiveOps } from "@/hooks/use-live-ops";
 import { MapPanel } from "@/components/MapPanel";
 
 export const Route = createFileRoute("/")({
