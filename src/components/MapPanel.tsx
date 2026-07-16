@@ -585,6 +585,16 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
       {/* Layer control panel */}
       <div className="absolute top-4 left-4 lg:top-6 lg:left-6 w-64 z-10">
+        {!layersOpen && (
+          <button
+            type="button"
+            onClick={() => setLayersOpen(true)}
+            className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition"
+          >
+            ▸ Map Layers
+          </button>
+        )}
+        {layersOpen && (
         <div className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-xs font-bold uppercase tracking-widest text-white">
