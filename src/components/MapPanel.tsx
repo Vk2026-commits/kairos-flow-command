@@ -391,21 +391,59 @@ export function MapPanel({ service, onServiceChange }: Props) {
               />
             ))}
 
-          {/* Saved annotations */}
-          {visibleAnnotations.map((a) => {
-            if (a.kind === "closure") return null;
-            return (
-              <path
-                key={a.id}
-                d={pathD(a.points)}
-                stroke={TOOL_COLORS[a.kind]}
-                strokeWidth="0.9"
-                fill="none"
-                markerEnd={`url(#arr-${a.kind})`}
-                className="flow-dash"
-              />
-            );
-          })}
+          {/* Saved annotations (path-based). During playback, reveal based on progress. */}
+          {(() => {
+            const playbackIds = playing || progress > 0
+              ? new Set(playbackSeq.map((a) => a.id))
+              : null;
+            return visibleAnnotations.map((a) => {
+              if (a.kind === "closure") return null;
+              // Playback overrides normal render for arrows in the sequence.
+              if (playbackIds?.has(a.id)) return null;
+              return (
+                <path
+                  key={a.id}
+                  d={pathD(a.points)}
+                  stroke={TOOL_COLORS[a.kind]}
+                  strokeWidth="0.9"
+                  fill="none"
+                  markerEnd={`url(#arr-${a.kind})`}
+                  className="flow-dash"
+                />
+              );
+            });
+          })()}
+
+          {/* Playback layer: reveal arrows in saved order. */}
+          {(playing || progress > 0) &&
+            playbackSeq.map((a, i) => {
+              const isDone = i < Math.floor(progress);
+              const isCurrent = i === Math.floor(progress);
+              const frac = isCurrent ? progress - Math.floor(progress) : 0;
+              const hidden = !isDone && !isCurrent;
+              if (hidden) return null;
+              const reveal = isDone ? 1 : frac;
+              return (
+                <path
+                  key={`pb-${a.id}`}
+                  d={pathD(a.points)}
+                  stroke={TOOL_COLORS[a.kind]}
+                  strokeWidth="1.1"
+                  fill="none"
+                  markerEnd={reveal > 0.95 ? `url(#arr-${a.kind})` : undefined}
+                  pathLength={100}
+                  strokeDasharray="100 100"
+                  strokeDashoffset={100 - 100 * reveal}
+                  style={{
+                    filter: isCurrent
+                      ? `drop-shadow(0 0 2px ${TOOL_COLORS[a.kind]})`
+                      : undefined,
+                    transition: playing ? "none" : "stroke-dashoffset 200ms",
+                  }}
+                />
+              );
+            })}
+
 
           {/* Draft */}
           {tool && tool !== "closure" && draft.length > 0 && (
@@ -683,6 +721,112 @@ export function MapPanel({ service, onServiceChange }: Props) {
         <p className="text-[9px] font-mono text-slate-500 uppercase">Site</p>
         <p className="text-xs font-bold text-white">Wheeler Ave Baptist Church</p>
       </div>
+
+      {/* Playback panel */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 lg:bottom-6 z-10 w-[min(560px,calc(100%-2rem))]">
+        <div className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 shadow-2xl">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={togglePlay}
+              disabled={!playbackSeq.length}
+              className="size-9 rounded-full bg-kairos-blue text-white grid place-items-center hover:brightness-110 transition disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+              title={playing ? "Pause" : "Play"}
+            >
+              {playing ? (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                  <rect x="2" y="1" width="3" height="10" rx="1" />
+                  <rect x="7" y="1" width="3" height="10" rx="1" />
+                </svg>
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                  <path d="M2 1 L11 6 L2 11 Z" />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={() => {
+                setPlaying(false);
+                setProgress(0);
+              }}
+              disabled={!playbackSeq.length}
+              className="size-9 rounded-full bg-white/5 border border-white/10 text-slate-300 grid place-items-center hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+              title="Restart"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                <path d="M3 1 v4 L1 3 Z" />
+                <rect x="1" y="1" width="2" height="10" rx="0.5" />
+              </svg>
+            </button>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white">
+                  Traffic Flow Playback
+                </p>
+                <p className="text-[10px] font-mono text-slate-400">
+                  {playbackSeq.length
+                    ? `${Math.min(Math.ceil(progress), playbackSeq.length)} / ${playbackSeq.length}`
+                    : "no arrows"}
+                </p>
+              </div>
+              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-kairos-blue transition-[width] duration-100"
+                  style={{
+                    width: playbackSeq.length
+                      ? `${(progress / playbackSeq.length) * 100}%`
+                      : "0%",
+                  }}
+                />
+              </div>
+              {playbackSeq.length > 0 && (
+                <div className="mt-1 flex items-center gap-2 text-[9px] font-bold uppercase tracking-wider">
+                  {(() => {
+                    const i = Math.min(
+                      Math.floor(progress),
+                      playbackSeq.length - 1,
+                    );
+                    const cur = playbackSeq[i];
+                    return (
+                      <>
+                        <span
+                          className="size-1.5 rounded-full"
+                          style={{ background: TOOL_COLORS[cur.kind] }}
+                        />
+                        <span style={{ color: TOOL_COLORS[cur.kind] }}>
+                          {cur.kind}
+                        </span>
+                        {cur.label && (
+                          <span className="text-slate-500 truncate">
+                            · {cur.label}
+                          </span>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-1 shrink-0">
+              {([0.5, 1, 2, 4] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setSpeed(s)}
+                  className={`text-[10px] font-bold px-2 py-1 rounded transition ${
+                    speed === s
+                      ? "bg-kairos-gold text-bg-deep"
+                      : "bg-white/5 text-slate-400 hover:text-white"
+                  }`}
+                >
+                  {s}×
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }
