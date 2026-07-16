@@ -778,6 +778,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
       {/* Annotation toolbar */}
       <div
+        data-drag-panel
         className="absolute top-4 right-4 lg:top-6 lg:right-6 w-64 z-10"
         style={{ transform: `translate(${annotateOff.x}px, ${annotateOff.y}px)` }}
       >
