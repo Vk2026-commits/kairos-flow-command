@@ -547,6 +547,41 @@ export function MapPanel({ service, onServiceChange }: Props) {
             ))}
           </div>
 
+          {/* Live map controls — only visible when Live Map is active */}
+          {base === "live" && (
+            <>
+              <div className="mx-1 h-5 w-px bg-white/10" />
+              <div className="flex gap-1">
+                {(["roadmap", "satellite", "hybrid"] as LiveMapType[]).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setLiveMapType(t)}
+                    className={`text-[10px] font-bold px-2 py-1.5 rounded border transition capitalize ${
+                      liveMapType === t
+                        ? "bg-kairos-blue text-white border-white/10"
+                        : "bg-white/5 text-slate-300 border-white/10 hover:text-white"
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setStreetView((v) => !v)}
+                className={`text-[10px] font-bold px-2 py-1.5 rounded border transition ${
+                  streetView
+                    ? "bg-kairos-gold text-bg-deep border-white/10"
+                    : "bg-white/5 text-slate-300 border-white/10 hover:text-white"
+                }`}
+                title="Toggle Street View split"
+              >
+                {streetView ? "◨ Street View On" : "◨ Street View"}
+              </button>
+            </>
+          )}
+
           {/* Service selector pushed to the right */}
           <div className="ml-auto flex gap-1">
             {(["7:00 AM", "10:00 AM", "1:00 PM"] as const).map((s) => (
