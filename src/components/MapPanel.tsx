@@ -624,21 +624,29 @@ export function MapPanel({ service, onServiceChange }: Props) {
       </div>
 
       {/* Layer control panel */}
-      <div className="absolute top-4 left-4 lg:top-6 lg:left-6 w-64 z-10">
+      <div
+        className="absolute top-4 left-4 lg:top-6 lg:left-6 w-64 z-10"
+        style={{ transform: `translate(${layersOff.x}px, ${layersOff.y}px)` }}
+      >
         {!layersOpen && (
           <button
             type="button"
             onClick={() => setLayersOpen(true)}
-            className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition"
+            {...makeDragHandlers(layersOff, setLayersOff)}
+            className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl hover:bg-white/5 transition cursor-grab active:cursor-grabbing"
           >
-            ▸ Map Layers
+            ⋮⋮ Map Layers
           </button>
         )}
         {layersOpen && (
         <div className="bg-surface/85 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl">
-          <div className="flex items-center justify-between mb-3">
+          <div
+            {...makeDragHandlers(layersOff, setLayersOff)}
+            className="flex items-center justify-between mb-3 cursor-grab active:cursor-grabbing select-none"
+            title="Drag to move"
+          >
             <h4 className="text-xs font-bold uppercase tracking-widest text-white">
-              Map Layers
+              ⋮⋮ Map Layers
             </h4>
             <div className="flex items-center gap-2">
               <span className="text-[9px] font-mono text-slate-500">
