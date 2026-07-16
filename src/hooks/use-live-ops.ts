@@ -11,13 +11,16 @@ import { useEffect, useState } from "react";
  */
 
 export type ShuttleStatus = "Loading" | "Moving" | "Departure" | "Staging";
+export type VehicleType = "shuttle" | "golf-cart";
 
 export type Shuttle = {
   id: string;
+  type: VehicleType;
   loc: string;
   pax: number;
   cycleSec: number; // seconds since cycle start
   status: ShuttleStatus;
+  trips: number;
 };
 
 export type LiveOps = {
