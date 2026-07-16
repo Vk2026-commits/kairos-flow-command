@@ -10,6 +10,7 @@ type Props = {
   center?: { lat: number; lng: number };
   mapType?: MapType;
   streetView?: boolean;
+  initialView?: LiveMapView | null;
 };
 
 export type LiveMapView = {
