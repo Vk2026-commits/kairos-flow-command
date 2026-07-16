@@ -116,6 +116,34 @@ export function MapPanel({ service, onServiceChange }: Props) {
   function setBaseStroke(v: number) {
     setStrokeWidths((prev) => ({ ...prev, [base]: v }));
   }
+
+  // Per-base arrowhead size multiplier. 1.0 = default (marker scales with stroke).
+  const ARROW_KEY = "kairos:arrow-scales:v1";
+  const DEFAULT_ARROW: Record<BaseKey, number> = {
+    street: 1, aerial: 1, lot: 1, live: 1, custom: 1,
+  };
+  const [arrowScales, setArrowScales] = useState<Record<BaseKey, number>>(DEFAULT_ARROW);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ARROW_KEY);
+      if (raw) setArrowScales({ ...DEFAULT_ARROW, ...JSON.parse(raw) });
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(ARROW_KEY, JSON.stringify(arrowScales));
+    } catch {
+      /* ignore */
+    }
+  }, [arrowScales]);
+  const arrowScale = arrowScales[base] ?? 1;
+  const markerSize = +(4 * arrowScale).toFixed(2);
+  function setBaseArrow(v: number) {
+    setArrowScales((prev) => ({ ...prev, [base]: v }));
+  }
   const [tool, setTool] = useState<Tool>(null);
   const [draft, setDraft] = useState<Pt[]>([]);
   const [cursor, setCursor] = useState<Pt | null>(null);
@@ -1429,6 +1457,79 @@ export function MapPanel({ service, onServiceChange }: Props) {
                     <line x1="2" y1="3" x2="98" y2="3" stroke="#facc15" strokeWidth={strokeW} strokeLinecap="round" />
                   </svg>
                 </div>
+
+                {/* Arrowhead size — keeps animated tips proportional to line thickness. */}
+                <div className="mt-1.5 rounded border border-white/10 bg-white/5 px-2 py-1.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                      Arrowhead Size
+                      <span className="ml-1 text-slate-500 font-mono normal-case">on {base}</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-kairos-gold">{arrowScale.toFixed(2)}×</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBaseArrow(Math.max(0.3, +(arrowScale - 0.1).toFixed(2)))}
+                      title="Smaller arrowhead"
+                      className="size-6 rounded bg-white/5 border border-white/10 text-slate-300 hover:text-white grid place-items-center text-xs"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="range"
+                      min={0.3}
+                      max={3}
+                      step={0.1}
+                      value={arrowScale}
+                      onChange={(e) => setBaseArrow(parseFloat(e.target.value))}
+                      className="flex-1 accent-kairos-gold"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setBaseArrow(Math.min(3, +(arrowScale + 0.1).toFixed(2)))}
+                      title="Larger arrowhead"
+                      className="size-6 rounded bg-white/5 border border-white/10 text-slate-300 hover:text-white grid place-items-center text-xs"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBaseArrow(1)}
+                      title="Reset to default"
+                      className="text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-white px-1"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  {/* Preview showing the arrow at current stroke + scale. */}
+                  <svg viewBox="0 0 100 8" className="w-full h-4 mt-1" preserveAspectRatio="none">
+                    <defs>
+                      <marker
+                        id="arr-preview"
+                        viewBox="0 0 10 10"
+                        refX="8"
+                        refY="5"
+                        markerWidth={markerSize}
+                        markerHeight={markerSize}
+                        orient="auto"
+                      >
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#facc15" />
+                      </marker>
+                    </defs>
+                    <line
+                      x1="2"
+                      y1="4"
+                      x2="90"
+                      y2="4"
+                      stroke="#facc15"
+                      strokeWidth={strokeW}
+                      strokeLinecap="round"
+                      markerEnd="url(#arr-preview)"
+                    />
+                  </svg>
+                </div>
+
                 <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                   <button type="button" onClick={exportAnnotations} disabled={!annotations.length} className="text-[10px] font-bold py-1.5 rounded border border-kairos-blue/40 text-kairos-blue hover:bg-kairos-blue/10 transition disabled:opacity-30 disabled:cursor-not-allowed">↓ Export JSON</button>
                   <button type="button" onClick={() => importRef.current?.click()} className="text-[10px] font-bold py-1.5 rounded border border-kairos-gold/40 text-kairos-gold hover:bg-kairos-gold/10 transition">↑ Import JSON</button>
@@ -1602,8 +1703,8 @@ export function MapPanel({ service, onServiceChange }: Props) {
                 viewBox="0 0 10 10"
                 refX="8"
                 refY="5"
-                markerWidth="4"
-                markerHeight="4"
+                markerWidth={markerSize}
+                markerHeight={markerSize}
                 orient="auto"
               >
                 <path d="M 0 0 L 10 5 L 0 10 z" fill={TOOL_COLORS[k]} />
