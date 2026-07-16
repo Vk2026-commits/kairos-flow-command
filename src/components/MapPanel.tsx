@@ -1473,7 +1473,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
         >
         {base === "live" ? (
           <div className="absolute inset-0">
-            <LiveMap ref={liveMapRef} mapType={liveMapType} streetView={streetView} />
+            <LiveMap ref={liveMapRef} mapType={liveMapType} streetView={streetView} initialView={savedLiveView} />
           </div>
         ) : (
           <>
