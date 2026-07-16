@@ -69,12 +69,16 @@ const LAYERS: { key: LayerKey; label: string; color: string }[] = [
   { key: "parking", label: "Parking Occupancy", color: "#22c55e" },
 ];
 
-const TOOL_COLORS: Record<Exclude<Tool, null>, string> = {
+const TOOL_COLORS: Record<"ingress" | "egress" | "shuttle" | "closure", string> = {
   ingress: "#facc15",
   egress: "#ef4444",
   shuttle: "#0062ff",
   closure: "#ef4444",
 };
+const toolColor = (t: Exclude<Tool, null>): string =>
+  t === "hpd" || t === "security" || t === "ministry"
+    ? PERSONNEL_META[t].color
+    : TOOL_COLORS[t];
 
 const STORAGE_KEY = "kairos:annotations:v1";
 const RENDER_STYLE_KEY = "kairos:annotation-render-style:v1";
