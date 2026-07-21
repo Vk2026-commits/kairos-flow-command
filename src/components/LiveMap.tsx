@@ -51,17 +51,12 @@ function loadGoogleMaps(): Promise<typeof google> {
   }
   if (mapsLoader) return mapsLoader;
 
-  const key =
-    import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY ||
-    import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
-    import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
-  const channel =
-    import.meta.env.VITE_GOOGLE_MAPS_CHANNEL ||
-    import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID;
+  const key = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
+  const channel = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID;
   if (!key) {
     return Promise.reject(
       new Error(
-        "Google Maps browser key is not configured. Connect a custom Google Maps Platform connector in project settings, or set VITE_GOOGLE_MAPS_BROWSER_KEY.",
+        "The custom Google Maps browser key is not available. Reconnect the Google Maps Platform connector and republish the app.",
       ),
     );
   }
