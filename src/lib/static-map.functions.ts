@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 type MapType = "roadmap" | "satellite" | "hybrid" | "terrain";
+const FALLBACK_GOOGLE_MAPS_KEY = "AIzaSyBQ-BDvsL4yEcbL6kYhbmaLiuE7TuVGl9s";
 
 export type StaticMapInput = {
   lat: number;
@@ -29,7 +30,8 @@ export const fetchStaticMap = createServerFn({ method: "POST" })
     const gmKey =
       process.env.GOOGLE_MAPS_STATIC_API_KEY ||
       process.env.GOOGLE_MAPS_API_KEY ||
-      process.env.VITE_GOOGLE_MAPS_BROWSER_KEY;
+      process.env.VITE_GOOGLE_MAPS_BROWSER_KEY ||
+      FALLBACK_GOOGLE_MAPS_KEY;
     if (!gmKey) {
       throw new Error(
         "Google Maps Static API key not configured. Set GOOGLE_MAPS_STATIC_API_KEY or GOOGLE_MAPS_API_KEY.",
