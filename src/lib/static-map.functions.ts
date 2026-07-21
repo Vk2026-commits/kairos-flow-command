@@ -26,13 +26,11 @@ export const fetchStaticMap = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data }) => {
-    const gmKey =
-      process.env.GOOGLE_MAPS_STATIC_API_KEY ||
-      process.env.GOOGLE_MAPS_API_KEY ||
-      process.env.VITE_GOOGLE_MAPS_BROWSER_KEY;
-    if (!gmKey) {
+    const lovableApiKey = process.env.LOVABLE_API_KEY;
+    const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!lovableApiKey || !googleMapsApiKey) {
       throw new Error(
-        "Google Maps Static API key not configured. Connect the Google Maps Platform connector or set GOOGLE_MAPS_STATIC_API_KEY / GOOGLE_MAPS_API_KEY.",
+        "Google Maps connector credentials are not available. Reconnect the Google Maps Platform connector and republish the app.",
       );
     }
 
@@ -49,20 +47,48 @@ export const fetchStaticMap = createServerFn({ method: "POST" })
       scale: "2",
       maptype: mapType,
       format: "png",
-      key: gmKey,
     });
     params.append(
       "markers",
       `color:red|label:${data.markerLabel ?? "W"}|${data.lat},${data.lng}`,
     );
 
-    const url = `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
-    const response = await fetch(url);
+    const url = `https://connector-gateway.lovable.dev/google_maps/maps/api/staticmap?${params.toString()}`;
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${lovableApiKey}`,
+        "X-Connection-Api-Key": googleMapsApiKey,
+      },
+    });
 
     if (!response.ok) {
       const body = await response.text();
       console.error(`Static Maps failed [${response.status}]: ${body}`);
-      throw new Error(`Static Maps request failed (${response.status})`);
+      if (response.status === 403) {
+        let reason: string | undefined;
+        try {
+          const parsed = JSON.parse(body) as {
+            error?: { details?: Array<{ reason?: string }> };
+          };
+          reason = parsed.error?.details?.find((detail) => detail.reason)?.reason;
+        } catch {
+          // Preserve the provider response in the server log above.
+        }
+        if (reason === "API_KEY_HTTP_REFERRER_BLOCKED") {
+          throw new Error(
+            'Google Maps server key is referrer-restricted. Set its application restrictions to "None" or "IP addresses" in Google Cloud Console.',
+          );
+        }
+        if (reason === "API_KEY_SERVICE_BLOCKED") {
+          throw new Error(
+            "Google Maps server key does not allow the Maps Static API. Add it to the key's allowed APIs in Google Cloud Console.",
+          );
+        }
+        throw new Error(
+          "Google Maps request was denied. Check the server key restrictions in Google Cloud Console.",
+        );
+      }
+      throw new Error(`Static Maps request failed [${response.status}]: ${body}`);
     }
 
     const buf = new Uint8Array(await response.arrayBuffer());
