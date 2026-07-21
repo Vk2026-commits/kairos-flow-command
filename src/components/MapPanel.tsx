@@ -81,6 +81,7 @@ const toolColor = (t: Exclude<Tool, null>): string =>
     : TOOL_COLORS[t];
 
 const STORAGE_KEY = "kairos:annotations:v1";
+const ANNOTATIONS_CLOUD_KEY = "map_annotations";
 const RENDER_STYLE_KEY = "kairos:annotation-render-style:v1";
 
 type RenderStyle = "lines" | "cars";
@@ -436,14 +437,86 @@ export function MapPanel({ service, onServiceChange }: Props) {
   // Named landmarks — saved from recent searches for reuse during annotate/playback.
   type Landmark = { id: string; label: string; query: string; address: string; at: number };
   const LANDMARKS_KEY = "kairos:landmarks:v1";
+  const LANDMARKS_CLOUD_KEY = "landmarks";
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
+  const landmarksCloudReady = useRef(false);
+  const landmarksLastSaved = useRef("");
   useEffect(() => {
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    let local: Landmark[] = [];
     try {
       const raw = localStorage.getItem(LANDMARKS_KEY);
-      if (raw) setLandmarks(JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          local = parsed;
+          setLandmarks(parsed);
+        }
+      }
     } catch {
       /* ignore */
     }
+
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("kairos_state")
+          .select("data")
+          .eq("key", LANDMARKS_CLOUD_KEY)
+          .maybeSingle();
+        if (error) throw error;
+        if (cancelled) return;
+
+        const cloudData = data?.data as { landmarks?: Landmark[] } | null;
+        const cloud = Array.isArray(cloudData?.landmarks) ? cloudData.landmarks : [];
+        if (cloud.length > 0) {
+          landmarksLastSaved.current = JSON.stringify(cloud);
+          setLandmarks(cloud);
+        } else if (local.length > 0) {
+          landmarksLastSaved.current = JSON.stringify(local);
+          await supabase
+            .from("kairos_state")
+            .upsert({ key: LANDMARKS_CLOUD_KEY, data: { landmarks: local } });
+        }
+        landmarksCloudReady.current = true;
+      } catch (e) {
+        landmarksCloudReady.current = true;
+        console.warn("Landmark cloud sync is unavailable", e);
+      }
+    })();
+
+    try {
+      channel = supabase
+        .channel("kairos_landmark_changes")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "kairos_state", filter: `key=eq.${LANDMARKS_CLOUD_KEY}` },
+          (payload: { eventType: string; new: { data?: unknown } }) => {
+            if (payload.eventType === "DELETE") return;
+            const data = payload.new?.data as { landmarks?: Landmark[] } | undefined;
+            if (!Array.isArray(data?.landmarks)) return;
+            const serialized = JSON.stringify(data.landmarks);
+            landmarksLastSaved.current = serialized;
+            setLandmarks(data.landmarks);
+          },
+        )
+        .subscribe();
+    } catch (e) {
+      console.warn("Landmark realtime sync is unavailable", e);
+    }
+
+    return () => {
+      cancelled = true;
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch {
+          /* ignore */
+        }
+      }
+    };
   }, []);
   useEffect(() => {
     try {
@@ -451,6 +524,16 @@ export function MapPanel({ service, onServiceChange }: Props) {
     } catch {
       /* ignore */
     }
+    if (!landmarksCloudReady.current) return;
+    const serialized = JSON.stringify(landmarks);
+    if (serialized === landmarksLastSaved.current) return;
+    landmarksLastSaved.current = serialized;
+    supabase
+      .from("kairos_state")
+      .upsert({ key: LANDMARKS_CLOUD_KEY, data: { landmarks } })
+      .then(({ error }) => {
+        if (error) console.warn("Failed to save landmarks to cloud", error);
+      });
   }, [landmarks]);
 
   function saveAsLandmark(source: { query: string; address: string }) {
@@ -925,6 +1008,8 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const liveMapRef = useRef<LiveMapHandle>(null);
+  const annotationsCloudReady = useRef(false);
+  const annotationsLastSaved = useRef("");
 
   const [capturing, setCapturing] = useState(false);
 
@@ -1029,14 +1114,84 @@ export function MapPanel({ service, onServiceChange }: Props) {
   }, [base]);
 
 
-  // Load / persist annotations
+  // Load / persist annotations. Local storage keeps offline continuity; Supabase
+  // keeps the presentation map synced across devices.
   useEffect(() => {
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    let local: Annotation[] = [];
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setAnnotations(JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          local = parsed;
+          setAnnotations(parsed);
+        }
+      }
     } catch {
       /* ignore */
     }
+
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("kairos_state")
+          .select("data")
+          .eq("key", ANNOTATIONS_CLOUD_KEY)
+          .maybeSingle();
+        if (error) throw error;
+        if (cancelled) return;
+
+        const cloudData = data?.data as { annotations?: Annotation[] } | null;
+        const cloud = Array.isArray(cloudData?.annotations) ? cloudData.annotations : [];
+        if (cloud.length > 0) {
+          annotationsLastSaved.current = JSON.stringify(cloud);
+          setAnnotations(cloud);
+        } else if (local.length > 0) {
+          annotationsLastSaved.current = JSON.stringify(local);
+          await supabase
+            .from("kairos_state")
+            .upsert({ key: ANNOTATIONS_CLOUD_KEY, data: { annotations: local } });
+        }
+        annotationsCloudReady.current = true;
+      } catch (e) {
+        annotationsCloudReady.current = true;
+        console.warn("Annotation cloud sync is unavailable", e);
+      }
+    })();
+
+    try {
+      channel = supabase
+        .channel("kairos_annotation_changes")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "kairos_state", filter: `key=eq.${ANNOTATIONS_CLOUD_KEY}` },
+          (payload: { eventType: string; new: { data?: unknown } }) => {
+            if (payload.eventType === "DELETE") return;
+            const data = payload.new?.data as { annotations?: Annotation[] } | undefined;
+            if (!Array.isArray(data?.annotations)) return;
+            const serialized = JSON.stringify(data.annotations);
+            annotationsLastSaved.current = serialized;
+            setAnnotations(data.annotations);
+          },
+        )
+        .subscribe();
+    } catch (e) {
+      console.warn("Annotation realtime sync is unavailable", e);
+    }
+
+    return () => {
+      cancelled = true;
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch {
+          /* ignore */
+        }
+      }
+    };
   }, []);
   useEffect(() => {
     try {
@@ -1044,6 +1199,16 @@ export function MapPanel({ service, onServiceChange }: Props) {
     } catch {
       /* ignore */
     }
+    if (!annotationsCloudReady.current) return;
+    const serialized = JSON.stringify(annotations);
+    if (serialized === annotationsLastSaved.current) return;
+    annotationsLastSaved.current = serialized;
+    supabase
+      .from("kairos_state")
+      .upsert({ key: ANNOTATIONS_CLOUD_KEY, data: { annotations } })
+      .then(({ error }) => {
+        if (error) console.warn("Failed to save annotations to cloud", error);
+      });
   }, [annotations]);
 
   const bases = useMemo(() => {
@@ -1232,7 +1397,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     const r = a as Record<string, unknown>;
     if (
       typeof r.id !== "string" ||
-      !(["street", "aerial", "lot", "custom"] as string[]).includes(String(r.base))
+      !(["street", "aerial", "lot", "live", "custom"] as string[]).includes(String(r.base))
     ) {
       return false;
     }
@@ -1251,6 +1416,15 @@ export function MapPanel({ service, onServiceChange }: Props) {
         (r.points as Pt[]).every(
           (p) => typeof p?.x === "number" && typeof p?.y === "number",
         )
+      );
+    }
+    if (r.kind === "personnel") {
+      const p = r.point as Pt | undefined;
+      return (
+        (r.role === "hpd" || r.role === "security" || r.role === "ministry") &&
+        !!p &&
+        typeof p.x === "number" &&
+        typeof p.y === "number"
       );
     }
     return false;

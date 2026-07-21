@@ -1,5 +1,7 @@
 # Kairos Flow Command
 
+Production domain: `https://commandhub.kairossecurity.com`
+
 ## Google Maps on a custom domain
 
 Lovable's managed Google Maps connection only works on `*.lovable.app` domains.
@@ -21,3 +23,13 @@ key, use `GOOGLE_MAPS_API_KEY` instead of `GOOGLE_MAPS_STATIC_API_KEY`.
 
 Keep real keys in your host's environment settings or a local `.env` file. Do
 not commit real keys to GitHub.
+
+## Presentation-mode behavior
+
+This build is intended to be usable without login while the app is being shown
+in a presentation. Traffic plans, map annotations, landmarks, and fleet counts
+sync through Supabase so multiple browsers/devices can see the same setup.
+
+Live operational KPIs are still demo data. A production version should replace
+the simulated hook with a real feed such as operator-entered Supabase rows,
+vehicle GPS from a tracking provider, or a lightweight dispatcher mobile form.

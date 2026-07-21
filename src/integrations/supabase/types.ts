@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      kairos_state: {
+        Row: {
+          data: Json
+          key: string
+          updated_at: string
+        }
+        Insert: {
+          data?: Json
+          key: string
+          updated_at?: string
+        }
+        Update: {
+          data?: Json
+          key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       traffic_plans: {
         Row: {
           annotations: Json

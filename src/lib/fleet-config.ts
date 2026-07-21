@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Admin-configurable fleet counts. Persisted to localStorage so the
@@ -18,6 +19,7 @@ export const DEFAULT_FLEET_CONFIG: FleetConfig = {
 
 const STORAGE_KEY = "kairos.fleetConfig.v1";
 const EVENT = "kairos:fleet-config-changed";
+const CLOUD_KEY = "fleet_config";
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, Math.floor(Number.isFinite(n) ? n : 0)));
@@ -57,11 +59,76 @@ export function useFleetConfig(): [FleetConfig, (next: FleetConfig) => void] {
     const onChange = () => setConfig(readFleetConfig());
     window.addEventListener(EVENT, onChange);
     window.addEventListener("storage", onChange);
+
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    (async () => {
+      try {
+        const local = readFleetConfig();
+        const { data, error } = await supabase
+          .from("kairos_state")
+          .select("data")
+          .eq("key", CLOUD_KEY)
+          .maybeSingle();
+        if (error) throw error;
+        if (cancelled) return;
+
+        if (data?.data && typeof data.data === "object" && !Array.isArray(data.data)) {
+          const cloud = normalize(data.data as Partial<FleetConfig>);
+          writeFleetConfig(cloud);
+          setConfig(cloud);
+        } else {
+          await supabase
+            .from("kairos_state")
+            .upsert({ key: CLOUD_KEY, data: local });
+        }
+      } catch (e) {
+        console.warn("Fleet config cloud sync is unavailable", e);
+      }
+    })();
+
+    try {
+      channel = supabase
+        .channel("kairos_fleet_config_changes")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "kairos_state", filter: `key=eq.${CLOUD_KEY}` },
+          (payload: { eventType: string; new: { data?: unknown } }) => {
+            if (payload.eventType === "DELETE") return;
+            const data = payload.new?.data;
+            if (!data || typeof data !== "object" || Array.isArray(data)) return;
+            const next = writeFleetConfig(normalize(data as Partial<FleetConfig>));
+            setConfig(next);
+          },
+        )
+        .subscribe();
+    } catch (e) {
+      console.warn("Fleet config realtime sync is unavailable", e);
+    }
+
     return () => {
+      cancelled = true;
       window.removeEventListener(EVENT, onChange);
       window.removeEventListener("storage", onChange);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch {
+          /* ignore */
+        }
+      }
     };
   }, []);
-  const update = (next: FleetConfig) => setConfig(writeFleetConfig(next));
+  const update = (next: FleetConfig) => {
+    const normalized = writeFleetConfig(next);
+    setConfig(normalized);
+    supabase
+      .from("kairos_state")
+      .upsert({ key: CLOUD_KEY, data: normalized })
+      .then(({ error }) => {
+        if (error) console.warn("Failed to save fleet config to cloud", error);
+      });
+  };
   return [config, update];
 }
