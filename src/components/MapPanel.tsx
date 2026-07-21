@@ -611,6 +611,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
   // localStorage plans so existing users don't lose their work.
   useEffect(() => {
     let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
     (async () => {
       try {
         // One-time migration: upload local plans, then clear the key.
@@ -651,35 +652,45 @@ export function MapPanel({ service, onServiceChange }: Props) {
     })();
 
     // Realtime: sync across devices/browsers.
-    const channel = supabase
-      .channel("traffic_plans_changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "traffic_plans" },
-        (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
-          setPlans((prev) => {
-            if (payload.eventType === "INSERT") {
-              const p = rowToPlan(payload.new as Record<string, unknown>);
-              if (prev.some((x) => x.id === p.id)) return prev;
-              return [p, ...prev].sort((a, b) => b.savedAt - a.savedAt);
-            }
-            if (payload.eventType === "UPDATE") {
-              const p = rowToPlan(payload.new as Record<string, unknown>);
-              return prev.map((x) => (x.id === p.id ? p : x));
-            }
-            if (payload.eventType === "DELETE") {
-              const oldId = (payload.old as { id?: string })?.id;
-              return prev.filter((x) => x.id !== oldId);
-            }
-            return prev;
-          });
-        },
-      )
-      .subscribe();
+    try {
+      channel = supabase
+        .channel("traffic_plans_changes")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "traffic_plans" },
+          (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
+            setPlans((prev) => {
+              if (payload.eventType === "INSERT") {
+                const p = rowToPlan(payload.new as Record<string, unknown>);
+                if (prev.some((x) => x.id === p.id)) return prev;
+                return [p, ...prev].sort((a, b) => b.savedAt - a.savedAt);
+              }
+              if (payload.eventType === "UPDATE") {
+                const p = rowToPlan(payload.new as Record<string, unknown>);
+                return prev.map((x) => (x.id === p.id ? p : x));
+              }
+              if (payload.eventType === "DELETE") {
+                const oldId = (payload.old as { id?: string })?.id;
+                return prev.filter((x) => x.id !== oldId);
+              }
+              return prev;
+            });
+          },
+        )
+        .subscribe();
+    } catch (e) {
+      console.warn("Traffic plan realtime sync is unavailable", e);
+    }
 
     return () => {
       cancelled = true;
-      supabase.removeChannel(channel);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch {
+          // The map remains usable when cloud sync is temporarily unavailable.
+        }
+      }
     };
   }, []);
 
