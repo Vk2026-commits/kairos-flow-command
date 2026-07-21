@@ -43,7 +43,6 @@ export type LiveMapHandle = {
 };
 
 let mapsLoader: Promise<typeof google> | null = null;
-const FALLBACK_GOOGLE_MAPS_KEY = "AIzaSyBQ-BDvsL4yEcbL6kYhbmaLiuE7TuVGl9s";
 
 function loadGoogleMaps(): Promise<typeof google> {
   if (typeof window === "undefined") return Promise.reject(new Error("SSR"));
@@ -55,14 +54,15 @@ function loadGoogleMaps(): Promise<typeof google> {
   const key =
     import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY ||
     import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
-    import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY ||
-    FALLBACK_GOOGLE_MAPS_KEY;
+    import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
   const channel =
     import.meta.env.VITE_GOOGLE_MAPS_CHANNEL ||
     import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID;
   if (!key) {
     return Promise.reject(
-      new Error("Missing Google Maps browser key. Set VITE_GOOGLE_MAPS_BROWSER_KEY."),
+      new Error(
+        "Google Maps browser key is not configured. Connect a custom Google Maps Platform connector in project settings, or set VITE_GOOGLE_MAPS_BROWSER_KEY.",
+      ),
     );
   }
 
