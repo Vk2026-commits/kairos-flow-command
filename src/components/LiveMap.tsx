@@ -51,9 +51,18 @@ function loadGoogleMaps(): Promise<typeof google> {
   }
   if (mapsLoader) return mapsLoader;
 
-  const key = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
-  const channel = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID;
-  if (!key) return Promise.reject(new Error("Missing Google Maps browser key"));
+  const key =
+    import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY ||
+    import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
+    import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
+  const channel =
+    import.meta.env.VITE_GOOGLE_MAPS_CHANNEL ||
+    import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID;
+  if (!key) {
+    return Promise.reject(
+      new Error("Missing Google Maps browser key. Set VITE_GOOGLE_MAPS_BROWSER_KEY."),
+    );
+  }
 
   mapsLoader = new Promise<typeof google>((resolve, reject) => {
     const cbName = `__initGoogleMaps_${Math.random().toString(36).slice(2)}`;

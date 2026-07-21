@@ -26,10 +26,14 @@ export const fetchStaticMap = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data }) => {
-    const lovableKey = process.env.LOVABLE_API_KEY;
-    const gmKey = process.env.GOOGLE_MAPS_API_KEY;
-    if (!lovableKey || !gmKey) {
-      throw new Error("Google Maps connector not configured");
+    const gmKey =
+      process.env.GOOGLE_MAPS_STATIC_API_KEY ||
+      process.env.GOOGLE_MAPS_API_KEY ||
+      process.env.VITE_GOOGLE_MAPS_BROWSER_KEY;
+    if (!gmKey) {
+      throw new Error(
+        "Google Maps Static API key not configured. Set GOOGLE_MAPS_STATIC_API_KEY or GOOGLE_MAPS_API_KEY.",
+      );
     }
 
     // Google Static Maps caps size at 640x640, with scale=2 yielding 1280x1280 output.
@@ -45,19 +49,15 @@ export const fetchStaticMap = createServerFn({ method: "POST" })
       scale: "2",
       maptype: mapType,
       format: "png",
+      key: gmKey,
     });
     params.append(
       "markers",
       `color:red|label:${data.markerLabel ?? "W"}|${data.lat},${data.lng}`,
     );
 
-    const url = `https://connector-gateway.lovable.dev/google_maps/maps/api/staticmap?${params.toString()}`;
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        "X-Connection-Api-Key": gmKey,
-      },
-    });
+    const url = `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
+    const response = await fetch(url);
 
     if (!response.ok) {
       const body = await response.text();
