@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 type MapType = "roadmap" | "satellite" | "hybrid" | "terrain";
+const FALLBACK_GOOGLE_MAPS_KEY = "AIzaSyBQ-BDvsL4yEcbL6kYhbmaLiuE7TuVGl9s";
 
 export type StaticMapInput = {
   lat: number;
@@ -26,11 +27,14 @@ export const fetchStaticMap = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data }) => {
-    const lovableApiKey = process.env.LOVABLE_API_KEY;
-    const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
-    if (!lovableApiKey || !googleMapsApiKey) {
+    const googleMapsApiKey =
+      process.env.GOOGLE_MAPS_STATIC_API_KEY ||
+      process.env.GOOGLE_MAPS_API_KEY ||
+      process.env.VITE_GOOGLE_MAPS_BROWSER_KEY ||
+      FALLBACK_GOOGLE_MAPS_KEY;
+    if (!googleMapsApiKey) {
       throw new Error(
-        "Google Maps connector credentials are not available. Reconnect the Google Maps Platform connector and republish the app.",
+        "Google Maps Static API key not configured. Set GOOGLE_MAPS_STATIC_API_KEY or GOOGLE_MAPS_API_KEY.",
       );
     }
 
@@ -47,19 +51,15 @@ export const fetchStaticMap = createServerFn({ method: "POST" })
       scale: "2",
       maptype: mapType,
       format: "png",
+      key: googleMapsApiKey,
     });
     params.append(
       "markers",
       `color:red|label:${data.markerLabel ?? "W"}|${data.lat},${data.lng}`,
     );
 
-    const url = `https://connector-gateway.lovable.dev/google_maps/maps/api/staticmap?${params.toString()}`;
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "X-Connection-Api-Key": googleMapsApiKey,
-      },
-    });
+    const url = `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
+    const response = await fetch(url);
 
     if (!response.ok) {
       const body = await response.text();
