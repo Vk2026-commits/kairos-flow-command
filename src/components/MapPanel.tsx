@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 const CLOUD_SYNC_ENABLED = Boolean(
   import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
 );
+const cloudDb = supabase as any;
 
 type LayerKey =
   | "ingress"
@@ -473,7 +474,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
     (async () => {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await cloudDb
           .from("kairos_state")
           .select("data")
           .eq("key", LANDMARKS_CLOUD_KEY)
@@ -488,7 +489,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
           setLandmarks(cloud);
         } else if (local.length > 0) {
           landmarksLastSaved.current = JSON.stringify(local);
-          await supabase
+          await cloudDb
             .from("kairos_state")
             .upsert({ key: LANDMARKS_CLOUD_KEY, data: { landmarks: local } });
         }
@@ -540,10 +541,10 @@ export function MapPanel({ service, onServiceChange }: Props) {
     const serialized = JSON.stringify(landmarks);
     if (serialized === landmarksLastSaved.current) return;
     landmarksLastSaved.current = serialized;
-    supabase
+    cloudDb
       .from("kairos_state")
       .upsert({ key: LANDMARKS_CLOUD_KEY, data: { landmarks } })
-      .then(({ error }) => {
+      .then(({ error }: { error: unknown }) => {
         if (error) console.warn("Failed to save landmarks to cloud", error);
       });
   }, [landmarks]);
@@ -1170,7 +1171,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
     (async () => {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await cloudDb
           .from("kairos_state")
           .select("data")
           .eq("key", ANNOTATIONS_CLOUD_KEY)
@@ -1185,7 +1186,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
           setAnnotations(cloud);
         } else if (local.length > 0) {
           annotationsLastSaved.current = JSON.stringify(local);
-          await supabase
+          await cloudDb
             .from("kairos_state")
             .upsert({ key: ANNOTATIONS_CLOUD_KEY, data: { annotations: local } });
         }
@@ -1237,10 +1238,10 @@ export function MapPanel({ service, onServiceChange }: Props) {
     const serialized = JSON.stringify(annotations);
     if (serialized === annotationsLastSaved.current) return;
     annotationsLastSaved.current = serialized;
-    supabase
+    cloudDb
       .from("kairos_state")
       .upsert({ key: ANNOTATIONS_CLOUD_KEY, data: { annotations } })
-      .then(({ error }) => {
+      .then(({ error }: { error: unknown }) => {
         if (error) console.warn("Failed to save annotations to cloud", error);
       });
   }, [annotations]);

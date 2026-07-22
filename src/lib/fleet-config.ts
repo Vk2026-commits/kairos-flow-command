@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+const CLOUD_SYNC_ENABLED = Boolean(
+  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+);
+const cloudDb = supabase as any;
+
 /**
  * Admin-configurable fleet counts. Persisted to localStorage so the
  * presentation dashboard (Chapter 10) and live-ops stat cards reflect the
@@ -63,10 +68,17 @@ export function useFleetConfig(): [FleetConfig, (next: FleetConfig) => void] {
     let cancelled = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
+    if (!CLOUD_SYNC_ENABLED) {
+      return () => {
+        window.removeEventListener(EVENT, onChange);
+        window.removeEventListener("storage", onChange);
+      };
+    }
+
     (async () => {
       try {
         const local = readFleetConfig();
-        const { data, error } = await supabase
+        const { data, error } = await cloudDb
           .from("kairos_state")
           .select("data")
           .eq("key", CLOUD_KEY)
@@ -79,7 +91,7 @@ export function useFleetConfig(): [FleetConfig, (next: FleetConfig) => void] {
           writeFleetConfig(cloud);
           setConfig(cloud);
         } else {
-          await supabase
+          await cloudDb
             .from("kairos_state")
             .upsert({ key: CLOUD_KEY, data: local });
         }
@@ -123,10 +135,11 @@ export function useFleetConfig(): [FleetConfig, (next: FleetConfig) => void] {
   const update = (next: FleetConfig) => {
     const normalized = writeFleetConfig(next);
     setConfig(normalized);
-    supabase
+    if (!CLOUD_SYNC_ENABLED) return;
+    cloudDb
       .from("kairos_state")
       .upsert({ key: CLOUD_KEY, data: normalized })
-      .then(({ error }) => {
+      .then(({ error }: { error: unknown }) => {
         if (error) console.warn("Failed to save fleet config to cloud", error);
       });
   };
