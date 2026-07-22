@@ -5,6 +5,12 @@ import lotAsset from "@/assets/wheeler-lot.jpg.asset.json";
 import { LiveMap, type LiveMapHandle, type LiveMapView } from "./LiveMap";
 import { supabase } from "@/integrations/supabase/client";
 
+// Keep the map usable in previews where Lovable Cloud build variables have not
+// been injected yet. Local persistence remains available until cloud sync is.
+const CLOUD_SYNC_ENABLED = Boolean(
+  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+);
+
 type LayerKey =
   | "ingress"
   | "egress"
@@ -459,6 +465,12 @@ export function MapPanel({ service, onServiceChange }: Props) {
       /* ignore */
     }
 
+    if (!CLOUD_SYNC_ENABLED) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
     (async () => {
       try {
         const { data, error } = await supabase
@@ -524,7 +536,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     } catch {
       /* ignore */
     }
-    if (!landmarksCloudReady.current) return;
+    if (!CLOUD_SYNC_ENABLED || !landmarksCloudReady.current) return;
     const serialized = JSON.stringify(landmarks);
     if (serialized === landmarksLastSaved.current) return;
     landmarksLastSaved.current = serialized;
@@ -695,6 +707,22 @@ export function MapPanel({ service, onServiceChange }: Props) {
   useEffect(() => {
     let cancelled = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    if (!CLOUD_SYNC_ENABLED) {
+      try {
+        const raw = localStorage.getItem(PLANS_KEY);
+        if (raw) {
+          const local = JSON.parse(raw) as TrafficPlan[];
+          if (Array.isArray(local)) setPlans(local);
+        }
+      } catch {
+        /* ignore malformed local data */
+      }
+      return () => {
+        cancelled = true;
+      };
+    }
+
     (async () => {
       try {
         // One-time migration: upload local plans, then clear the key.
@@ -1134,6 +1162,12 @@ export function MapPanel({ service, onServiceChange }: Props) {
       /* ignore */
     }
 
+    if (!CLOUD_SYNC_ENABLED) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
     (async () => {
       try {
         const { data, error } = await supabase
@@ -1199,7 +1233,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     } catch {
       /* ignore */
     }
-    if (!annotationsCloudReady.current) return;
+    if (!CLOUD_SYNC_ENABLED || !annotationsCloudReady.current) return;
     const serialized = JSON.stringify(annotations);
     if (serialized === annotationsLastSaved.current) return;
     annotationsLastSaved.current = serialized;
