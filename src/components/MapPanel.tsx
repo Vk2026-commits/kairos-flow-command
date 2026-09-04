@@ -1584,6 +1584,15 @@ export function MapPanel({ service, onServiceChange }: Props) {
         typeof p.y === "number"
       );
     }
+    if (r.kind === "sign") {
+      const p = r.point as Pt | undefined;
+      return (
+        (SIGN_KINDS as readonly string[]).includes(r.sign as string) &&
+        !!p &&
+        typeof p.x === "number" &&
+        typeof p.y === "number"
+      );
+    }
     return false;
   }
 
