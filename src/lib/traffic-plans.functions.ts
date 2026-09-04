@@ -4,7 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 // table directly: every call carries a device access code that the server
 // validates against public.device_access_codes before doing any work.
 
-type PlanRow = Record<string, unknown>;
+type PlanRow = Record<string, any>;
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
