@@ -2625,6 +2625,75 @@ export function MapPanel({ service, onServiceChange }: Props) {
               </div>
             )}
 
+            {signsOpen && (
+              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-white">
+                    Signs &amp; Devices{" "}
+                    <span className="text-kairos-gold font-mono ml-1">
+                      {annotations.filter((a) => a.base === base && a.kind === "sign").length} on {base}
+                    </span>
+                  </h4>
+                  <button type="button" onClick={() => setSignsOpen(false)} className="text-[10px] text-slate-400 hover:text-white">✕</button>
+                </div>
+                <div className="text-[10px] text-slate-400 leading-relaxed mb-2">
+                  Pick a sign, then click the map to drop it. Saves with your Traffic Plans.
+                </div>
+                <div className="space-y-1.5">
+                  {SIGN_KINDS.map((sign) => {
+                    const meta = SIGN_META[sign];
+                    const on = tool === sign;
+                    const count = annotations.filter(
+                      (a) => a.base === base && a.kind === "sign" && a.sign === sign,
+                    ).length;
+                    return (
+                      <button
+                        type="button"
+                        key={sign}
+                        onClick={() => {
+                          setDraft([]);
+                          setTool(on ? null : sign);
+                        }}
+                        className={`w-full flex items-center justify-between gap-2 py-2 px-2 rounded border transition ${
+                          on
+                            ? "bg-kairos-blue text-white border-white/30"
+                            : "bg-white/5 text-slate-200 border-white/10 hover:text-white"
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className="w-11 flex items-center justify-center shrink-0">
+                            <SignGlyph sign={sign} />
+                          </span>
+                          <span className="text-left min-w-0">
+                            <span className="block text-[11px] font-bold truncate">{meta.label}</span>
+                            <span className="block text-[9px] text-slate-400 truncate">{meta.caption}</span>
+                          </span>
+                        </span>
+                        <span className="text-[10px] font-mono opacity-80">{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {isSignTool(tool) && (
+                  <div className="mt-2 text-[10px] text-slate-300 leading-relaxed">
+                    Click the map to drop a <b>{SIGN_META[tool].label}</b>.
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const signCount = annotations.filter((a) => a.base === base && a.kind === "sign").length;
+                    if (!signCount) return;
+                    if (!window.confirm(`Delete all ${signCount} signs on ${base}?`)) return;
+                    setAnnotations((prev) => prev.filter((a) => !(a.base === base && a.kind === "sign")));
+                  }}
+                  className="mt-2 w-full text-[10px] font-bold py-1.5 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition"
+                >
+                  Clear Signs on {base}
+                </button>
+              </div>
+            )}
+
 
             {playbackOpen && (
               <div className="rounded-lg border border-white/10 bg-white/5 p-3">
