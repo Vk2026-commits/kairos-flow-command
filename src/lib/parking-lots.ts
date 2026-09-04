@@ -80,6 +80,8 @@ function normalize(raw: unknown): ParkingState {
           cars: num(c?.cars, 20000),
           full: Boolean(c?.full),
           note: c?.note ? String(c.note) : undefined,
+          serviceId: c?.serviceId ? String(c.serviceId) : undefined,
+
         }))
         .filter((c) => c.lotId)
     : [];
