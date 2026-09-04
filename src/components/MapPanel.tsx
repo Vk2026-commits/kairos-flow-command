@@ -25,24 +25,125 @@ type BaseKey = "street" | "aerial" | "lot" | "live" | "custom";
 type LiveMapType = "roadmap" | "satellite" | "hybrid";
 
 type PersonnelRole = "hpd" | "security" | "ministry";
-type Tool = "ingress" | "egress" | "shuttle" | "closure" | PersonnelRole | null;
+type SignKind =
+  | "arrow-right"
+  | "arrow-left"
+  | "wheel-stop"
+  | "no-exit"
+  | "thanks"
+  | "exit"
+  | "no-entry";
+type Tool = "ingress" | "egress" | "shuttle" | "closure" | PersonnelRole | SignKind | null;
 type ImportMode = "merge" | "replace";
 
-const POINT_TOOLS: readonly Tool[] = ["closure", "hpd", "security", "ministry"] as const;
-const isPointTool = (t: Tool): t is "closure" | PersonnelRole =>
+const SIGN_KINDS: readonly SignKind[] = [
+  "arrow-right",
+  "arrow-left",
+  "wheel-stop",
+  "no-exit",
+  "thanks",
+  "exit",
+  "no-entry",
+] as const;
+const isSignTool = (t: Tool): t is SignKind =>
+  t !== null && (SIGN_KINDS as readonly string[]).includes(t);
+
+const POINT_TOOLS: readonly Tool[] = ["closure", "hpd", "security", "ministry", ...SIGN_KINDS] as const;
+const isPointTool = (t: Tool): t is "closure" | PersonnelRole | SignKind =>
   t !== null && (POINT_TOOLS as readonly Tool[]).includes(t);
 
 type Pt = { x: number; y: number };
 type Annotation =
   | { id: string; kind: "ingress" | "egress" | "shuttle"; base: BaseKey; points: Pt[]; label?: string }
   | { id: string; kind: "closure"; base: BaseKey; point: Pt; label: string }
-  | { id: string; kind: "personnel"; role: PersonnelRole; base: BaseKey; point: Pt; label?: string };
+  | { id: string; kind: "personnel"; role: PersonnelRole; base: BaseKey; point: Pt; label?: string }
+  | { id: string; kind: "sign"; sign: SignKind; base: BaseKey; point: Pt; label?: string };
 
 const PERSONNEL_META: Record<PersonnelRole, { color: string; label: string; short: string }> = {
   hpd: { color: "#3b82f6", label: "HPD Officer", short: "HPD" },
   security: { color: "#ef4444", label: "Private Security", short: "SEC" },
   ministry: { color: "#22c55e", label: "First Touch Ministry", short: "FTM" },
 };
+
+const SIGN_META: Record<SignKind, { color: string; label: string; short: string; caption: string }> = {
+  "arrow-right": { color: "#facc15", label: "Right Arrow", short: "→", caption: "Traffic flows right" },
+  "arrow-left": { color: "#facc15", label: "Left Arrow", short: "←", caption: "Traffic flows left" },
+  "wheel-stop": { color: "#e2e8f0", label: "Wheel Stops", short: "WS", caption: "Four wheel stops" },
+  "no-exit": { color: "#7dd3fc", label: "No Exit", short: "NO EXIT", caption: "Light blue triangle — no exit" },
+  thanks: { color: "#1d4ed8", label: "Appreciation", short: "THANK YOU", caption: "Thanks for following the flow" },
+  exit: { color: "#f472b6", label: "Exit Sign", short: "EXIT", caption: "Pink exit sign" },
+  "no-entry": { color: "#f97316", label: "No Entry Sign", short: "NO ENTRY", caption: "Orange no-entry sign" },
+};
+
+function SignGlyph({ sign }: { sign: SignKind }) {
+  const meta = SIGN_META[sign];
+  if (sign === "arrow-right" || sign === "arrow-left") {
+    return (
+      <svg viewBox="0 0 32 20" className="w-8 h-5 drop-shadow" aria-hidden="true">
+        <g transform={sign === "arrow-left" ? "translate(32,0) scale(-1,1)" : undefined}>
+          <path
+            d="M2 8h18V3l10 7-10 7v-5H2z"
+            fill={meta.color}
+            stroke="#0b1220"
+            strokeWidth="1.2"
+          />
+        </g>
+      </svg>
+    );
+  }
+  if (sign === "wheel-stop") {
+    return (
+      <svg viewBox="0 0 28 22" className="w-7 h-[22px] drop-shadow" aria-hidden="true">
+        {[2, 7, 12, 17].map((y) => (
+          <line
+            key={y}
+            x1="3"
+            x2="25"
+            y1={y + 1}
+            y2={y + 1}
+            stroke={meta.color}
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeDasharray="3 3"
+          />
+        ))}
+      </svg>
+    );
+  }
+  if (sign === "no-exit") {
+    return (
+      <svg viewBox="0 0 26 24" className="w-6 h-6 drop-shadow" aria-hidden="true">
+        <path d="M13 2 25 22H1z" fill={meta.color} stroke="#0b1220" strokeWidth="1.4" />
+      </svg>
+    );
+  }
+  if (sign === "thanks") {
+    return (
+      <svg viewBox="0 0 24 24" className="w-6 h-6 drop-shadow" aria-hidden="true">
+        <circle cx="12" cy="12" r="10.5" fill={meta.color} stroke="#ffffff" strokeWidth="1.6" />
+        <path d="M7.5 12.6l2.8 2.8 6-6.2" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  // exit / no-entry rectangles
+  return (
+    <svg viewBox="0 0 44 18" className="w-11 h-[18px] drop-shadow" aria-hidden="true">
+      <rect x="1" y="1" width="42" height="16" rx="2.5" fill={meta.color} stroke="#0b1220" strokeWidth="1.2" />
+      <text
+        x="22"
+        y="12.6"
+        textAnchor="middle"
+        fontSize="8"
+        fontWeight="800"
+        fill={sign === "exit" ? "#4a0f2a" : "#3d1a00"}
+        fontFamily="ui-sans-serif, system-ui, sans-serif"
+      >
+        {sign === "exit" ? "EXIT" : "NO ENTRY"}
+      </text>
+    </svg>
+  );
+}
+
 
 const BASES: { key: BaseKey; label: string; src?: string }[] = [
   { key: "street", label: "Street", src: streetAsset.url },
@@ -85,7 +186,9 @@ const TOOL_COLORS: Record<"ingress" | "egress" | "shuttle" | "closure", string> 
 const toolColor = (t: Exclude<Tool, null>): string =>
   t === "hpd" || t === "security" || t === "ministry"
     ? PERSONNEL_META[t].color
-    : TOOL_COLORS[t];
+    : isSignTool(t)
+      ? SIGN_META[t].color
+      : TOOL_COLORS[t as "ingress" | "egress" | "shuttle" | "closure"];
 
 const STORAGE_KEY = "kairos:annotations:v1";
 const ANNOTATIONS_CLOUD_KEY = "map_annotations";
@@ -916,6 +1019,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const [layersOpen, setLayersOpen] = useState(true);
   const [annotateOpen, setAnnotateOpen] = useState(true);
   const [personnelOpen, setPersonnelOpen] = useState(false);
+  const [signsOpen, setSignsOpen] = useState(false);
   const [playbackOpen, setPlaybackOpen] = useState(true);
 
   // Panel drag offsets (pixels from their default anchor).
@@ -1356,6 +1460,22 @@ export function MapPanel({ service, onServiceChange }: Props) {
       ]);
       return;
     }
+    if (isSignTool(tool)) {
+      const meta = SIGN_META[tool];
+      const label = window.prompt(`${meta.label} label (optional):`, "") ?? "";
+      setAnnotations((a) => [
+        ...a,
+        {
+          id: crypto.randomUUID(),
+          kind: "sign",
+          sign: tool,
+          base,
+          point: p,
+          label: label || undefined,
+        },
+      ]);
+      return;
+    }
     setDraft((d) => [...d, p]);
   }
 
@@ -1465,6 +1585,15 @@ export function MapPanel({ service, onServiceChange }: Props) {
         typeof p.y === "number"
       );
     }
+    if (r.kind === "sign") {
+      const p = r.point as Pt | undefined;
+      return (
+        (SIGN_KINDS as readonly string[]).includes(r.sign as string) &&
+        !!p &&
+        typeof p.x === "number" &&
+        typeof p.y === "number"
+      );
+    }
     return false;
   }
 
@@ -1534,6 +1663,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     if (a.base !== base) return false;
     if (a.kind === "closure") return layers.closures;
     if (a.kind === "personnel") return true;
+    if (a.kind === "sign") return true;
     return layers[a.kind];
   });
 
@@ -1589,7 +1719,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
   }
 
 
-  const anyPanelOpen = layersOpen || annotateOpen || personnelOpen || playbackOpen;
+  const anyPanelOpen = layersOpen || annotateOpen || personnelOpen || signsOpen || playbackOpen;
 
   return (
     <div
@@ -1617,8 +1747,9 @@ export function MapPanel({ service, onServiceChange }: Props) {
           {(
             [
               { key: "layers", label: "Map Layers", open: layersOpen, set: setLayersOpen, badge: `${Object.values(layers).filter(Boolean).length}/${LAYERS.length}` },
-              { key: "annotate", label: "Annotate", open: annotateOpen, set: setAnnotateOpen, badge: `${annotations.filter((a) => a.base === base && a.kind !== "personnel").length}` },
+              { key: "annotate", label: "Annotate", open: annotateOpen, set: setAnnotateOpen, badge: `${annotations.filter((a) => a.base === base && a.kind !== "personnel" && a.kind !== "sign").length}` },
               { key: "personnel", label: "Personnel", open: personnelOpen, set: setPersonnelOpen, badge: `${annotations.filter((a) => a.base === base && a.kind === "personnel").length}` },
+              { key: "signs", label: "Signs", open: signsOpen, set: setSignsOpen, badge: `${annotations.filter((a) => a.base === base && a.kind === "sign").length}` },
               { key: "playback", label: "Playback", open: playbackOpen, set: setPlaybackOpen, badge: playbackSeq.length ? `${playbackSeq.length}` : undefined },
             ] as const
           ).map((p) => (
@@ -2494,6 +2625,75 @@ export function MapPanel({ service, onServiceChange }: Props) {
               </div>
             )}
 
+            {signsOpen && (
+              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-white">
+                    Signs &amp; Devices{" "}
+                    <span className="text-kairos-gold font-mono ml-1">
+                      {annotations.filter((a) => a.base === base && a.kind === "sign").length} on {base}
+                    </span>
+                  </h4>
+                  <button type="button" onClick={() => setSignsOpen(false)} className="text-[10px] text-slate-400 hover:text-white">✕</button>
+                </div>
+                <div className="text-[10px] text-slate-400 leading-relaxed mb-2">
+                  Pick a sign, then click the map to drop it. Saves with your Traffic Plans.
+                </div>
+                <div className="space-y-1.5">
+                  {SIGN_KINDS.map((sign) => {
+                    const meta = SIGN_META[sign];
+                    const on = tool === sign;
+                    const count = annotations.filter(
+                      (a) => a.base === base && a.kind === "sign" && a.sign === sign,
+                    ).length;
+                    return (
+                      <button
+                        type="button"
+                        key={sign}
+                        onClick={() => {
+                          setDraft([]);
+                          setTool(on ? null : sign);
+                        }}
+                        className={`w-full flex items-center justify-between gap-2 py-2 px-2 rounded border transition ${
+                          on
+                            ? "bg-kairos-blue text-white border-white/30"
+                            : "bg-white/5 text-slate-200 border-white/10 hover:text-white"
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className="w-11 flex items-center justify-center shrink-0">
+                            <SignGlyph sign={sign} />
+                          </span>
+                          <span className="text-left min-w-0">
+                            <span className="block text-[11px] font-bold truncate">{meta.label}</span>
+                            <span className="block text-[9px] text-slate-400 truncate">{meta.caption}</span>
+                          </span>
+                        </span>
+                        <span className="text-[10px] font-mono opacity-80">{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {isSignTool(tool) && (
+                  <div className="mt-2 text-[10px] text-slate-300 leading-relaxed">
+                    Click the map to drop a <b>{SIGN_META[tool].label}</b>.
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const signCount = annotations.filter((a) => a.base === base && a.kind === "sign").length;
+                    if (!signCount) return;
+                    if (!window.confirm(`Delete all ${signCount} signs on ${base}?`)) return;
+                    setAnnotations((prev) => prev.filter((a) => !(a.base === base && a.kind === "sign")));
+                  }}
+                  className="mt-2 w-full text-[10px] font-bold py-1.5 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition"
+                >
+                  Clear Signs on {base}
+                </button>
+              </div>
+            )}
+
 
             {playbackOpen && (
               <div className="rounded-lg border border-white/10 bg-white/5 p-3">
@@ -2679,7 +2879,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
               if (window.confirm("Delete this annotation?")) removeAnnotation(id);
             };
             return visibleAnnotations.map((a) => {
-              if (a.kind === "closure" || a.kind === "personnel") return null;
+              if (a.kind === "closure" || a.kind === "personnel" || a.kind === "sign") return null;
               if (playbackIds?.has(a.id)) return null;
               if (renderStyle === "cars") {
                 const spacing = Math.max(4.5, strokeW * 5);
@@ -2855,6 +3055,36 @@ export function MapPanel({ service, onServiceChange }: Props) {
                 >
                   {a.label || meta.short}
                 </span>
+              </div>
+            );
+          }
+          if (a.kind === "sign") {
+            const meta = SIGN_META[a.sign];
+            return (
+              <div
+                key={a.id}
+                onClick={(e) => {
+                  if (!editable) return;
+                  e.stopPropagation();
+                  if (window.confirm(`Delete this ${meta.label}?`)) removeAnnotation(a.id);
+                }}
+                className={`absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5 group ${
+                  editable ? "cursor-pointer" : "pointer-events-none"
+                }`}
+                style={{ left: `${a.point.x}%`, top: `${a.point.y}%` }}
+                title={editable ? `Click to delete this ${meta.label}` : meta.label}
+              >
+                <div className="rounded group-hover:ring-2 group-hover:ring-white/60">
+                  <SignGlyph sign={a.sign} />
+                </div>
+                {a.label && (
+                  <span
+                    className="text-[9px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap bg-bg-deep/80 border border-white/10"
+                    style={{ color: meta.color }}
+                  >
+                    {a.label}
+                  </span>
+                )}
               </div>
             );
           }
