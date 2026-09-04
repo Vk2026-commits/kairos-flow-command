@@ -225,9 +225,10 @@ export function MapPanel({ service, onServiceChange }: Props) {
   }
 
   // Per-base arrowhead size multiplier. 1.0 = default (marker scales with stroke).
-  const ARROW_KEY = "kairos:arrow-scales:v1";
+  const ARROW_KEY = "kairos:arrow-scales:v2";
   const DEFAULT_ARROW: Record<BaseKey, number> = {
-    street: 1, aerial: 1, lot: 1, live: 1, custom: 1,
+    street: 0.3, aerial: 0.3, lot: 0.3, live: 0.3, custom: 0.3,
+
   };
   const [arrowScales, setArrowScales] = useState<Record<BaseKey, number>>(DEFAULT_ARROW);
   useEffect(() => {
