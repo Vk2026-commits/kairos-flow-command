@@ -1,10 +1,5 @@
 import { useMemo, useState } from "react";
-import { useParkingState, type LotCount } from "@/lib/parking-lots";
-
-function timeNow() {
-  const d = new Date();
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
+import { useParkingState, SERVICES, type LotCount } from "@/lib/parking-lots";
 
 function fmt(at: string) {
   const d = new Date(at);
@@ -30,18 +25,43 @@ const NEW_LOT_COLORS = [
 
 export function ParkingLotsPanel() {
   const [state, setState] = useParkingState();
-  const [time, setTime] = useState(timeNow);
+  const [serviceId, setServiceId] = useState<string>(SERVICES[0].id);
+  const [time, setTime] = useState<string>(SERVICES[0].time);
   const [cars, setCars] = useState<Record<string, string>>({});
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(NEW_LOT_COLORS[0]);
   const [newSpaces, setNewSpaces] = useState("");
 
+  const service = SERVICES.find((s) => s.id === serviceId) ?? SERVICES[0];
+
+  const pickService = (id: string) => {
+    const s = SERVICES.find((x) => x.id === id);
+    if (!s) return;
+    setServiceId(s.id);
+    setTime(s.time);
+    setCars({});
+  };
+
+  /** latest count per lot for the selected service */
   const latest = useMemo(() => {
     const map: Record<string, LotCount | undefined> = {};
     for (const c of state.counts) {
+      if ((c.serviceId ?? SERVICES[0].id) !== serviceId) continue;
       const cur = map[c.lotId];
       if (!cur || new Date(c.at).getTime() > new Date(cur.at).getTime()) map[c.lotId] = c;
+    }
+    return map;
+  }, [state.counts, serviceId]);
+
+  /** latest count per lot per service, for the summary row */
+  const byService = useMemo(() => {
+    const map: Record<string, Record<string, LotCount | undefined>> = {};
+    for (const c of state.counts) {
+      const sid = c.serviceId ?? SERVICES[0].id;
+      const bucket = (map[sid] ||= {});
+      const cur = bucket[c.lotId];
+      if (!cur || new Date(c.at).getTime() > new Date(cur.at).getTime()) bucket[c.lotId] = c;
     }
     return map;
   }, [state.counts]);
@@ -66,6 +86,7 @@ export function ParkingLotsPanel() {
     const entry: LotCount = {
       id: `${lotId}-${Date.now()}`,
       lotId,
+      serviceId,
       at: at.toISOString(),
       cars: Math.max(0, Math.floor(Number.isFinite(value) ? value : 0)),
       full: full || (lot.spaces > 0 && value >= lot.spaces),
@@ -73,6 +94,7 @@ export function ParkingLotsPanel() {
     setState({ ...state, counts: [entry, ...state.counts].slice(0, 500) });
     setCars((prev) => ({ ...prev, [lotId]: "" }));
   };
+
 
   const removeCount = (id: string) =>
     setState({ ...state, counts: state.counts.filter((c) => c.id !== id) });
@@ -116,7 +138,7 @@ export function ParkingLotsPanel() {
         <div>
           <h2 className="text-lg font-semibold text-white tracking-tight">Parking Lots</h2>
           <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">
-            {state.lots.length} lots · {totalSpaces} spaces · {totalCars} cars on latest count
+            {service.name} · {state.lots.length} lots · {totalSpaces} spaces · {totalCars} cars
           </p>
         </div>
         <label className="flex flex-col gap-1">
@@ -131,6 +153,28 @@ export function ParkingLotsPanel() {
           />
         </label>
       </div>
+
+      <div className="mb-4">
+        <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">
+          Church service
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {SERVICES.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => pickService(s.id)}
+              className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition ${
+                s.id === serviceId
+                  ? "bg-kairos-blue/20 border-kairos-blue text-kairos-blue"
+                  : "border-white/10 text-slate-400 hover:text-white"
+              }`}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
 
       <div className="mb-4">
         {adding ? (
@@ -278,6 +322,32 @@ export function ParkingLotsPanel() {
                   : "No counts recorded yet"}
               </p>
 
+              <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-white/5">
+                {SERVICES.map((s) => {
+                  const rec = byService[s.id]?.[lot.id];
+                  return (
+                    <div
+                      key={s.id}
+                      className={`rounded-lg px-2 py-1.5 text-center ${
+                        s.id === serviceId ? "bg-kairos-blue/10" : "bg-white/[0.03]"
+                      }`}
+                    >
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                        {s.name.replace(" Service", "")}
+                      </p>
+                      <p
+                        className={`text-xs font-mono tabular-nums ${
+                          rec?.full ? "text-red-400" : "text-white"
+                        }`}
+                      >
+                        {rec ? (rec.full ? "FULL" : rec.cars) : "—"}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+
               <div className="flex gap-2">
                 <button
                   onClick={() => record(lot.id, false)}
@@ -318,7 +388,12 @@ export function ParkingLotsPanel() {
                   <span className="text-xs font-bold text-white w-36 truncate">
                     {lot?.name ?? c.lotId}
                   </span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 w-20 text-right">
+                    {(SERVICES.find((s) => s.id === (c.serviceId ?? SERVICES[0].id))?.name ?? "")
+                      .replace(" Service", "")}
+                  </span>
                   <span className="text-[11px] font-mono text-slate-400 flex-1">{fmt(c.at)}</span>
+
                   <span className="text-xs font-mono text-white tabular-nums">
                     {c.cars}
                     {lot?.spaces ? `/${lot.spaces}` : ""}
