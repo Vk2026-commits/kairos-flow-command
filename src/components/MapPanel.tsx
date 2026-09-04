@@ -3058,6 +3058,36 @@ export function MapPanel({ service, onServiceChange }: Props) {
               </div>
             );
           }
+          if (a.kind === "sign") {
+            const meta = SIGN_META[a.sign];
+            return (
+              <div
+                key={a.id}
+                onClick={(e) => {
+                  if (!editable) return;
+                  e.stopPropagation();
+                  if (window.confirm(`Delete this ${meta.label}?`)) removeAnnotation(a.id);
+                }}
+                className={`absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5 group ${
+                  editable ? "cursor-pointer" : "pointer-events-none"
+                }`}
+                style={{ left: `${a.point.x}%`, top: `${a.point.y}%` }}
+                title={editable ? `Click to delete this ${meta.label}` : meta.label}
+              >
+                <div className="rounded group-hover:ring-2 group-hover:ring-white/60">
+                  <SignGlyph sign={a.sign} />
+                </div>
+                {a.label && (
+                  <span
+                    className="text-[9px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap bg-bg-deep/80 border border-white/10"
+                    style={{ color: meta.color }}
+                  >
+                    {a.label}
+                  </span>
+                )}
+              </div>
+            );
+          }
           return a.label ? (
             <div
               key={`lbl-${a.id}`}
