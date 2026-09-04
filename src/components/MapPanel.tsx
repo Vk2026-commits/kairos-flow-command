@@ -219,7 +219,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
       /* ignore */
     }
   }, [strokeWidths]);
-  const strokeW = strokeWidths[base] ?? 0.9;
+  const strokeW = strokeWidths[base] ?? 0.2;
   function setBaseStroke(v: number) {
     setStrokeWidths((prev) => ({ ...prev, [base]: v }));
   }
