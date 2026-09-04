@@ -17,10 +17,25 @@ function fmt(at: string) {
   });
 }
 
+const NEW_LOT_COLORS = [
+  "#f59e0b",
+  "#14b8a6",
+  "#ec4899",
+  "#8b5cf6",
+  "#0ea5e9",
+  "#84cc16",
+  "#f43f5e",
+  "#64748b",
+];
+
 export function ParkingLotsPanel() {
   const [state, setState] = useParkingState();
   const [time, setTime] = useState(timeNow);
   const [cars, setCars] = useState<Record<string, string>>({});
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newColor, setNewColor] = useState(NEW_LOT_COLORS[0]);
+  const [newSpaces, setNewSpaces] = useState("");
 
   const latest = useMemo(() => {
     const map: Record<string, LotCount | undefined> = {};
@@ -62,6 +77,39 @@ export function ParkingLotsPanel() {
   const removeCount = (id: string) =>
     setState({ ...state, counts: state.counts.filter((c) => c.id !== id) });
 
+  const addLot = () => {
+    const name = newName.trim();
+    if (!name) return;
+    const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "lot";
+    let id = base;
+    let i = 2;
+    while (state.lots.some((l) => l.id === id)) id = `${base}-${i++}`;
+    setState({
+      ...state,
+      lots: [
+        ...state.lots,
+        { id, name, color: newColor, spaces: Math.max(0, Math.floor(Number(newSpaces) || 0)) },
+      ],
+    });
+    setNewName("");
+    setNewSpaces("");
+    setNewColor(NEW_LOT_COLORS[(state.lots.length + 1) % NEW_LOT_COLORS.length]);
+    setAdding(false);
+  };
+
+  const removeLot = (id: string) => {
+    const lot = state.lots.find((l) => l.id === id);
+    if (lot && !window.confirm(`Remove ${lot.name} and its recorded counts?`)) return;
+    setState({
+      ...state,
+      lots: state.lots.filter((l) => l.id !== id),
+      counts: state.counts.filter((c) => c.lotId !== id),
+    });
+  };
+
+  const renameLot = (id: string, name: string) =>
+    setState({ ...state, lots: state.lots.map((l) => (l.id === id ? { ...l, name } : l)) });
+
   return (
     <div className="flex-1 overflow-y-auto p-4 lg:p-6">
       <div className="mb-5 flex items-end justify-between gap-4 flex-wrap">
@@ -84,6 +132,79 @@ export function ParkingLotsPanel() {
         </label>
       </div>
 
+      <div className="mb-4">
+        {adding ? (
+          <div className="bg-surface border border-white/10 rounded-2xl p-4 flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1 min-w-48 flex-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                Lot name
+              </span>
+              <input
+                autoFocus
+                value={newName}
+                placeholder="e.g. Overflow Lot"
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addLot()}
+                className="bg-surface-bright border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+              />
+            </label>
+            <label className="flex flex-col gap-1 w-28">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                Spaces
+              </span>
+              <input
+                type="number"
+                min={0}
+                value={newSpaces}
+                placeholder="0"
+                onChange={(e) => setNewSpaces(e.target.value)}
+                className="bg-surface-bright border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white"
+              />
+            </label>
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                Color
+              </span>
+              <div className="flex gap-1.5">
+                {NEW_LOT_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setNewColor(c)}
+                    aria-label={`Choose color ${c}`}
+                    className={`size-6 rounded-full transition ${
+                      newColor === c ? "ring-2 ring-white" : "ring-1 ring-white/20"
+                    }`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2 ml-auto">
+              <button
+                onClick={addLot}
+                disabled={!newName.trim()}
+                className="px-4 py-2 rounded-lg bg-kairos-blue/15 border border-kairos-blue/40 text-[10px] font-bold uppercase tracking-widest text-kairos-blue hover:bg-kairos-blue/25 disabled:opacity-40 transition"
+              >
+                Add lot
+              </button>
+              <button
+                onClick={() => setAdding(false)}
+                className="px-4 py-2 rounded-lg border border-white/10 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setAdding(true)}
+            className="px-4 py-2 rounded-lg bg-kairos-blue/10 border border-kairos-blue/40 text-[10px] font-bold uppercase tracking-widest text-kairos-blue hover:bg-kairos-blue/20 transition"
+          >
+            + Add lot
+          </button>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {state.lots.map((lot) => {
           const last = latest[lot.id];
@@ -98,12 +219,23 @@ export function ParkingLotsPanel() {
                   className="size-3 rounded-full ring-2 ring-white/10"
                   style={{ backgroundColor: lot.color }}
                 />
-                <h3 className="text-sm font-bold text-white flex-1">{lot.name}</h3>
+                <input
+                  value={lot.name}
+                  onChange={(e) => renameLot(lot.id, e.target.value)}
+                  aria-label="Lot name"
+                  className="text-sm font-bold text-white flex-1 bg-transparent border border-transparent hover:border-white/10 focus:border-white/20 rounded px-1 py-0.5 outline-none"
+                />
                 {last?.full && (
                   <span className="text-[9px] font-bold uppercase tracking-widest text-red-400 px-2 py-1 rounded bg-red-500/10 border border-red-500/30">
                     Full
                   </span>
                 )}
+                <button
+                  onClick={() => removeLot(lot.id)}
+                  className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-red-400 transition"
+                >
+                  Remove
+                </button>
               </div>
 
               <div className="flex items-end gap-3">
