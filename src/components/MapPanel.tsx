@@ -4,6 +4,14 @@ import streetAsset from "@/assets/wheeler-street.jpg.asset.json";
 import lotAsset from "@/assets/wheeler-lot.jpg.asset.json";
 import { LiveMap, type LiveMapHandle, type LiveMapView } from "./LiveMap";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  listTrafficPlans,
+  upsertTrafficPlan,
+  renameTrafficPlan as renameTrafficPlanFn,
+  deleteTrafficPlan as deleteTrafficPlanFn,
+  importLegacyTrafficPlans,
+} from "@/lib/traffic-plans.functions";
+import { ensureDeviceCode, getDeviceCode, setDeviceCode } from "@/lib/device-access";
 
 // Keep the map usable in previews where Lovable Cloud build variables have not
 // been injected yet. Local persistence remains available until cloud sync is.
@@ -809,11 +817,30 @@ export function MapPanel({ service, onServiceChange }: Props) {
     };
   }
 
-  // Initial load from Lovable Cloud + one-time migration of any legacy
-  // localStorage plans so existing users don't lose their work.
+  // Traffic plans live behind a device invite: this device must present a valid
+  // access code before the server will read or write anything.
+  const [deviceCode, setDeviceCodeState] = useState<string | null>(null);
+  const [deviceLocked, setDeviceLocked] = useState(false);
+
+  async function requireDeviceCode(force = false): Promise<string | null> {
+    if (!CLOUD_SYNC_ENABLED) return null;
+    if (deviceCode && !force) return deviceCode;
+    const code = await ensureDeviceCode({ force });
+    setDeviceCodeState(code);
+    setDeviceLocked(!code);
+    return code;
+  }
+
+  function forgetDevice() {
+    setDeviceCode(null);
+    setDeviceCodeState(null);
+    setDeviceLocked(true);
+    setPlans([]);
+  }
+
   useEffect(() => {
     let cancelled = false;
-    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let poll: number | null = null;
 
     if (!CLOUD_SYNC_ENABLED) {
       try {
@@ -831,15 +858,33 @@ export function MapPanel({ service, onServiceChange }: Props) {
     }
 
     (async () => {
+      // Only prompt when this device has never been invited yet.
+      const code = getDeviceCode() ? await requireDeviceCode() : null;
+      if (cancelled) return;
+      if (!code) {
+        setDeviceLocked(true);
+        return;
+      }
+
+      const refresh = async () => {
+        try {
+          const { rows } = await listTrafficPlans({ data: { code } });
+          if (!cancelled) setPlans(rows.map(rowToPlan));
+        } catch (e) {
+          console.error("Failed to load traffic plans", e);
+        }
+      };
+
+      // One-time migration of legacy local plans for invited devices.
       try {
-        // One-time migration: upload local plans, then clear the key.
         const raw = localStorage.getItem(PLANS_KEY);
         if (raw) {
-          try {
-            const local = JSON.parse(raw) as TrafficPlan[];
-            if (Array.isArray(local) && local.length > 0) {
-              await supabase.from("traffic_plans").insert(
-                local.map((p) => ({
+          const local = JSON.parse(raw) as TrafficPlan[];
+          if (Array.isArray(local) && local.length > 0) {
+            await importLegacyTrafficPlans({
+              data: {
+                code,
+                plans: local.map((p) => ({
                   name: p.name,
                   saved_at: p.savedAt,
                   base: p.base,
@@ -850,65 +895,23 @@ export function MapPanel({ service, onServiceChange }: Props) {
                   street_view: p.streetView ?? null,
                   service: p.service ?? null,
                 })),
-              );
-            }
-          } catch {
-            /* ignore malformed local data */
+              },
+            });
           }
           localStorage.removeItem(PLANS_KEY);
         }
-
-        const { data, error } = await supabase
-          .from("traffic_plans")
-          .select("*")
-          .order("saved_at", { ascending: false });
-        if (error) throw error;
-        if (!cancelled && data) setPlans(data.map(rowToPlan));
-      } catch (e) {
-        console.error("Failed to load traffic plans", e);
+      } catch {
+        /* ignore malformed local data */
       }
-    })();
 
-    // Realtime: sync across devices/browsers.
-    try {
-      channel = supabase
-        .channel("traffic_plans_changes")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "traffic_plans" },
-          (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
-            setPlans((prev) => {
-              if (payload.eventType === "INSERT") {
-                const p = rowToPlan(payload.new as Record<string, unknown>);
-                if (prev.some((x) => x.id === p.id)) return prev;
-                return [p, ...prev].sort((a, b) => b.savedAt - a.savedAt);
-              }
-              if (payload.eventType === "UPDATE") {
-                const p = rowToPlan(payload.new as Record<string, unknown>);
-                return prev.map((x) => (x.id === p.id ? p : x));
-              }
-              if (payload.eventType === "DELETE") {
-                const oldId = (payload.old as { id?: string })?.id;
-                return prev.filter((x) => x.id !== oldId);
-              }
-              return prev;
-            });
-          },
-        )
-        .subscribe();
-    } catch (e) {
-      console.warn("Traffic plan realtime sync is unavailable", e);
-    }
+      await refresh();
+      // Cross-device sync without exposing the table to the public.
+      poll = window.setInterval(() => void refresh(), 20000);
+    })();
 
     return () => {
       cancelled = true;
-      if (channel) {
-        try {
-          supabase.removeChannel(channel);
-        } catch {
-          // The map remains usable when cloud sync is temporarily unavailable.
-        }
-      }
+      if (poll) window.clearInterval(poll);
     };
   }, []);
 
@@ -930,29 +933,18 @@ export function MapPanel({ service, onServiceChange }: Props) {
     };
     // Overwrite same-name plan (case-insensitive) — mirrors old behavior.
     const existing = plans.find((p) => p.name.toLowerCase() === name.toLowerCase());
+    const code = await requireDeviceCode();
+    if (!code) return;
     try {
-      if (existing) {
-        const { data, error } = await supabase
-          .from("traffic_plans")
-          .update(payload)
-          .eq("id", existing.id)
-          .select()
-          .single();
-        if (error) throw error;
-        if (data) setPlans((prev) => [rowToPlan(data), ...prev.filter((p) => p.id !== existing.id)]);
-      } else {
-        const { data, error } = await supabase
-          .from("traffic_plans")
-          .insert(payload)
-          .select()
-          .single();
-        if (error) throw error;
-        if (data) setPlans((prev) => [rowToPlan(data), ...prev]);
-      }
+      const { row } = await upsertTrafficPlan({
+        data: { code, id: existing?.id ?? null, plan: payload },
+      });
+      const saved = rowToPlan(row);
+      setPlans((prev) => [saved, ...prev.filter((p) => p.id !== saved.id)]);
       setPlansOpen(true);
     } catch (e) {
       console.error("Failed to save traffic plan", e);
-      window.alert("Could not save traffic plan. Please try again.");
+      window.alert("Could not save traffic plan. Please check this device's access code.");
     }
   }
 
@@ -983,9 +975,10 @@ export function MapPanel({ service, onServiceChange }: Props) {
     if (!cur) return;
     const name = window.prompt("Rename plan:", cur.name)?.trim();
     if (!name) return;
+    const code = await requireDeviceCode();
+    if (!code) return;
     try {
-      const { error } = await supabase.from("traffic_plans").update({ name }).eq("id", id);
-      if (error) throw error;
+      await renameTrafficPlanFn({ data: { code, id, name } });
       setPlans((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)));
     } catch (e) {
       console.error("Failed to rename plan", e);
@@ -996,9 +989,10 @@ export function MapPanel({ service, onServiceChange }: Props) {
     const cur = plans.find((p) => p.id === id);
     if (!cur) return;
     if (!window.confirm(`Delete plan "${cur.name}"?`)) return;
+    const code = await requireDeviceCode();
+    if (!code) return;
     try {
-      const { error } = await supabase.from("traffic_plans").delete().eq("id", id);
-      if (error) throw error;
+      await deleteTrafficPlanFn({ data: { code, id } });
       setPlans((prev) => prev.filter((p) => p.id !== id));
     } catch (e) {
       console.error("Failed to delete plan", e);
