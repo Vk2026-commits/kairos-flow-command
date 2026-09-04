@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLiveOps } from "@/hooks/use-live-ops";
 import { MapPanel } from "@/components/MapPanel";
 import trafficFlowPlan from "@/assets/wheeler-traffic-flow-plan.png.asset.json";
 import { listDocuments, uploadDocument, deleteDocument } from "@/lib/documents.functions";
 import { ensureDeviceCode, getDeviceCode } from "@/lib/device-access";
 import { ParkingLotsPanel } from "@/components/ParkingLotsPanel";
+import { useParkingState, countDate, toDateKey } from "@/lib/parking-lots";
 
 
 export const Route = createFileRoute("/")({
@@ -54,6 +55,23 @@ function CommandDashboard() {
   );
   const now = useClock();
   const live = useLiveOps();
+  const [parkingState] = useParkingState();
+  const todayKey = toDateKey(new Date().toISOString());
+  const parkingMetrics = useMemo(() => {
+    const totalSpaces = parkingState.lots.reduce((a, l) => a + l.spaces, 0);
+    const latest: Record<string, { cars: number; at: string }> = {};
+    for (const c of parkingState.counts) {
+      if (countDate(c) !== todayKey) continue;
+      const cur = latest[c.lotId];
+      if (!cur || new Date(c.at).getTime() > new Date(cur.at).getTime()) {
+        latest[c.lotId] = { cars: c.cars, at: c.at };
+      }
+    }
+    const totalCars = Object.values(latest).reduce((a, r) => a + r.cars, 0);
+    const fillPct = totalSpaces > 0 ? Math.min(100, (totalCars / totalSpaces) * 100) : 0;
+    return { totalSpaces, totalCars, fillPct };
+  }, [parkingState, todayKey]);
+
   const sparkSeed = live.avgShuttleCycleMin;
   const spark = [40, 60, 45, 80, Math.round((sparkSeed / 14) * 100)];
 
@@ -175,9 +193,10 @@ function CommandDashboard() {
         <div className="flex-1 p-4 lg:p-6 grid grid-cols-12 auto-rows-min lg:grid-rows-6 gap-4 lg:gap-6 overflow-y-auto lg:overflow-hidden">
           <KpiCard
             label="Total Parking Capacity"
-            value={live.parkingFillPct.toFixed(0)}
-            unit="%"
-            progress={live.parkingFillPct}
+            value={String(parkingMetrics.totalSpaces)}
+            unit=" spaces"
+            sub={`${parkingMetrics.fillPct.toFixed(0)}% full · ${parkingMetrics.totalCars} cars today`}
+            progress={parkingMetrics.fillPct}
           />
           <KpiCard
             label="Avg Shuttle Cycle"
@@ -220,6 +239,7 @@ function KpiCard({
   label,
   value,
   unit,
+  sub,
   progress,
   spark,
   personnel,
@@ -230,6 +250,7 @@ function KpiCard({
   label: string;
   value: string;
   unit?: string;
+  sub?: string;
   progress?: number;
   spark?: number[];
   personnel?: boolean;
@@ -257,6 +278,7 @@ function KpiCard({
             )}
           </h3>
         )}
+        {sub && <p className="text-[10px] font-mono text-slate-500 mt-1">{sub}</p>}
       </div>
 
       {progress !== undefined && (
