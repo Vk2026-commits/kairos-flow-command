@@ -132,6 +132,79 @@ export function ParkingLotsPanel() {
         </label>
       </div>
 
+      <div className="mb-4">
+        {adding ? (
+          <div className="bg-surface border border-white/10 rounded-2xl p-4 flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1 min-w-48 flex-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                Lot name
+              </span>
+              <input
+                autoFocus
+                value={newName}
+                placeholder="e.g. Overflow Lot"
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addLot()}
+                className="bg-surface-bright border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+              />
+            </label>
+            <label className="flex flex-col gap-1 w-28">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                Spaces
+              </span>
+              <input
+                type="number"
+                min={0}
+                value={newSpaces}
+                placeholder="0"
+                onChange={(e) => setNewSpaces(e.target.value)}
+                className="bg-surface-bright border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white"
+              />
+            </label>
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                Color
+              </span>
+              <div className="flex gap-1.5">
+                {NEW_LOT_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setNewColor(c)}
+                    aria-label={`Choose color ${c}`}
+                    className={`size-6 rounded-full transition ${
+                      newColor === c ? "ring-2 ring-white" : "ring-1 ring-white/20"
+                    }`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2 ml-auto">
+              <button
+                onClick={addLot}
+                disabled={!newName.trim()}
+                className="px-4 py-2 rounded-lg bg-kairos-blue/15 border border-kairos-blue/40 text-[10px] font-bold uppercase tracking-widest text-kairos-blue hover:bg-kairos-blue/25 disabled:opacity-40 transition"
+              >
+                Add lot
+              </button>
+              <button
+                onClick={() => setAdding(false)}
+                className="px-4 py-2 rounded-lg border border-white/10 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setAdding(true)}
+            className="px-4 py-2 rounded-lg bg-kairos-blue/10 border border-kairos-blue/40 text-[10px] font-bold uppercase tracking-widest text-kairos-blue hover:bg-kairos-blue/20 transition"
+          >
+            + Add lot
+          </button>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {state.lots.map((lot) => {
           const last = latest[lot.id];
