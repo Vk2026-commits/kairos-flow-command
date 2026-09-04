@@ -2316,7 +2316,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
                     <ul className="space-y-1">
                       {SIGN_KINDS.map((sign) => (
                         <li key={sign} className="flex items-center gap-2">
-                          <span className="size-5 shrink-0 grid place-items-center">
+                          <span className="w-11 shrink-0 flex items-center justify-center">
                             <SignGlyph sign={sign} />
                           </span>
                           <span className="text-[10px] font-bold text-white">
