@@ -1459,6 +1459,22 @@ export function MapPanel({ service, onServiceChange }: Props) {
       ]);
       return;
     }
+    if (isSignTool(tool)) {
+      const meta = SIGN_META[tool];
+      const label = window.prompt(`${meta.label} label (optional):`, "") ?? "";
+      setAnnotations((a) => [
+        ...a,
+        {
+          id: crypto.randomUUID(),
+          kind: "sign",
+          sign: tool,
+          base,
+          point: p,
+          label: label || undefined,
+        },
+      ]);
+      return;
+    }
     setDraft((d) => [...d, p]);
   }
 
