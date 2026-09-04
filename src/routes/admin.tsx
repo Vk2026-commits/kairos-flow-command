@@ -95,7 +95,146 @@ function AdminSettings() {
             {config.golfCartCount} golf cart{config.golfCartCount === 1 ? "" : "s"}
           </div>
         </div>
+
+        <DeviceInvites />
       </main>
+    </div>
+  );
+}
+
+function DeviceInvites() {
+  const [code, setCode] = useState<string | null>(null);
+  const [rows, setRows] = useState<Array<Record<string, any>>>([]);
+  const [newCode, setNewCode] = useState("");
+  const [label, setLabel] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = async (c: string) => {
+    try {
+      const { rows } = await listDeviceCodes({ data: { code: c } });
+      setRows(rows);
+      setError(null);
+    } catch (e) {
+      setError((e as Error).message || "Could not load invited devices");
+    }
+  };
+
+  const unlock = async () => {
+    const c = await ensureDeviceCode({ force: !getDeviceCode() });
+    if (!c) return;
+    setCode(c);
+    await refresh(c);
+  };
+
+  useEffect(() => {
+    const stored = getDeviceCode();
+    if (stored) {
+      setCode(stored);
+      void refresh(stored);
+    }
+  }, []);
+
+  const invite = async () => {
+    if (!code || !newCode.trim()) return;
+    try {
+      await inviteDevice({ data: { code, newCode: newCode.trim(), label: label.trim() } });
+      setNewCode("");
+      setLabel("");
+      await refresh(code);
+    } catch (e) {
+      setError((e as Error).message || "Could not invite that device");
+    }
+  };
+
+  const toggle = async (target: string, revoked: boolean) => {
+    if (!code) return;
+    try {
+      await setDeviceRevoked({ data: { code, target, revoked } });
+      await refresh(code);
+    } catch (e) {
+      setError((e as Error).message || "Could not update that device");
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-white/5 bg-surface p-6 mt-6">
+      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Invited Devices</h3>
+      <p className="text-[11px] text-slate-500 mb-4">
+        Traffic plans sync only on devices holding a valid access code — no login required. Share a code with a device,
+        or revoke it to cut that device off immediately.
+      </p>
+
+      {!code ? (
+        <button
+          type="button"
+          onClick={() => void unlock()}
+          className="px-3 py-2 rounded-lg bg-kairos-gold text-bg-deep text-xs font-bold"
+        >
+          Enter an access code to manage devices
+        </button>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-end gap-2 mb-4">
+            <label className="block">
+              <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">New code</span>
+              <input
+                value={newCode}
+                onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                placeholder="GATE4-TABLET"
+                className="h-9 px-3 rounded-lg bg-bg-deep border border-white/10 font-mono text-sm text-white focus:outline-none focus:border-kairos-blue"
+              />
+            </label>
+            <label className="block">
+              <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Label</span>
+              <input
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder="Gate 4 tablet"
+                className="h-9 px-3 rounded-lg bg-bg-deep border border-white/10 text-sm text-white focus:outline-none focus:border-kairos-blue"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => void invite()}
+              className="h-9 px-4 rounded-lg bg-kairos-gold text-bg-deep text-xs font-bold"
+            >
+              + Invite device
+            </button>
+          </div>
+
+          {error && <div className="mb-3 text-[11px] text-red-400">{error}</div>}
+
+          <ul className="space-y-1">
+            {rows.map((r) => (
+              <li
+                key={r.code}
+                className="flex items-center justify-between gap-3 rounded-lg border border-white/5 bg-white/5 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <div className="font-mono text-sm text-white truncate">
+                    {r.code}
+                    {r.code === code && <span className="ml-2 text-[10px] text-emerald-400">this device</span>}
+                  </div>
+                  <div className="text-[10px] text-slate-500 truncate">
+                    {r.label || "No label"} · {r.last_used_at ? `last used ${new Date(r.last_used_at).toLocaleString()}` : "never used"}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void toggle(r.code, !r.revoked)}
+                  className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded border transition ${
+                    r.revoked
+                      ? "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
+                      : "border-red-500/40 text-red-400 hover:bg-red-500/10"
+                  }`}
+                >
+                  {r.revoked ? "Restore" : "Revoke"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
