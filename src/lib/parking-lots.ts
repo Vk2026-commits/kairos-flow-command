@@ -17,6 +17,14 @@ export type ParkingLot = {
   spaces: number;
 };
 
+export const SERVICES = [
+  { id: "s7", name: "7:00 AM Service", time: "07:00" },
+  { id: "s10", name: "10:00 AM Service", time: "10:00" },
+  { id: "s13", name: "1:00 PM Service", time: "13:00" },
+] as const;
+
+export type ServiceId = (typeof SERVICES)[number]["id"];
+
 export type LotCount = {
   id: string;
   lotId: string;
@@ -25,12 +33,15 @@ export type LotCount = {
   cars: number;
   full: boolean;
   note?: string;
+  /** Which church service this count belongs to */
+  serviceId?: string;
 };
 
 export type ParkingState = {
   lots: ParkingLot[];
   counts: LotCount[];
 };
+
 
 export const DEFAULT_PARKING_STATE: ParkingState = {
   lots: [
