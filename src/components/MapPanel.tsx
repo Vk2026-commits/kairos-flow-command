@@ -25,24 +25,125 @@ type BaseKey = "street" | "aerial" | "lot" | "live" | "custom";
 type LiveMapType = "roadmap" | "satellite" | "hybrid";
 
 type PersonnelRole = "hpd" | "security" | "ministry";
-type Tool = "ingress" | "egress" | "shuttle" | "closure" | PersonnelRole | null;
+type SignKind =
+  | "arrow-right"
+  | "arrow-left"
+  | "wheel-stop"
+  | "no-exit"
+  | "thanks"
+  | "exit"
+  | "no-entry";
+type Tool = "ingress" | "egress" | "shuttle" | "closure" | PersonnelRole | SignKind | null;
 type ImportMode = "merge" | "replace";
 
-const POINT_TOOLS: readonly Tool[] = ["closure", "hpd", "security", "ministry"] as const;
-const isPointTool = (t: Tool): t is "closure" | PersonnelRole =>
+const SIGN_KINDS: readonly SignKind[] = [
+  "arrow-right",
+  "arrow-left",
+  "wheel-stop",
+  "no-exit",
+  "thanks",
+  "exit",
+  "no-entry",
+] as const;
+const isSignTool = (t: Tool): t is SignKind =>
+  t !== null && (SIGN_KINDS as readonly string[]).includes(t);
+
+const POINT_TOOLS: readonly Tool[] = ["closure", "hpd", "security", "ministry", ...SIGN_KINDS] as const;
+const isPointTool = (t: Tool): t is "closure" | PersonnelRole | SignKind =>
   t !== null && (POINT_TOOLS as readonly Tool[]).includes(t);
 
 type Pt = { x: number; y: number };
 type Annotation =
   | { id: string; kind: "ingress" | "egress" | "shuttle"; base: BaseKey; points: Pt[]; label?: string }
   | { id: string; kind: "closure"; base: BaseKey; point: Pt; label: string }
-  | { id: string; kind: "personnel"; role: PersonnelRole; base: BaseKey; point: Pt; label?: string };
+  | { id: string; kind: "personnel"; role: PersonnelRole; base: BaseKey; point: Pt; label?: string }
+  | { id: string; kind: "sign"; sign: SignKind; base: BaseKey; point: Pt; label?: string };
 
 const PERSONNEL_META: Record<PersonnelRole, { color: string; label: string; short: string }> = {
   hpd: { color: "#3b82f6", label: "HPD Officer", short: "HPD" },
   security: { color: "#ef4444", label: "Private Security", short: "SEC" },
   ministry: { color: "#22c55e", label: "First Touch Ministry", short: "FTM" },
 };
+
+const SIGN_META: Record<SignKind, { color: string; label: string; short: string; caption: string }> = {
+  "arrow-right": { color: "#facc15", label: "Right Arrow", short: "→", caption: "Traffic flows right" },
+  "arrow-left": { color: "#facc15", label: "Left Arrow", short: "←", caption: "Traffic flows left" },
+  "wheel-stop": { color: "#e2e8f0", label: "Wheel Stops", short: "WS", caption: "Four wheel stops" },
+  "no-exit": { color: "#7dd3fc", label: "No Exit", short: "NO EXIT", caption: "Light blue triangle — no exit" },
+  thanks: { color: "#1d4ed8", label: "Appreciation", short: "THANK YOU", caption: "Thanks for following the flow" },
+  exit: { color: "#f472b6", label: "Exit Sign", short: "EXIT", caption: "Pink exit sign" },
+  "no-entry": { color: "#f97316", label: "No Entry Sign", short: "NO ENTRY", caption: "Orange no-entry sign" },
+};
+
+function SignGlyph({ sign }: { sign: SignKind }) {
+  const meta = SIGN_META[sign];
+  if (sign === "arrow-right" || sign === "arrow-left") {
+    return (
+      <svg viewBox="0 0 32 20" className="w-8 h-5 drop-shadow" aria-hidden="true">
+        <g transform={sign === "arrow-left" ? "translate(32,0) scale(-1,1)" : undefined}>
+          <path
+            d="M2 8h18V3l10 7-10 7v-5H2z"
+            fill={meta.color}
+            stroke="#0b1220"
+            strokeWidth="1.2"
+          />
+        </g>
+      </svg>
+    );
+  }
+  if (sign === "wheel-stop") {
+    return (
+      <svg viewBox="0 0 28 22" className="w-7 h-[22px] drop-shadow" aria-hidden="true">
+        {[2, 7, 12, 17].map((y) => (
+          <line
+            key={y}
+            x1="3"
+            x2="25"
+            y1={y + 1}
+            y2={y + 1}
+            stroke={meta.color}
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeDasharray="3 3"
+          />
+        ))}
+      </svg>
+    );
+  }
+  if (sign === "no-exit") {
+    return (
+      <svg viewBox="0 0 26 24" className="w-6 h-6 drop-shadow" aria-hidden="true">
+        <path d="M13 2 25 22H1z" fill={meta.color} stroke="#0b1220" strokeWidth="1.4" />
+      </svg>
+    );
+  }
+  if (sign === "thanks") {
+    return (
+      <svg viewBox="0 0 24 24" className="w-6 h-6 drop-shadow" aria-hidden="true">
+        <circle cx="12" cy="12" r="10.5" fill={meta.color} stroke="#ffffff" strokeWidth="1.6" />
+        <path d="M7.5 12.6l2.8 2.8 6-6.2" fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  // exit / no-entry rectangles
+  return (
+    <svg viewBox="0 0 44 18" className="w-11 h-[18px] drop-shadow" aria-hidden="true">
+      <rect x="1" y="1" width="42" height="16" rx="2.5" fill={meta.color} stroke="#0b1220" strokeWidth="1.2" />
+      <text
+        x="22"
+        y="12.6"
+        textAnchor="middle"
+        fontSize="8"
+        fontWeight="800"
+        fill={sign === "exit" ? "#4a0f2a" : "#3d1a00"}
+        fontFamily="ui-sans-serif, system-ui, sans-serif"
+      >
+        {sign === "exit" ? "EXIT" : "NO ENTRY"}
+      </text>
+    </svg>
+  );
+}
+
 
 const BASES: { key: BaseKey; label: string; src?: string }[] = [
   { key: "street", label: "Street", src: streetAsset.url },
