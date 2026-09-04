@@ -543,28 +543,39 @@ function DocumentsPanel() {
             Documents
           </h2>
           <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">
-            {CLOUD_DOCS_ENABLED
-              ? syncing
-                ? "Syncing from backend\u2026"
-                : "Synced \u00b7 available on every device"
-              : "Operational plans & reference files"}
+            {syncing
+              ? "Checking device invite\u2026"
+              : deviceCode
+                ? `Device invited \u2713 ${deviceCode}`
+                : "Device not invited \u00b7 uploads hidden"}
           </p>
         </div>
-        <label className="cursor-pointer px-4 py-2 rounded-lg bg-kairos-blue/15 border border-kairos-blue/40 text-[10px] font-bold uppercase tracking-widest text-kairos-blue hover:bg-kairos-blue/25 transition">
-          {busy ? "Uploading\u2026" : "Upload Document"}
-          <input
-            type="file"
-            multiple
-            accept="image/*,application/pdf"
-            className="hidden"
-            onChange={(e) => {
-              const input = e.currentTarget;
-              const picked = input.files ? Array.from(input.files) : [];
-              input.value = "";
-              void handleFiles(picked);
-            }}
-          />
-        </label>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void unlock()}
+            className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-slate-300 transition"
+          >
+            {deviceCode ? "Change code" : "Enter code"}
+          </button>
+          {deviceCode && (
+            <label className="cursor-pointer px-4 py-2 rounded-lg bg-kairos-blue/15 border border-kairos-blue/40 text-[10px] font-bold uppercase tracking-widest text-kairos-blue hover:bg-kairos-blue/25 transition">
+              {busy ? "Uploading\u2026" : "Upload Document"}
+              <input
+                type="file"
+                multiple
+                accept="image/*,application/pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const input = e.currentTarget;
+                  const picked = input.files ? Array.from(input.files) : [];
+                  input.value = "";
+                  void handleFiles(picked);
+                }}
+              />
+            </label>
+          )}
+        </div>
       </div>
 
       {error && (
