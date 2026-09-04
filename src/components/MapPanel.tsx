@@ -2309,6 +2309,26 @@ export function MapPanel({ service, onServiceChange }: Props) {
                       </li>
                     ))}
                   </ul>
+                  <div className="mt-2 border-t border-white/10 pt-1.5">
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-slate-300 mb-1">
+                      Signs
+                    </div>
+                    <ul className="space-y-1">
+                      {SIGN_KINDS.map((sign) => (
+                        <li key={sign} className="flex items-center gap-2">
+                          <span className="w-11 shrink-0 flex items-center justify-center">
+                            <SignGlyph sign={sign} />
+                          </span>
+                          <span className="text-[10px] font-bold text-white">
+                            {SIGN_META[sign].label}
+                          </span>
+                          <span className="text-[10px] text-slate-400 truncate">
+                            {SIGN_META[sign].caption}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
 
 
