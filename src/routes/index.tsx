@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useLiveOps } from "@/hooks/use-live-ops";
 import { MapPanel } from "@/components/MapPanel";
+import trafficFlowPlan from "@/assets/wheeler-traffic-flow-plan.png.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -17,7 +18,7 @@ export const Route = createFileRoute("/")({
   component: CommandDashboard,
 });
 
-type NavKey = "DASH" | "MAP" | "OPS" | "FLEET" | "COMM" | "KPI";
+type NavKey = "DASH" | "MAP" | "OPS" | "FLEET" | "COMM" | "DOCS" | "KPI";
 
 const NAV: { key: NavKey; label: string }[] = [
   { key: "DASH", label: "Dashboard" },
@@ -25,6 +26,7 @@ const NAV: { key: NavKey; label: string }[] = [
   { key: "OPS", label: "Ops" },
   { key: "FLEET", label: "Fleet" },
   { key: "COMM", label: "Comms" },
+  { key: "DOCS", label: "Documents" },
   { key: "KPI", label: "KPIs" },
 ];
 
@@ -158,6 +160,9 @@ function CommandDashboard() {
           </div>
         </header>
 
+        {active === "DOCS" ? (
+          <DocumentsPanel />
+        ) : (
         <div className="flex-1 p-4 lg:p-6 grid grid-cols-12 auto-rows-min lg:grid-rows-6 gap-4 lg:gap-6 overflow-y-auto lg:overflow-hidden">
           <KpiCard
             label="Total Parking Capacity"
@@ -196,6 +201,7 @@ function CommandDashboard() {
             <AlertsPanel />
           </div>
         </div>
+        )}
       </main>
     </div>
   );
@@ -394,6 +400,99 @@ function AlertsPanel() {
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+const DOCUMENTS = [
+  {
+    title: "Wheeler Avenue — Parking Lot Traffic Flow Plan",
+    meta: "Site plan · Tracts 1, 4 & 11 · 618 spaces",
+    description:
+      "Directional flow per row, traffic dividing lines, wheel stops, and signage placement for the back gate (no exit) and front gate (no entry).",
+    src: trafficFlowPlan.url,
+  },
+];
+
+function DocumentsPanel() {
+  const [openDoc, setOpenDoc] = useState<string | null>(null);
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 lg:p-6">
+      <div className="mb-5">
+        <h2 className="text-lg font-semibold text-white tracking-tight">
+          Documents
+        </h2>
+        <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">
+          Operational plans & reference files
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
+        {DOCUMENTS.map((doc) => (
+          <div
+            key={doc.title}
+            className="bg-surface border border-white/5 rounded-2xl overflow-hidden flex flex-col hover:border-kairos-blue/30 transition-all"
+          >
+            <button
+              onClick={() => setOpenDoc(doc.src)}
+              className="bg-white/95 p-2 group"
+              title="Open full size"
+            >
+              <img
+                src={doc.src}
+                alt={doc.title}
+                loading="lazy"
+                className="w-full rounded-lg group-hover:opacity-90 transition"
+              />
+            </button>
+            <div className="p-5 flex flex-col gap-2">
+              <h3 className="text-sm font-bold text-white">{doc.title}</h3>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-kairos-gold">
+                {doc.meta}
+              </p>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                {doc.description}
+              </p>
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => setOpenDoc(doc.src)}
+                  className="px-3 py-2 rounded-lg bg-kairos-blue/10 border border-kairos-blue/40 text-[10px] font-bold uppercase tracking-widest text-kairos-blue hover:bg-kairos-blue/20 transition"
+                >
+                  View
+                </button>
+                <a
+                  href={doc.src}
+                  download
+                  className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-slate-300 hover:bg-white/10 transition"
+                >
+                  Download
+                </a>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {openDoc && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm p-4 lg:p-10 overflow-auto"
+          onClick={() => setOpenDoc(null)}
+        >
+          <button
+            onClick={() => setOpenDoc(null)}
+            className="fixed top-5 right-6 z-10 px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-[10px] font-bold uppercase tracking-widest text-white"
+          >
+            Close
+          </button>
+          <img
+            src={openDoc}
+            alt="Document full size"
+            className="mx-auto min-w-[900px] max-w-none w-full rounded-lg bg-white"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
