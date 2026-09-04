@@ -247,7 +247,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
       /* ignore */
     }
   }, [arrowScales]);
-  const arrowScale = arrowScales[base] ?? 1;
+  const arrowScale = arrowScales[base] ?? 0.3;
   const markerSize = +(4 * arrowScale).toFixed(2);
   function setBaseArrow(v: number) {
     setArrowScales((prev) => ({ ...prev, [base]: v }));
