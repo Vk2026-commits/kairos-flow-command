@@ -95,3 +95,43 @@ export const importLegacyTrafficPlans = createServerFn({ method: "POST" })
     if (error) throw new Error("Could not import saved plans");
     return { inserted: plans.length };
   });
+
+// ===== Invite management: only an already-invited device may manage codes =====
+
+export const listDeviceCodes = createServerFn({ method: "POST" })
+  .inputValidator((data: { code: string }) => data)
+  .handler(async ({ data }) => {
+    const { db } = await requireDevice(data?.code);
+    const { data: rows, error } = await db
+      .from("device_access_codes")
+      .select("code, label, revoked, last_used_at, created_at")
+      .order("created_at", { ascending: true });
+    if (error) throw new Error("Could not load device codes");
+    return { rows: (rows ?? []) as PlanRow[] };
+  });
+
+export const inviteDevice = createServerFn({ method: "POST" })
+  .inputValidator((data: { code: string; newCode: string; label?: string }) => data)
+  .handler(async ({ data }) => {
+    const { db } = await requireDevice(data?.code);
+    const newCode = normalizeCode(data?.newCode);
+    const { error } = await db
+      .from("device_access_codes")
+      .insert({ code: newCode, label: (data?.label ?? "").trim() || null });
+    if (error) throw new Error("Could not create that code (it may already exist)");
+    return { code: newCode };
+  });
+
+export const setDeviceRevoked = createServerFn({ method: "POST" })
+  .inputValidator((data: { code: string; target: string; revoked: boolean }) => data)
+  .handler(async ({ data }) => {
+    const { code, db } = await requireDevice(data?.code);
+    const target = normalizeCode(data?.target);
+    if (target === code && data?.revoked) throw new Error("You cannot revoke the device you are using");
+    const { error } = await db
+      .from("device_access_codes")
+      .update({ revoked: Boolean(data?.revoked) })
+      .eq("code", target);
+    if (error) throw new Error("Could not update that device");
+    return { ok: true as const };
+  });
