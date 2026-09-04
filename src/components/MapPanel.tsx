@@ -1662,6 +1662,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     if (a.base !== base) return false;
     if (a.kind === "closure") return layers.closures;
     if (a.kind === "personnel") return true;
+    if (a.kind === "sign") return true;
     return layers[a.kind];
   });
 
