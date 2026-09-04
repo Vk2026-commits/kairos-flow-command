@@ -1,10 +1,5 @@
 import { useMemo, useState } from "react";
-import { useParkingState, type LotCount } from "@/lib/parking-lots";
-
-function timeNow() {
-  const d = new Date();
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
+import { useParkingState, SERVICES, type LotCount } from "@/lib/parking-lots";
 
 function fmt(at: string) {
   const d = new Date(at);
@@ -30,18 +25,43 @@ const NEW_LOT_COLORS = [
 
 export function ParkingLotsPanel() {
   const [state, setState] = useParkingState();
-  const [time, setTime] = useState(timeNow);
+  const [serviceId, setServiceId] = useState<string>(SERVICES[0].id);
+  const [time, setTime] = useState(SERVICES[0].time);
   const [cars, setCars] = useState<Record<string, string>>({});
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(NEW_LOT_COLORS[0]);
   const [newSpaces, setNewSpaces] = useState("");
 
+  const service = SERVICES.find((s) => s.id === serviceId) ?? SERVICES[0];
+
+  const pickService = (id: string) => {
+    const s = SERVICES.find((x) => x.id === id);
+    if (!s) return;
+    setServiceId(s.id);
+    setTime(s.time);
+    setCars({});
+  };
+
+  /** latest count per lot for the selected service */
   const latest = useMemo(() => {
     const map: Record<string, LotCount | undefined> = {};
     for (const c of state.counts) {
+      if ((c.serviceId ?? SERVICES[0].id) !== serviceId) continue;
       const cur = map[c.lotId];
       if (!cur || new Date(c.at).getTime() > new Date(cur.at).getTime()) map[c.lotId] = c;
+    }
+    return map;
+  }, [state.counts, serviceId]);
+
+  /** latest count per lot per service, for the summary row */
+  const byService = useMemo(() => {
+    const map: Record<string, Record<string, LotCount | undefined>> = {};
+    for (const c of state.counts) {
+      const sid = c.serviceId ?? SERVICES[0].id;
+      const bucket = (map[sid] ||= {});
+      const cur = bucket[c.lotId];
+      if (!cur || new Date(c.at).getTime() > new Date(cur.at).getTime()) bucket[c.lotId] = c;
     }
     return map;
   }, [state.counts]);
@@ -66,6 +86,7 @@ export function ParkingLotsPanel() {
     const entry: LotCount = {
       id: `${lotId}-${Date.now()}`,
       lotId,
+      serviceId,
       at: at.toISOString(),
       cars: Math.max(0, Math.floor(Number.isFinite(value) ? value : 0)),
       full: full || (lot.spaces > 0 && value >= lot.spaces),
@@ -73,6 +94,7 @@ export function ParkingLotsPanel() {
     setState({ ...state, counts: [entry, ...state.counts].slice(0, 500) });
     setCars((prev) => ({ ...prev, [lotId]: "" }));
   };
+
 
   const removeCount = (id: string) =>
     setState({ ...state, counts: state.counts.filter((c) => c.id !== id) });
