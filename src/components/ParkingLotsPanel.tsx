@@ -489,6 +489,9 @@ export function ParkingLotsPanel() {
           </div>
         )}
       </div>
+
+      <ParkingReport state={state} />
     </div>
+
   );
 }
