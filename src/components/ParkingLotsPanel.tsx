@@ -388,7 +388,12 @@ export function ParkingLotsPanel() {
                   <span className="text-xs font-bold text-white w-36 truncate">
                     {lot?.name ?? c.lotId}
                   </span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 w-20 text-right">
+                    {(SERVICES.find((s) => s.id === (c.serviceId ?? SERVICES[0].id))?.name ?? "")
+                      .replace(" Service", "")}
+                  </span>
                   <span className="text-[11px] font-mono text-slate-400 flex-1">{fmt(c.at)}</span>
+
                   <span className="text-xs font-mono text-white tabular-nums">
                     {c.cars}
                     {lot?.spaces ? `/${lot.spaces}` : ""}
