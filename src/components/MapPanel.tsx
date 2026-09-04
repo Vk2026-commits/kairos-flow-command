@@ -2517,6 +2517,28 @@ export function MapPanel({ service, onServiceChange }: Props) {
                       {plansOpen ? "Hide" : "Show"}
                     </button>
                   </div>
+                  {CLOUD_SYNC_ENABLED && (
+                    <div className="mb-1.5 flex items-center justify-between gap-2 rounded border border-white/10 bg-white/5 px-2 py-1">
+                      <span className="text-[9px] uppercase tracking-wider text-slate-400">
+                        {deviceCode ? (
+                          <>
+                            Device invited <span className="text-emerald-400 font-mono">✓ {deviceCode}</span>
+                          </>
+                        ) : deviceLocked ? (
+                          <span className="text-amber-400">Device not invited — plans are locked</span>
+                        ) : (
+                          "Checking device invite…"
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => (deviceCode ? forgetDevice() : void requireDeviceCode(true))}
+                        className="shrink-0 text-[9px] font-bold text-kairos-blue hover:text-white"
+                      >
+                        {deviceCode ? "Sign out device" : "Enter code"}
+                      </button>
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={savePlan}
