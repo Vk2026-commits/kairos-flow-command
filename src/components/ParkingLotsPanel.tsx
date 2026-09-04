@@ -1,5 +1,13 @@
 import { useMemo, useState } from "react";
-import { useParkingState, SERVICES, type LotCount } from "@/lib/parking-lots";
+import {
+  useParkingState,
+  SERVICES,
+  countDate,
+  fmtDate,
+  toDateKey,
+  type LotCount,
+} from "@/lib/parking-lots";
+import { ParkingReport } from "@/components/ParkingReport";
 
 function fmt(at: string) {
   const d = new Date(at);
@@ -27,6 +35,8 @@ export function ParkingLotsPanel() {
   const [state, setState] = useParkingState();
   const [serviceId, setServiceId] = useState<string>(SERVICES[0].id);
   const [time, setTime] = useState<string>(SERVICES[0].time);
+  const [date, setDate] = useState<string>(() => toDateKey(new Date().toISOString()));
+  const [saved, setSaved] = useState(false);
   const [cars, setCars] = useState<Record<string, string>>({});
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
@@ -41,33 +51,37 @@ export function ParkingLotsPanel() {
     setServiceId(s.id);
     setTime(s.time);
     setCars({});
+    setSaved(false);
   };
 
-  /** latest count per lot for the selected service */
+  /** latest count per lot for the selected service date + service */
   const latest = useMemo(() => {
     const map: Record<string, LotCount | undefined> = {};
     for (const c of state.counts) {
       if ((c.serviceId ?? SERVICES[0].id) !== serviceId) continue;
+      if (countDate(c) !== date) continue;
       const cur = map[c.lotId];
       if (!cur || new Date(c.at).getTime() > new Date(cur.at).getTime()) map[c.lotId] = c;
     }
     return map;
-  }, [state.counts, serviceId]);
+  }, [state.counts, serviceId, date]);
 
-  /** latest count per lot per service, for the summary row */
+  /** latest count per lot per service on the selected date, for the summary row */
   const byService = useMemo(() => {
     const map: Record<string, Record<string, LotCount | undefined>> = {};
     for (const c of state.counts) {
+      if (countDate(c) !== date) continue;
       const sid = c.serviceId ?? SERVICES[0].id;
       const bucket = (map[sid] ||= {});
       const cur = bucket[c.lotId];
       if (!cur || new Date(c.at).getTime() > new Date(cur.at).getTime()) bucket[c.lotId] = c;
     }
     return map;
-  }, [state.counts]);
+  }, [state.counts, date]);
 
   const totalSpaces = state.lots.reduce((a, l) => a + l.spaces, 0);
   const totalCars = state.lots.reduce((a, l) => a + (latest[l.id]?.cars ?? 0), 0);
+  const recordedLots = state.lots.filter((l) => latest[l.id]).length;
 
   const setSpaces = (id: string, spaces: number) =>
     setState({
@@ -81,19 +95,55 @@ export function ParkingLotsPanel() {
     const raw = cars[lotId];
     const value = full && (raw === undefined || raw === "") ? lot.spaces : Number(raw ?? 0);
     const [h, m] = time.split(":");
+    const [y, mo, d] = date.split("-").map(Number);
     const at = new Date();
+    if (y && mo && d) at.setFullYear(y, mo - 1, d);
     at.setHours(Number(h) || at.getHours(), Number(m) || 0, 0, 0);
     const entry: LotCount = {
       id: `${lotId}-${Date.now()}`,
       lotId,
       serviceId,
+      date,
       at: at.toISOString(),
       cars: Math.max(0, Math.floor(Number.isFinite(value) ? value : 0)),
       full: full || (lot.spaces > 0 && value >= lot.spaces),
     };
-    setState({ ...state, counts: [entry, ...state.counts].slice(0, 500) });
+    setState({ ...state, counts: [entry, ...state.counts].slice(0, 2000) });
     setCars((prev) => ({ ...prev, [lotId]: "" }));
+    setSaved(false);
   };
+
+  /** persist the whole service snapshot: any lot without a count today is logged at 0 */
+  const saveService = () => {
+    const [h, m] = time.split(":");
+    const [y, mo, d] = date.split("-").map(Number);
+    const stamp = Date.now();
+    const additions: LotCount[] = [];
+    state.lots.forEach((lot, i) => {
+      const typed = cars[lot.id];
+      const has = latest[lot.id];
+      if ((typed === undefined || typed === "") && has) return;
+      const value = Math.max(0, Math.floor(Number(typed ?? has?.cars ?? 0) || 0));
+      const at = new Date();
+      if (y && mo && d) at.setFullYear(y, mo - 1, d);
+      at.setHours(Number(h) || at.getHours(), Number(m) || 0, 0, 0);
+      additions.push({
+        id: `${lot.id}-${stamp}-${i}`,
+        lotId: lot.id,
+        serviceId,
+        date,
+        at: at.toISOString(),
+        cars: value,
+        full: lot.spaces > 0 && value >= lot.spaces,
+      });
+    });
+    if (additions.length > 0) {
+      setState({ ...state, counts: [...additions, ...state.counts].slice(0, 2000) });
+    }
+    setCars({});
+    setSaved(true);
+  };
+
 
 
   const removeCount = (id: string) =>
@@ -138,21 +188,45 @@ export function ParkingLotsPanel() {
         <div>
           <h2 className="text-lg font-semibold text-white tracking-tight">Parking Lots</h2>
           <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">
-            {service.name} · {state.lots.length} lots · {totalSpaces} spaces · {totalCars} cars
+            {fmtDate(date)} · {service.name} · {recordedLots}/{state.lots.length} lots recorded ·{" "}
+            {totalCars}/{totalSpaces || "?"} cars
           </p>
         </div>
-        <label className="flex flex-col gap-1">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            Observation time
-          </span>
-          <input
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className="bg-surface-bright border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white"
-          />
-        </label>
+        <div className="flex items-end gap-3 flex-wrap">
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+              Service date
+            </span>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => {
+                setDate(e.target.value);
+                setSaved(false);
+              }}
+              className="bg-surface-bright border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+              Observation time
+            </span>
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="bg-surface-bright border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white"
+            />
+          </label>
+          <button
+            onClick={saveService}
+            className="px-5 py-2.5 rounded-lg bg-kairos-blue/20 border border-kairos-blue text-[10px] font-bold uppercase tracking-widest text-kairos-blue hover:bg-kairos-blue/30 transition"
+          >
+            {saved ? "Saved ✓" : "Save service"}
+          </button>
+        </div>
       </div>
+
 
       <div className="mb-4">
         <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">
@@ -415,6 +489,9 @@ export function ParkingLotsPanel() {
           </div>
         )}
       </div>
+
+      <ParkingReport state={state} />
     </div>
+
   );
 }

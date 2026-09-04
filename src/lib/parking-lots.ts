@@ -35,7 +35,37 @@ export type LotCount = {
   note?: string;
   /** Which church service this count belongs to */
   serviceId?: string;
+  /** Service date, YYYY-MM-DD */
+  date?: string;
 };
+
+export function toDateKey(at: string): string {
+  const d = new Date(at);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate(),
+  ).padStart(2, "0")}`;
+}
+
+export function countDate(c: LotCount): string {
+  return c.date || toDateKey(c.at);
+}
+
+export function serviceName(id?: string): string {
+  return SERVICES.find((s) => s.id === (id ?? SERVICES[0].id))?.name ?? "Service";
+}
+
+export function fmtDate(key: string): string {
+  const [y, m, d] = key.split("-").map(Number);
+  if (!y || !m || !d) return key;
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 
 export type ParkingState = {
   lots: ParkingLot[];
@@ -81,6 +111,8 @@ function normalize(raw: unknown): ParkingState {
           full: Boolean(c?.full),
           note: c?.note ? String(c.note) : undefined,
           serviceId: c?.serviceId ? String(c.serviceId) : undefined,
+          date: c?.date ? String(c.date) : toDateKey(String(c?.at ?? "")),
+
 
         }))
         .filter((c) => c.lotId)
