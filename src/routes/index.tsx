@@ -404,48 +404,151 @@ function AlertsPanel() {
   );
 }
 
-const DOCUMENTS = [
+type DocItem = {
+  id: string;
+  title: string;
+  meta: string;
+  description: string;
+  src: string;
+  kind: "image" | "file";
+  uploaded?: boolean;
+};
+
+const DOCUMENTS: DocItem[] = [
   {
+    id: "wheeler-traffic-flow-plan",
     title: "Wheeler Avenue — Parking Lot Traffic Flow Plan",
     meta: "Site plan · Tracts 1, 4 & 11 · 618 spaces",
     description:
       "Directional flow per row, traffic dividing lines, wheel stops, and signage placement for the back gate (no exit) and front gate (no entry).",
     src: trafficFlowPlan.url,
+    kind: "image",
   },
 ];
 
+const DOCS_KEY = "kairos:documents:v1";
+
 function DocumentsPanel() {
   const [openDoc, setOpenDoc] = useState<string | null>(null);
+  const [uploads, setUploads] = useState<DocItem[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DOCS_KEY);
+      if (raw) setUploads(JSON.parse(raw) as DocItem[]);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const persist = (next: DocItem[]) => {
+    setUploads(next);
+    try {
+      localStorage.setItem(DOCS_KEY, JSON.stringify(next));
+    } catch {
+      setError("Storage full — remove an uploaded document and try again.");
+    }
+  };
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setError(null);
+    setBusy(true);
+    try {
+      const added: DocItem[] = [];
+      for (const file of Array.from(files)) {
+        if (file.size > 4 * 1024 * 1024) {
+          setError(`${file.name} is larger than 4 MB and was skipped.`);
+          continue;
+        }
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(file);
+        });
+        added.push({
+          id: `${Date.now()}-${file.name}`,
+          title: file.name.replace(/\.[^.]+$/, ""),
+          meta: `Uploaded · ${(file.size / 1024).toFixed(0)} KB · ${file.type || "file"}`,
+          description: "Uploaded reference document.",
+          src: dataUrl,
+          kind: file.type.startsWith("image/") ? "image" : "file",
+          uploaded: true,
+        });
+      }
+      if (added.length) persist([...uploads, ...added]);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeDoc = (id: string) =>
+    persist(uploads.filter((d) => d.id !== id));
+
+  const allDocs = [...DOCUMENTS, ...uploads];
 
   return (
     <div className="flex-1 overflow-y-auto p-4 lg:p-6">
-      <div className="mb-5">
-        <h2 className="text-lg font-semibold text-white tracking-tight">
-          Documents
-        </h2>
-        <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">
-          Operational plans & reference files
-        </p>
+      <div className="mb-5 flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="text-lg font-semibold text-white tracking-tight">
+            Documents
+          </h2>
+          <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">
+            Operational plans & reference files
+          </p>
+        </div>
+        <label className="cursor-pointer px-4 py-2 rounded-lg bg-kairos-blue/15 border border-kairos-blue/40 text-[10px] font-bold uppercase tracking-widest text-kairos-blue hover:bg-kairos-blue/25 transition">
+          {busy ? "Uploading…" : "Upload Document"}
+          <input
+            type="file"
+            multiple
+            accept="image/*,application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              void handleFiles(e.target.files);
+              e.currentTarget.value = "";
+            }}
+          />
+        </label>
       </div>
 
+      {error && (
+        <p className="mb-4 text-[11px] text-kairos-gold font-mono">{error}</p>
+      )}
+
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
-        {DOCUMENTS.map((doc) => (
+        {allDocs.map((doc) => (
           <div
-            key={doc.title}
+            key={doc.id}
             className="bg-surface border border-white/5 rounded-2xl overflow-hidden flex flex-col hover:border-kairos-blue/30 transition-all"
           >
-            <button
-              onClick={() => setOpenDoc(doc.src)}
-              className="bg-white/95 p-2 group"
-              title="Open full size"
-            >
-              <img
-                src={doc.src}
-                alt={doc.title}
-                loading="lazy"
-                className="w-full rounded-lg group-hover:opacity-90 transition"
-              />
-            </button>
+            {doc.kind === "image" ? (
+              <button
+                onClick={() => setOpenDoc(doc.src)}
+                className="bg-white/95 p-2 group"
+                title="Open full size"
+              >
+                <img
+                  src={doc.src}
+                  alt={doc.title}
+                  loading="lazy"
+                  className="w-full rounded-lg group-hover:opacity-90 transition"
+                />
+              </button>
+            ) : (
+              <a
+                href={doc.src}
+                target="_blank"
+                rel="noreferrer"
+                className="h-40 grid place-items-center bg-white/5 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-kairos-blue transition"
+              >
+                Open file
+              </a>
+            )}
             <div className="p-5 flex flex-col gap-2">
               <h3 className="text-sm font-bold text-white">{doc.title}</h3>
               <p className="text-[10px] font-mono uppercase tracking-widest text-kairos-gold">
@@ -463,11 +566,19 @@ function DocumentsPanel() {
                 </button>
                 <a
                   href={doc.src}
-                  download
+                  download={doc.title}
                   className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-slate-300 hover:bg-white/10 transition"
                 >
                   Download
                 </a>
+                {doc.uploaded && (
+                  <button
+                    onClick={() => removeDoc(doc.id)}
+                    className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-[10px] font-bold uppercase tracking-widest text-red-400 hover:bg-red-500/20 transition"
+                  >
+                    Remove
+                  </button>
+                )}
               </div>
             </div>
           </div>
