@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      device_access_codes: {
+        Row: {
+          code: string
+          created_at: string
+          label: string | null
+          last_used_at: string | null
+          revoked: boolean
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          label?: string | null
+          last_used_at?: string | null
+          revoked?: boolean
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          label?: string | null
+          last_used_at?: string | null
+          revoked?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           content_type: string | null
