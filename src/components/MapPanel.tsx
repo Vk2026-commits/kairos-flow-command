@@ -1718,7 +1718,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
   }
 
 
-  const anyPanelOpen = layersOpen || annotateOpen || personnelOpen || playbackOpen;
+  const anyPanelOpen = layersOpen || annotateOpen || personnelOpen || signsOpen || playbackOpen;
 
   return (
     <div
