@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      documents: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          description: string | null
+          file_size: number | null
+          id: string
+          meta: string | null
+          storage_path: string
+          title: string
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          description?: string | null
+          file_size?: number | null
+          id?: string
+          meta?: string | null
+          storage_path: string
+          title: string
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          description?: string | null
+          file_size?: number | null
+          id?: string
+          meta?: string | null
+          storage_path?: string
+          title?: string
+        }
+        Relationships: []
+      }
       traffic_plans: {
         Row: {
           annotations: Json
