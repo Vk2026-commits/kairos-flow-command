@@ -566,11 +566,19 @@ function DocumentsPanel() {
                 </button>
                 <a
                   href={doc.src}
-                  download
+                  download={doc.title}
                   className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-slate-300 hover:bg-white/10 transition"
                 >
                   Download
                 </a>
+                {doc.uploaded && (
+                  <button
+                    onClick={() => removeDoc(doc.id)}
+                    className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-[10px] font-bold uppercase tracking-widest text-red-400 hover:bg-red-500/20 transition"
+                  >
+                    Remove
+                  </button>
+                )}
               </div>
             </div>
           </div>
