@@ -504,15 +504,15 @@ function DocumentsPanel() {
     }
   };
 
-  const handleFiles = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+  const handleFiles = async (files: File[]) => {
+    if (files.length === 0) return;
     setError(null);
     setBusy(true);
     try {
       if (CLOUD_DOCS_ENABLED) {
         const { supabase } = await import("@/integrations/supabase/client");
         const db = supabase as any;
-        for (const file of Array.from(files)) {
+        for (const file of files) {
           if (file.size > 25 * 1024 * 1024) {
             setError(`${file.name} is larger than 25 MB and was skipped.`);
             continue;
@@ -537,7 +537,7 @@ function DocumentsPanel() {
       }
 
       const added: DocItem[] = [];
-      for (const file of Array.from(files)) {
+      for (const file of files) {
         if (file.size > 4 * 1024 * 1024) {
           setError(`${file.name} is larger than 4 MB and was skipped.`);
           continue;
