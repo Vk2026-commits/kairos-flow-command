@@ -77,6 +77,39 @@ export function ParkingLotsPanel() {
   const removeCount = (id: string) =>
     setState({ ...state, counts: state.counts.filter((c) => c.id !== id) });
 
+  const addLot = () => {
+    const name = newName.trim();
+    if (!name) return;
+    const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "lot";
+    let id = base;
+    let i = 2;
+    while (state.lots.some((l) => l.id === id)) id = `${base}-${i++}`;
+    setState({
+      ...state,
+      lots: [
+        ...state.lots,
+        { id, name, color: newColor, spaces: Math.max(0, Math.floor(Number(newSpaces) || 0)) },
+      ],
+    });
+    setNewName("");
+    setNewSpaces("");
+    setNewColor(NEW_LOT_COLORS[(state.lots.length + 1) % NEW_LOT_COLORS.length]);
+    setAdding(false);
+  };
+
+  const removeLot = (id: string) => {
+    const lot = state.lots.find((l) => l.id === id);
+    if (lot && !window.confirm(`Remove ${lot.name} and its recorded counts?`)) return;
+    setState({
+      ...state,
+      lots: state.lots.filter((l) => l.id !== id),
+      counts: state.counts.filter((c) => c.lotId !== id),
+    });
+  };
+
+  const renameLot = (id: string, name: string) =>
+    setState({ ...state, lots: state.lots.map((l) => (l.id === id ? { ...l, name } : l)) });
+
   return (
     <div className="flex-1 overflow-y-auto p-4 lg:p-6">
       <div className="mb-5 flex items-end justify-between gap-4 flex-wrap">
