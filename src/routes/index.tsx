@@ -17,7 +17,7 @@ export const Route = createFileRoute("/")({
   component: CommandDashboard,
 });
 
-type NavKey = "DASH" | "MAP" | "OPS" | "FLEET" | "COMM" | "KPI";
+type NavKey = "DASH" | "MAP" | "OPS" | "FLEET" | "COMM" | "DOCS" | "KPI";
 
 const NAV: { key: NavKey; label: string }[] = [
   { key: "DASH", label: "Dashboard" },
@@ -25,6 +25,7 @@ const NAV: { key: NavKey; label: string }[] = [
   { key: "OPS", label: "Ops" },
   { key: "FLEET", label: "Fleet" },
   { key: "COMM", label: "Comms" },
+  { key: "DOCS", label: "Documents" },
   { key: "KPI", label: "KPIs" },
 ];
 
