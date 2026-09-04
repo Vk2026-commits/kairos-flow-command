@@ -26,7 +26,7 @@ const NEW_LOT_COLORS = [
 export function ParkingLotsPanel() {
   const [state, setState] = useParkingState();
   const [serviceId, setServiceId] = useState<string>(SERVICES[0].id);
-  const [time, setTime] = useState(SERVICES[0].time);
+  const [time, setTime] = useState<string>(SERVICES[0].time);
   const [cars, setCars] = useState<Record<string, string>>({});
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
