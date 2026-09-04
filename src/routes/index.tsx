@@ -239,6 +239,7 @@ function KpiCard({
   label,
   value,
   unit,
+  sub,
   progress,
   spark,
   personnel,
@@ -249,6 +250,7 @@ function KpiCard({
   label: string;
   value: string;
   unit?: string;
+  sub?: string;
   progress?: number;
   spark?: number[];
   personnel?: boolean;
@@ -276,6 +278,7 @@ function KpiCard({
             )}
           </h3>
         )}
+        {sub && <p className="text-[10px] font-mono text-slate-500 mt-1">{sub}</p>}
       </div>
 
       {progress !== undefined && (
