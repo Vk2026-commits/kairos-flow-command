@@ -1746,8 +1746,9 @@ export function MapPanel({ service, onServiceChange }: Props) {
           {(
             [
               { key: "layers", label: "Map Layers", open: layersOpen, set: setLayersOpen, badge: `${Object.values(layers).filter(Boolean).length}/${LAYERS.length}` },
-              { key: "annotate", label: "Annotate", open: annotateOpen, set: setAnnotateOpen, badge: `${annotations.filter((a) => a.base === base && a.kind !== "personnel").length}` },
+              { key: "annotate", label: "Annotate", open: annotateOpen, set: setAnnotateOpen, badge: `${annotations.filter((a) => a.base === base && a.kind !== "personnel" && a.kind !== "sign").length}` },
               { key: "personnel", label: "Personnel", open: personnelOpen, set: setPersonnelOpen, badge: `${annotations.filter((a) => a.base === base && a.kind === "personnel").length}` },
+              { key: "signs", label: "Signs", open: signsOpen, set: setSignsOpen, badge: `${annotations.filter((a) => a.base === base && a.kind === "sign").length}` },
               { key: "playback", label: "Playback", open: playbackOpen, set: setPlaybackOpen, badge: playbackSeq.length ? `${playbackSeq.length}` : undefined },
             ] as const
           ).map((p) => (
