@@ -2017,11 +2017,12 @@ export function MapPanel({ service, onServiceChange }: Props) {
           </div>
         </div>
 
-        {/* Expanded panel bodies — overlay above the map so it never resizes
-            (keeps annotations pinned to the same map coordinates). */}
+        {/* Expanded panel bodies — docked to the LEFT side as a vertical column so
+            the center of the map stays clear for drawing. */}
         {anyPanelOpen && (
           <div
-            className="absolute left-0 right-0 top-full z-50 border-t border-white/10 px-3 py-3 grid gap-3 md:grid-cols-3 max-h-[40vh] overflow-y-auto bg-surface/95 backdrop-blur-sm shadow-xl pointer-events-auto"
+            className="absolute left-0 top-full z-50 w-[19rem] max-w-[85vw] border-r border-b border-white/10 rounded-br-lg px-3 py-3 flex flex-col gap-3 max-h-[calc(100vh-14rem)] overflow-y-auto bg-surface/95 backdrop-blur-sm shadow-2xl pointer-events-auto"
+
             onClick={(event) => event.stopPropagation()}
             onDoubleClick={(event) => event.stopPropagation()}
             onPointerDown={(event) => event.stopPropagation()}
