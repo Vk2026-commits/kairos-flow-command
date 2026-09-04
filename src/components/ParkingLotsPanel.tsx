@@ -219,12 +219,23 @@ export function ParkingLotsPanel() {
                   className="size-3 rounded-full ring-2 ring-white/10"
                   style={{ backgroundColor: lot.color }}
                 />
-                <h3 className="text-sm font-bold text-white flex-1">{lot.name}</h3>
+                <input
+                  value={lot.name}
+                  onChange={(e) => renameLot(lot.id, e.target.value)}
+                  aria-label="Lot name"
+                  className="text-sm font-bold text-white flex-1 bg-transparent border border-transparent hover:border-white/10 focus:border-white/20 rounded px-1 py-0.5 outline-none"
+                />
                 {last?.full && (
                   <span className="text-[9px] font-bold uppercase tracking-widest text-red-400 px-2 py-1 rounded bg-red-500/10 border border-red-500/30">
                     Full
                   </span>
                 )}
+                <button
+                  onClick={() => removeLot(lot.id)}
+                  className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-red-400 transition"
+                >
+                  Remove
+                </button>
               </div>
 
               <div className="flex items-end gap-3">
