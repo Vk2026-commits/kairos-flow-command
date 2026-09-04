@@ -17,10 +17,25 @@ function fmt(at: string) {
   });
 }
 
+const NEW_LOT_COLORS = [
+  "#f59e0b",
+  "#14b8a6",
+  "#ec4899",
+  "#8b5cf6",
+  "#0ea5e9",
+  "#84cc16",
+  "#f43f5e",
+  "#64748b",
+];
+
 export function ParkingLotsPanel() {
   const [state, setState] = useParkingState();
   const [time, setTime] = useState(timeNow);
   const [cars, setCars] = useState<Record<string, string>>({});
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newColor, setNewColor] = useState(NEW_LOT_COLORS[0]);
+  const [newSpaces, setNewSpaces] = useState("");
 
   const latest = useMemo(() => {
     const map: Record<string, LotCount | undefined> = {};
