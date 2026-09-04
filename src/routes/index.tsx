@@ -200,6 +200,7 @@ function CommandDashboard() {
             <AlertsPanel />
           </div>
         </div>
+        )}
       </main>
     </div>
   );
