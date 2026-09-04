@@ -188,21 +188,45 @@ export function ParkingLotsPanel() {
         <div>
           <h2 className="text-lg font-semibold text-white tracking-tight">Parking Lots</h2>
           <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">
-            {service.name} · {state.lots.length} lots · {totalSpaces} spaces · {totalCars} cars
+            {fmtDate(date)} · {service.name} · {recordedLots}/{state.lots.length} lots recorded ·{" "}
+            {totalCars}/{totalSpaces || "?"} cars
           </p>
         </div>
-        <label className="flex flex-col gap-1">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-            Observation time
-          </span>
-          <input
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className="bg-surface-bright border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white"
-          />
-        </label>
+        <div className="flex items-end gap-3 flex-wrap">
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+              Service date
+            </span>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => {
+                setDate(e.target.value);
+                setSaved(false);
+              }}
+              className="bg-surface-bright border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+              Observation time
+            </span>
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="bg-surface-bright border border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-white"
+            />
+          </label>
+          <button
+            onClick={saveService}
+            className="px-5 py-2.5 rounded-lg bg-kairos-blue/20 border border-kairos-blue text-[10px] font-bold uppercase tracking-widest text-kairos-blue hover:bg-kairos-blue/30 transition"
+          >
+            {saved ? "Saved ✓" : "Save service"}
+          </button>
+        </div>
       </div>
+
 
       <div className="mb-4">
         <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">
