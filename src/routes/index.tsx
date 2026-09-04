@@ -5,6 +5,8 @@ import { MapPanel } from "@/components/MapPanel";
 import trafficFlowPlan from "@/assets/wheeler-traffic-flow-plan.png.asset.json";
 import { listDocuments, uploadDocument, deleteDocument } from "@/lib/documents.functions";
 import { ensureDeviceCode, getDeviceCode } from "@/lib/device-access";
+import { ParkingLotsPanel } from "@/components/ParkingLotsPanel";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -20,17 +22,19 @@ export const Route = createFileRoute("/")({
   component: CommandDashboard,
 });
 
-type NavKey = "DASH" | "MAP" | "OPS" | "FLEET" | "COMM" | "DOCS" | "KPI";
+type NavKey = "DASH" | "MAP" | "OPS" | "FLEET" | "LOTS" | "COMM" | "DOCS" | "KPI";
 
 const NAV: { key: NavKey; label: string }[] = [
   { key: "DASH", label: "Dashboard" },
   { key: "MAP", label: "Maps" },
   { key: "OPS", label: "Ops" },
   { key: "FLEET", label: "Fleet" },
+  { key: "LOTS", label: "Parking Lots" },
   { key: "COMM", label: "Comms" },
   { key: "DOCS", label: "Documents" },
   { key: "KPI", label: "KPIs" },
 ];
+
 
 function useClock() {
   const [now, setNow] = useState<Date | null>(null);
