@@ -193,9 +193,10 @@ function CommandDashboard() {
         <div className="flex-1 p-4 lg:p-6 grid grid-cols-12 auto-rows-min lg:grid-rows-6 gap-4 lg:gap-6 overflow-y-auto lg:overflow-hidden">
           <KpiCard
             label="Total Parking Capacity"
-            value={live.parkingFillPct.toFixed(0)}
-            unit="%"
-            progress={live.parkingFillPct}
+            value={String(parkingMetrics.totalSpaces)}
+            unit=" spaces"
+            sub={`${parkingMetrics.fillPct.toFixed(0)}% full · ${parkingMetrics.totalCars} cars today`}
+            progress={parkingMetrics.fillPct}
           />
           <KpiCard
             label="Avg Shuttle Cycle"
