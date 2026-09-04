@@ -1019,6 +1019,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const [layersOpen, setLayersOpen] = useState(true);
   const [annotateOpen, setAnnotateOpen] = useState(true);
   const [personnelOpen, setPersonnelOpen] = useState(false);
+  const [signsOpen, setSignsOpen] = useState(false);
   const [playbackOpen, setPlaybackOpen] = useState(true);
 
   // Panel drag offsets (pixels from their default anchor).
