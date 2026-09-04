@@ -186,7 +186,9 @@ const TOOL_COLORS: Record<"ingress" | "egress" | "shuttle" | "closure", string> 
 const toolColor = (t: Exclude<Tool, null>): string =>
   t === "hpd" || t === "security" || t === "ministry"
     ? PERSONNEL_META[t].color
-    : TOOL_COLORS[t];
+    : isSignTool(t)
+      ? SIGN_META[t].color
+      : TOOL_COLORS[t as "ingress" | "egress" | "shuttle" | "closure"];
 
 const STORAGE_KEY = "kairos:annotations:v1";
 const ANNOTATIONS_CLOUD_KEY = "map_annotations";
