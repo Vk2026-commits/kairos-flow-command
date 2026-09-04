@@ -5,7 +5,8 @@ import { MapPanel } from "@/components/MapPanel";
 import trafficFlowPlan from "@/assets/wheeler-traffic-flow-plan.png.asset.json";
 import { listDocuments, uploadDocument, deleteDocument } from "@/lib/documents.functions";
 import { ensureDeviceCode, getDeviceCode } from "@/lib/device-access";
-import { ParkingLotsPanel, useParkingState, countDate, toDateKey } from "@/lib/parking-lots";
+import { ParkingLotsPanel } from "@/components/ParkingLotsPanel";
+import { useParkingState, countDate, toDateKey } from "@/lib/parking-lots";
 
 
 export const Route = createFileRoute("/")({
