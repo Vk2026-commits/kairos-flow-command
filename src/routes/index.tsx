@@ -159,6 +159,9 @@ function CommandDashboard() {
           </div>
         </header>
 
+        {active === "DOCS" ? (
+          <DocumentsPanel />
+        ) : (
         <div className="flex-1 p-4 lg:p-6 grid grid-cols-12 auto-rows-min lg:grid-rows-6 gap-4 lg:gap-6 overflow-y-auto lg:overflow-hidden">
           <KpiCard
             label="Total Parking Capacity"
