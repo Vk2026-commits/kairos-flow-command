@@ -607,8 +607,10 @@ function DocumentsPanel() {
             accept="image/*,application/pdf"
             className="hidden"
             onChange={(e) => {
-              void handleFiles(e.target.files);
-              e.currentTarget.value = "";
+              const input = e.currentTarget;
+              const picked = input.files ? Array.from(input.files) : [];
+              input.value = "";
+              void handleFiles(picked);
             }}
           />
         </label>
