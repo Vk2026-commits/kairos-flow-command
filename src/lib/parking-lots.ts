@@ -111,6 +111,8 @@ function normalize(raw: unknown): ParkingState {
           full: Boolean(c?.full),
           note: c?.note ? String(c.note) : undefined,
           serviceId: c?.serviceId ? String(c.serviceId) : undefined,
+          date: c?.date ? String(c.date) : toDateKey(String(c?.at ?? "")),
+
 
         }))
         .filter((c) => c.lotId)
