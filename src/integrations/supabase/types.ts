@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      documents: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          description: string | null
+          file_size: number | null
+          id: string
+          meta: string | null
+          storage_path: string
+          title: string
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          description?: string | null
+          file_size?: number | null
+          id?: string
+          meta?: string | null
+          storage_path: string
+          title: string
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          description?: string | null
+          file_size?: number | null
+          id?: string
+          meta?: string | null
+          storage_path?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      kairos_state: {
+        Row: {
+          data: Json
+          key: string
+          updated_at: string
+        }
+        Insert: {
+          data?: Json
+          key: string
+          updated_at?: string
+        }
+        Update: {
+          data?: Json
+          key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       traffic_plans: {
         Row: {
           annotations: Json

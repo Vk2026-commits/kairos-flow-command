@@ -412,13 +412,14 @@ type DocItem = {
   src: string;
   kind: "image" | "file";
   uploaded?: boolean;
+  storagePath?: string;
 };
 
 const DOCUMENTS: DocItem[] = [
   {
     id: "wheeler-traffic-flow-plan",
-    title: "Wheeler Avenue — Parking Lot Traffic Flow Plan",
-    meta: "Site plan · Tracts 1, 4 & 11 · 618 spaces",
+    title: "Wheeler Avenue \u2014 Parking Lot Traffic Flow Plan",
+    meta: "Site plan \u00b7 Tracts 1, 4 & 11 \u00b7 618 spaces",
     description:
       "Directional flow per row, traffic dividing lines, wheel stops, and signage placement for the back gate (no exit) and front gate (no entry).",
     src: trafficFlowPlan.url,
@@ -426,6 +427,9 @@ const DOCUMENTS: DocItem[] = [
   },
 ];
 
+const CLOUD_DOCS_ENABLED = Boolean(
+  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+);
 const DOCS_KEY = "kairos:documents:v1";
 
 function DocumentsPanel() {
@@ -433,8 +437,56 @@ function DocumentsPanel() {
   const [uploads, setUploads] = useState<DocItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(CLOUD_DOCS_ENABLED);
+
+  const loadCloud = async () => {
+    if (!CLOUD_DOCS_ENABLED) return;
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const db = supabase as any;
+      const { data, error: err } = await db
+        .from("documents")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (err) throw err;
+      const rows = (data ?? []) as any[];
+      const signed = await Promise.all(
+        rows.map(async (r) => {
+          const { data: s } = await supabase.storage
+            .from("documents")
+            .createSignedUrl(r.storage_path, 60 * 60 * 8);
+          const item: DocItem = {
+            id: r.id,
+            title: r.title,
+            meta: r.meta ?? "Uploaded document",
+            description: r.description ?? "Uploaded reference document.",
+            src: s?.signedUrl ?? "",
+            kind: String(r.content_type ?? "").startsWith("image/") ? "image" : "file",
+            uploaded: true,
+            storagePath: r.storage_path,
+          };
+          return item;
+        }),
+      );
+      setUploads(signed.filter((d) => d.src));
+    } catch {
+      setError("Could not reach the backend \u2014 showing locally saved documents.");
+      try {
+        const raw = localStorage.getItem(DOCS_KEY);
+        if (raw) setUploads(JSON.parse(raw) as DocItem[]);
+      } catch {
+        /* ignore */
+      }
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
+    if (CLOUD_DOCS_ENABLED) {
+      void loadCloud();
+      return;
+    }
     try {
       const raw = localStorage.getItem(DOCS_KEY);
       if (raw) setUploads(JSON.parse(raw) as DocItem[]);
@@ -443,22 +495,49 @@ function DocumentsPanel() {
     }
   }, []);
 
-  const persist = (next: DocItem[]) => {
+  const persistLocal = (next: DocItem[]) => {
     setUploads(next);
     try {
       localStorage.setItem(DOCS_KEY, JSON.stringify(next));
     } catch {
-      setError("Storage full — remove an uploaded document and try again.");
+      setError("Local storage full \u2014 remove a document and try again.");
     }
   };
 
-  const handleFiles = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+  const handleFiles = async (files: File[]) => {
+    if (files.length === 0) return;
     setError(null);
     setBusy(true);
     try {
+      if (CLOUD_DOCS_ENABLED) {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const db = supabase as any;
+        for (const file of files) {
+          if (file.size > 25 * 1024 * 1024) {
+            setError(`${file.name} is larger than 25 MB and was skipped.`);
+            continue;
+          }
+          const path = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+          const { error: upErr } = await supabase.storage
+            .from("documents")
+            .upload(path, file, { contentType: file.type || "application/octet-stream" });
+          if (upErr) throw upErr;
+          const { error: insErr } = await db.from("documents").insert({
+            title: file.name.replace(/\.[^.]+$/, ""),
+            description: "Uploaded reference document.",
+            meta: `Uploaded \u00b7 ${(file.size / 1024).toFixed(0)} KB \u00b7 ${file.type || "file"}`,
+            storage_path: path,
+            content_type: file.type || "application/octet-stream",
+            file_size: file.size,
+          });
+          if (insErr) throw insErr;
+        }
+        await loadCloud();
+        return;
+      }
+
       const added: DocItem[] = [];
-      for (const file of Array.from(files)) {
+      for (const file of files) {
         if (file.size > 4 * 1024 * 1024) {
           setError(`${file.name} is larger than 4 MB and was skipped.`);
           continue;
@@ -472,21 +551,36 @@ function DocumentsPanel() {
         added.push({
           id: `${Date.now()}-${file.name}`,
           title: file.name.replace(/\.[^.]+$/, ""),
-          meta: `Uploaded · ${(file.size / 1024).toFixed(0)} KB · ${file.type || "file"}`,
+          meta: `Uploaded \u00b7 ${(file.size / 1024).toFixed(0)} KB \u00b7 ${file.type || "file"}`,
           description: "Uploaded reference document.",
           src: dataUrl,
           kind: file.type.startsWith("image/") ? "image" : "file",
           uploaded: true,
         });
       }
-      if (added.length) persist([...uploads, ...added]);
+      if (added.length) persistLocal([...uploads, ...added]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed.");
     } finally {
       setBusy(false);
     }
   };
 
-  const removeDoc = (id: string) =>
-    persist(uploads.filter((d) => d.id !== id));
+  const removeDoc = async (doc: DocItem) => {
+    if (CLOUD_DOCS_ENABLED && doc.storagePath) {
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const db = supabase as any;
+        await supabase.storage.from("documents").remove([doc.storagePath]);
+        await db.from("documents").delete().eq("id", doc.id);
+        setUploads((prev) => prev.filter((d) => d.id !== doc.id));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Delete failed.");
+      }
+      return;
+    }
+    persistLocal(uploads.filter((d) => d.id !== doc.id));
+  };
 
   const allDocs = [...DOCUMENTS, ...uploads];
 
@@ -498,19 +592,25 @@ function DocumentsPanel() {
             Documents
           </h2>
           <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">
-            Operational plans & reference files
+            {CLOUD_DOCS_ENABLED
+              ? syncing
+                ? "Syncing from backend\u2026"
+                : "Synced \u00b7 available on every device"
+              : "Operational plans & reference files"}
           </p>
         </div>
         <label className="cursor-pointer px-4 py-2 rounded-lg bg-kairos-blue/15 border border-kairos-blue/40 text-[10px] font-bold uppercase tracking-widest text-kairos-blue hover:bg-kairos-blue/25 transition">
-          {busy ? "Uploading…" : "Upload Document"}
+          {busy ? "Uploading\u2026" : "Upload Document"}
           <input
             type="file"
             multiple
             accept="image/*,application/pdf"
             className="hidden"
             onChange={(e) => {
-              void handleFiles(e.target.files);
-              e.currentTarget.value = "";
+              const input = e.currentTarget;
+              const picked = input.files ? Array.from(input.files) : [];
+              input.value = "";
+              void handleFiles(picked);
             }}
           />
         </label>
@@ -558,12 +658,14 @@ function DocumentsPanel() {
                 {doc.description}
               </p>
               <div className="flex gap-2 mt-2">
-                <button
-                  onClick={() => setOpenDoc(doc.src)}
-                  className="px-3 py-2 rounded-lg bg-kairos-blue/10 border border-kairos-blue/40 text-[10px] font-bold uppercase tracking-widest text-kairos-blue hover:bg-kairos-blue/20 transition"
-                >
-                  View
-                </button>
+                {doc.kind === "image" && (
+                  <button
+                    onClick={() => setOpenDoc(doc.src)}
+                    className="px-3 py-2 rounded-lg bg-kairos-blue/10 border border-kairos-blue/40 text-[10px] font-bold uppercase tracking-widest text-kairos-blue hover:bg-kairos-blue/20 transition"
+                  >
+                    View
+                  </button>
+                )}
                 <a
                   href={doc.src}
                   download={doc.title}
@@ -573,7 +675,7 @@ function DocumentsPanel() {
                 </a>
                 {doc.uploaded && (
                   <button
-                    onClick={() => removeDoc(doc.id)}
+                    onClick={() => void removeDoc(doc)}
                     className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-[10px] font-bold uppercase tracking-widest text-red-400 hover:bg-red-500/20 transition"
                   >
                     Remove
