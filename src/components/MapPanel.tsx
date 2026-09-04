@@ -823,7 +823,6 @@ export function MapPanel({ service, onServiceChange }: Props) {
   const [deviceLocked, setDeviceLocked] = useState(false);
 
   async function requireDeviceCode(force = false): Promise<string | null> {
-    if (!CLOUD_SYNC_ENABLED) return null;
     if (deviceCode && !force) return deviceCode;
     const code = await ensureDeviceCode({ force });
     setDeviceCodeState(code);
@@ -841,21 +840,6 @@ export function MapPanel({ service, onServiceChange }: Props) {
   useEffect(() => {
     let cancelled = false;
     let poll: number | null = null;
-
-    if (!CLOUD_SYNC_ENABLED) {
-      try {
-        const raw = localStorage.getItem(PLANS_KEY);
-        if (raw) {
-          const local = JSON.parse(raw) as TrafficPlan[];
-          if (Array.isArray(local)) setPlans(local);
-        }
-      } catch {
-        /* ignore malformed local data */
-      }
-      return () => {
-        cancelled = true;
-      };
-    }
 
     (async () => {
       // Only prompt when this device has never been invited yet.
@@ -2517,7 +2501,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
                       {plansOpen ? "Hide" : "Show"}
                     </button>
                   </div>
-                  {CLOUD_SYNC_ENABLED && (
+                  {(
                     <div className="mb-1.5 flex items-center justify-between gap-2 rounded border border-white/10 bg-white/5 px-2 py-1">
                       <span className="text-[9px] uppercase tracking-wider text-slate-400">
                         {deviceCode ? (
