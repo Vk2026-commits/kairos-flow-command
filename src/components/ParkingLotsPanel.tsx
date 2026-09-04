@@ -138,7 +138,7 @@ export function ParkingLotsPanel() {
         <div>
           <h2 className="text-lg font-semibold text-white tracking-tight">Parking Lots</h2>
           <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">
-            {state.lots.length} lots · {totalSpaces} spaces · {totalCars} cars on latest count
+            {service.name} · {state.lots.length} lots · {totalSpaces} spaces · {totalCars} cars
           </p>
         </div>
         <label className="flex flex-col gap-1">
@@ -153,6 +153,28 @@ export function ParkingLotsPanel() {
           />
         </label>
       </div>
+
+      <div className="mb-4">
+        <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">
+          Church service
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {SERVICES.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => pickService(s.id)}
+              className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition ${
+                s.id === serviceId
+                  ? "bg-kairos-blue/20 border-kairos-blue text-kairos-blue"
+                  : "border-white/10 text-slate-400 hover:text-white"
+              }`}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
 
       <div className="mb-4">
         {adding ? (
