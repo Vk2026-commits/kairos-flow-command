@@ -322,6 +322,32 @@ export function ParkingLotsPanel() {
                   : "No counts recorded yet"}
               </p>
 
+              <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-white/5">
+                {SERVICES.map((s) => {
+                  const rec = byService[s.id]?.[lot.id];
+                  return (
+                    <div
+                      key={s.id}
+                      className={`rounded-lg px-2 py-1.5 text-center ${
+                        s.id === serviceId ? "bg-kairos-blue/10" : "bg-white/[0.03]"
+                      }`}
+                    >
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                        {s.name.replace(" Service", "")}
+                      </p>
+                      <p
+                        className={`text-xs font-mono tabular-nums ${
+                          rec?.full ? "text-red-400" : "text-white"
+                        }`}
+                      >
+                        {rec ? (rec.full ? "FULL" : rec.cars) : "—"}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+
               <div className="flex gap-2">
                 <button
                   onClick={() => record(lot.id, false)}
