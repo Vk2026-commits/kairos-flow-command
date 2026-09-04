@@ -192,14 +192,16 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
   // Per-base annotation stroke width. Each base layer keeps its own so lines
   // look right on aerial/lot/street imagery vs the Live Map.
-  const STROKE_KEY = "kairos:stroke-widths:v1";
+  const STROKE_KEY = "kairos:stroke-widths:v2";
+  // Start at the thinnest setting; the user thickens manually.
   const DEFAULT_STROKE: Record<BaseKey, number> = {
-    street: 0.9,
-    aerial: 0.9,
-    lot: 0.9,
-    live: 0.6,
-    custom: 0.9,
+    street: 0.2,
+    aerial: 0.2,
+    lot: 0.2,
+    live: 0.2,
+    custom: 0.2,
   };
+
   const [strokeWidths, setStrokeWidths] = useState<Record<BaseKey, number>>(DEFAULT_STROKE);
   useEffect(() => {
     try {
