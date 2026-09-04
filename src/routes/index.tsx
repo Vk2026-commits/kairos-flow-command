@@ -55,6 +55,23 @@ function CommandDashboard() {
   );
   const now = useClock();
   const live = useLiveOps();
+  const [parkingState] = useParkingState();
+  const todayKey = toDateKey(new Date().toISOString());
+  const parkingMetrics = useMemo(() => {
+    const totalSpaces = parkingState.lots.reduce((a, l) => a + l.spaces, 0);
+    const latest: Record<string, { cars: number; at: string }> = {};
+    for (const c of parkingState.counts) {
+      if (countDate(c) !== todayKey) continue;
+      const cur = latest[c.lotId];
+      if (!cur || new Date(c.at).getTime() > new Date(cur.at).getTime()) {
+        latest[c.lotId] = { cars: c.cars, at: c.at };
+      }
+    }
+    const totalCars = Object.values(latest).reduce((a, r) => a + r.cars, 0);
+    const fillPct = totalSpaces > 0 ? Math.min(100, (totalCars / totalSpaces) * 100) : 0;
+    return { totalSpaces, totalCars, fillPct };
+  }, [parkingState, todayKey]);
+
   const sparkSeed = live.avgShuttleCycleMin;
   const spark = [40, 60, 45, 80, Math.round((sparkSeed / 14) * 100)];
 
