@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useLiveOps } from "@/hooks/use-live-ops";
 import { MapPanel } from "@/components/MapPanel";
 import trafficFlowPlan from "@/assets/wheeler-traffic-flow-plan.png.asset.json";
+import { listDocuments, uploadDocument, deleteDocument } from "@/lib/documents.functions";
+import { ensureDeviceCode, getDeviceCode } from "@/lib/device-access";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -427,138 +429,92 @@ const DOCUMENTS: DocItem[] = [
   },
 ];
 
-const CLOUD_DOCS_ENABLED = Boolean(
-  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-);
-const DOCS_KEY = "kairos:documents:v1";
-
 function DocumentsPanel() {
   const [openDoc, setOpenDoc] = useState<string | null>(null);
   const [uploads, setUploads] = useState<DocItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(CLOUD_DOCS_ENABLED);
+  const [syncing, setSyncing] = useState(true);
+  const [deviceCode, setDeviceCode] = useState<string | null>(null);
 
-  const loadCloud = async () => {
-    if (!CLOUD_DOCS_ENABLED) return;
+  const loadCloud = async (code: string) => {
     try {
-      const { supabase } = await import("@/integrations/supabase/client");
-      const db = supabase as any;
-      const { data, error: err } = await db
-        .from("documents")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (err) throw err;
-      const rows = (data ?? []) as any[];
-      const signed = await Promise.all(
-        rows.map(async (r) => {
-          const { data: s } = await supabase.storage
-            .from("documents")
-            .createSignedUrl(r.storage_path, 60 * 60 * 8);
-          const item: DocItem = {
-            id: r.id,
-            title: r.title,
-            meta: r.meta ?? "Uploaded document",
-            description: r.description ?? "Uploaded reference document.",
-            src: s?.signedUrl ?? "",
-            kind: String(r.content_type ?? "").startsWith("image/") ? "image" : "file",
-            uploaded: true,
-            storagePath: r.storage_path,
-          };
-          return item;
-        }),
+      const { rows } = await listDocuments({ data: { code } });
+      setUploads(
+        rows.map((r: any) => ({
+          id: r.id,
+          title: r.title,
+          meta: r.meta ?? "Uploaded document",
+          description: r.description ?? "Uploaded reference document.",
+          src: r.url,
+          kind: String(r.contentType ?? "").startsWith("image/") ? "image" : "file",
+          uploaded: true,
+          storagePath: r.storagePath,
+        })),
       );
-      setUploads(signed.filter((d) => d.src));
-    } catch {
-      setError("Could not reach the backend \u2014 showing locally saved documents.");
-      try {
-        const raw = localStorage.getItem(DOCS_KEY);
-        if (raw) setUploads(JSON.parse(raw) as DocItem[]);
-      } catch {
-        /* ignore */
-      }
+      setError(null);
+    } catch (e) {
+      setUploads([]);
+      setError(
+        (e as Error).message?.includes("not invited")
+          ? "This device is not invited — enter an access code to view uploaded documents."
+          : "Could not load uploaded documents.",
+      );
     } finally {
       setSyncing(false);
     }
   };
 
   useEffect(() => {
-    if (CLOUD_DOCS_ENABLED) {
-      void loadCloud();
+    const stored = getDeviceCode();
+    if (!stored) {
+      setSyncing(false);
+      setError("This device is not invited — enter an access code to view uploaded documents.");
       return;
     }
-    try {
-      const raw = localStorage.getItem(DOCS_KEY);
-      if (raw) setUploads(JSON.parse(raw) as DocItem[]);
-    } catch {
-      /* ignore */
-    }
+    setDeviceCode(stored);
+    void loadCloud(stored);
   }, []);
 
-  const persistLocal = (next: DocItem[]) => {
-    setUploads(next);
-    try {
-      localStorage.setItem(DOCS_KEY, JSON.stringify(next));
-    } catch {
-      setError("Local storage full \u2014 remove a document and try again.");
-    }
+  const unlock = async () => {
+    const code = await ensureDeviceCode({ force: !getDeviceCode() });
+    if (!code) return;
+    setDeviceCode(code);
+    setSyncing(true);
+    await loadCloud(code);
   };
 
   const handleFiles = async (files: File[]) => {
     if (files.length === 0) return;
+    if (!deviceCode) {
+      setError("Enter this device's access code before uploading documents.");
+      return;
+    }
     setError(null);
     setBusy(true);
     try {
-      if (CLOUD_DOCS_ENABLED) {
-        const { supabase } = await import("@/integrations/supabase/client");
-        const db = supabase as any;
-        for (const file of files) {
-          if (file.size > 25 * 1024 * 1024) {
-            setError(`${file.name} is larger than 25 MB and was skipped.`);
-            continue;
-          }
-          const path = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-          const { error: upErr } = await supabase.storage
-            .from("documents")
-            .upload(path, file, { contentType: file.type || "application/octet-stream" });
-          if (upErr) throw upErr;
-          const { error: insErr } = await db.from("documents").insert({
-            title: file.name.replace(/\.[^.]+$/, ""),
-            description: "Uploaded reference document.",
-            meta: `Uploaded \u00b7 ${(file.size / 1024).toFixed(0)} KB \u00b7 ${file.type || "file"}`,
-            storage_path: path,
-            content_type: file.type || "application/octet-stream",
-            file_size: file.size,
-          });
-          if (insErr) throw insErr;
-        }
-        await loadCloud();
-        return;
-      }
-
-      const added: DocItem[] = [];
       for (const file of files) {
-        if (file.size > 4 * 1024 * 1024) {
-          setError(`${file.name} is larger than 4 MB and was skipped.`);
+        if (file.size > 12 * 1024 * 1024) {
+          setError(`${file.name} is larger than 12 MB and was skipped.`);
           continue;
         }
-        const dataUrl = await new Promise<string>((resolve, reject) => {
+        const base64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result));
+          reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
           reader.onerror = () => reject(reader.error);
           reader.readAsDataURL(file);
         });
-        added.push({
-          id: `${Date.now()}-${file.name}`,
-          title: file.name.replace(/\.[^.]+$/, ""),
-          meta: `Uploaded \u00b7 ${(file.size / 1024).toFixed(0)} KB \u00b7 ${file.type || "file"}`,
-          description: "Uploaded reference document.",
-          src: dataUrl,
-          kind: file.type.startsWith("image/") ? "image" : "file",
-          uploaded: true,
+        await uploadDocument({
+          data: {
+            code: deviceCode,
+            name: file.name,
+            contentType: file.type || "application/octet-stream",
+            size: file.size,
+            base64,
+          },
         });
       }
-      if (added.length) persistLocal([...uploads, ...added]);
+      await loadCloud(deviceCode);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed.");
     } finally {
@@ -567,19 +523,16 @@ function DocumentsPanel() {
   };
 
   const removeDoc = async (doc: DocItem) => {
-    if (CLOUD_DOCS_ENABLED && doc.storagePath) {
-      try {
-        const { supabase } = await import("@/integrations/supabase/client");
-        const db = supabase as any;
-        await supabase.storage.from("documents").remove([doc.storagePath]);
-        await db.from("documents").delete().eq("id", doc.id);
-        setUploads((prev) => prev.filter((d) => d.id !== doc.id));
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Delete failed.");
-      }
+    if (!deviceCode) {
+      setError("Enter this device's access code before deleting documents.");
       return;
     }
-    persistLocal(uploads.filter((d) => d.id !== doc.id));
+    try {
+      await deleteDocument({ data: { code: deviceCode, id: doc.id } });
+      setUploads((prev) => prev.filter((d) => d.id !== doc.id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Delete failed.");
+    }
   };
 
   const allDocs = [...DOCUMENTS, ...uploads];
@@ -592,28 +545,39 @@ function DocumentsPanel() {
             Documents
           </h2>
           <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">
-            {CLOUD_DOCS_ENABLED
-              ? syncing
-                ? "Syncing from backend\u2026"
-                : "Synced \u00b7 available on every device"
-              : "Operational plans & reference files"}
+            {syncing
+              ? "Checking device invite\u2026"
+              : deviceCode
+                ? `Device invited \u2713 ${deviceCode}`
+                : "Device not invited \u00b7 uploads hidden"}
           </p>
         </div>
-        <label className="cursor-pointer px-4 py-2 rounded-lg bg-kairos-blue/15 border border-kairos-blue/40 text-[10px] font-bold uppercase tracking-widest text-kairos-blue hover:bg-kairos-blue/25 transition">
-          {busy ? "Uploading\u2026" : "Upload Document"}
-          <input
-            type="file"
-            multiple
-            accept="image/*,application/pdf"
-            className="hidden"
-            onChange={(e) => {
-              const input = e.currentTarget;
-              const picked = input.files ? Array.from(input.files) : [];
-              input.value = "";
-              void handleFiles(picked);
-            }}
-          />
-        </label>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void unlock()}
+            className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-slate-300 transition"
+          >
+            {deviceCode ? "Change code" : "Enter code"}
+          </button>
+          {deviceCode && (
+            <label className="cursor-pointer px-4 py-2 rounded-lg bg-kairos-blue/15 border border-kairos-blue/40 text-[10px] font-bold uppercase tracking-widest text-kairos-blue hover:bg-kairos-blue/25 transition">
+              {busy ? "Uploading\u2026" : "Upload Document"}
+              <input
+                type="file"
+                multiple
+                accept="image/*,application/pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const input = e.currentTarget;
+                  const picked = input.files ? Array.from(input.files) : [];
+                  input.value = "";
+                  void handleFiles(picked);
+                }}
+              />
+            </label>
+          )}
+        </div>
       </div>
 
       {error && (
