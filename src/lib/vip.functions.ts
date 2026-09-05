@@ -330,7 +330,7 @@ export const saveVipVisit = createServerFn({ method: "POST" })
       guestPatch.full_name,
       data?.id ? "Guest record updated" : "Guest record created",
       actor,
-      data?.id ? null : `Expected ${visitPatch.visit_date} ${visitPatch.expected_arrival ?? ""}`.trim(),
+      data?.id ? undefined : `Expected ${visitPatch.visit_date} ${visitPatch.expected_arrival ?? ""}`.trim(),
     );
 
     return { id: visitId, guestId };
