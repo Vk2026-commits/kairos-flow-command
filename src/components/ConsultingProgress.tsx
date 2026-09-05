@@ -107,12 +107,8 @@ export default function ConsultingProgress() {
     }
   }, []);
 
-  const unlock = async () => {
-    const c = await ensureDeviceCode({ force: !getDeviceCode() });
-    if (!c) return;
-    setCode(c);
-    await refresh(c);
-  };
+
+
 
   const canEdit = role === "admin";
 
