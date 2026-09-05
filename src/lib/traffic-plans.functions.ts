@@ -32,12 +32,19 @@ async function requireDevice(rawCode: unknown) {
   return { code, db };
 }
 
+// Returns a result object rather than throwing: a wrong code is normal user
+// input, not a crash, so it must not surface as a runtime error / blank screen.
 export const verifyDeviceCode = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string }) => data)
   .handler(async ({ data }) => {
-    const { code } = await requireDevice(data?.code);
-    return { ok: true as const, code };
+    try {
+      const { code } = await requireDevice(data?.code);
+      return { ok: true as const, code, role: "admin" as string };
+    } catch (e) {
+      return { ok: false as const, code: "", reason: (e as Error).message };
+    }
   });
+
 
 export const listTrafficPlans = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string }) => data)
