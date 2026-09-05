@@ -4,7 +4,7 @@ import { loadSharedState } from "./shared-state.functions";
 
 // Cloud sync runs through server functions now, so it works without
 // browser-side backend credentials.
-const CLOUD_SYNC_ENABLED = true;;
+const CLOUD_SYNC_ENABLED = true;
 
 /**
  * Admin-configurable fleet counts. Persisted to localStorage so the
