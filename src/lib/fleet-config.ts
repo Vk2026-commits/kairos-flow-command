@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { pushSharedState } from "./shared-state";
+import { loadSharedState } from "./shared-state.functions";
+import { supabase } from "@/integrations/supabase/client";
 
-const CLOUD_SYNC_ENABLED = Boolean(
-  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-);
-const cloudDb = supabase as any;
+// Cloud sync runs through server functions now, so it works without
+// browser-side backend credentials.
+const CLOUD_SYNC_ENABLED = true;
 
 /**
  * Admin-configurable fleet counts. Persisted to localStorage so the
@@ -79,12 +79,8 @@ export function useFleetConfig(): [FleetConfig, (next: FleetConfig) => void] {
     (async () => {
       try {
         const local = readFleetConfig();
-        const { data, error } = await cloudDb
-          .from("kairos_state")
-          .select("data")
-          .eq("key", CLOUD_KEY)
-          .maybeSingle();
-        if (error) throw error;
+        const res = await loadSharedState({ data: { key: CLOUD_KEY } });
+        const data = { data: res?.data ?? null };
         if (cancelled) return;
 
         if (data?.data && typeof data.data === "object" && !Array.isArray(data.data)) {

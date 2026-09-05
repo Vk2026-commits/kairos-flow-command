@@ -13,13 +13,17 @@ import {
 } from "@/lib/traffic-plans.functions";
 import { ensureDeviceCode, getDeviceCode, setDeviceCode } from "@/lib/device-access";
 import { pushSharedState } from "@/lib/shared-state";
+import { loadSharedState } from "@/lib/shared-state.functions";
 
 // Keep the map usable in previews where Lovable Cloud build variables have not
 // been injected yet. Local persistence remains available until cloud sync is.
-const CLOUD_SYNC_ENABLED = Boolean(
+// Reads and writes go through server functions, so cloud sync no longer needs
+// browser-side backend credentials.
+const CLOUD_SYNC_ENABLED = true;
+// Live push updates still use the browser client, which needs build variables.
+const REALTIME_ENABLED = Boolean(
   import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
 );
-const cloudDb = supabase as any;
 
 type LayerKey =
   | "ingress"
@@ -589,12 +593,8 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
     (async () => {
       try {
-        const { data, error } = await cloudDb
-          .from("kairos_state")
-          .select("data")
-          .eq("key", LANDMARKS_CLOUD_KEY)
-          .maybeSingle();
-        if (error) throw error;
+        const res = await loadSharedState({ data: { key: LANDMARKS_CLOUD_KEY } });
+        const data = { data: res?.data ?? null };
         if (cancelled) return;
 
         const cloudData = data?.data as { landmarks?: Landmark[] } | null;
@@ -613,7 +613,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
       }
     })();
 
-    try {
+    if (REALTIME_ENABLED) try {
       channel = supabase
         .channel("kairos_landmark_changes")
         .on(
@@ -1250,12 +1250,8 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
     (async () => {
       try {
-        const { data, error } = await cloudDb
-          .from("kairos_state")
-          .select("data")
-          .eq("key", ANNOTATIONS_CLOUD_KEY)
-          .maybeSingle();
-        if (error) throw error;
+        const res = await loadSharedState({ data: { key: ANNOTATIONS_CLOUD_KEY } });
+        const data = { data: res?.data ?? null };
         if (cancelled) return;
 
         const cloudData = data?.data as { annotations?: Annotation[] } | null;
@@ -1274,7 +1270,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
       }
     })();
 
-    try {
+    if (REALTIME_ENABLED) try {
       channel = supabase
         .channel("kairos_annotation_changes")
         .on(
