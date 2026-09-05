@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { pushSharedState } from "./shared-state";
 import { loadSharedState } from "./shared-state.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 // Cloud sync runs through server functions now, so it works without
 // browser-side backend credentials.

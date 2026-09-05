@@ -55,5 +55,5 @@ export const loadSharedState = createServerFn({ method: "POST" })
       .eq("key", key)
       .maybeSingle();
     if (error) throw new Error("Could not load shared state");
-    return { data: (row?.data ?? null) as unknown };
+    return { data: (row?.data ?? null) as Record<string, unknown> | null };
   });
