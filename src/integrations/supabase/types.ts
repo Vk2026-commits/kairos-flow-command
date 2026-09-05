@@ -386,6 +386,378 @@ export type Database = {
         }
         Relationships: []
       }
+      vip_activity_log: {
+        Row: {
+          action: string
+          actor: string | null
+          created_at: string
+          details: string | null
+          guest_name: string | null
+          id: string
+          visit_id: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          created_at?: string
+          details?: string | null
+          guest_name?: string | null
+          id?: string
+          visit_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          created_at?: string
+          details?: string | null
+          guest_name?: string | null
+          id?: string
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vip_activity_log_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "vip_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vip_guests: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          guest_title: string | null
+          guest_type: string
+          id: string
+          organization: string | null
+          phone: string | null
+          photo_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          guest_title?: string | null
+          guest_type?: string
+          id?: string
+          organization?: string | null
+          phone?: string | null
+          photo_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          guest_title?: string | null
+          guest_type?: string
+          id?: string
+          organization?: string | null
+          phone?: string | null
+          photo_path?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      vip_notes: {
+        Row: {
+          actor: string | null
+          category: string | null
+          created_at: string
+          id: string
+          note: string
+          visit_id: string
+        }
+        Insert: {
+          actor?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          note?: string
+          visit_id: string
+        }
+        Update: {
+          actor?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          note?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vip_notes_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "vip_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vip_parking_assignments: {
+        Row: {
+          ada_required: boolean
+          arrival_route: string | null
+          created_at: string
+          drop_off: string | null
+          escort_required: boolean
+          exit_route: string | null
+          gate: string | null
+          golf_cart_required: boolean
+          id: string
+          instructions: string | null
+          linked_plan: string | null
+          lot: string | null
+          reserved_area: string | null
+          space_zone: string | null
+          updated_at: string
+          visit_id: string
+        }
+        Insert: {
+          ada_required?: boolean
+          arrival_route?: string | null
+          created_at?: string
+          drop_off?: string | null
+          escort_required?: boolean
+          exit_route?: string | null
+          gate?: string | null
+          golf_cart_required?: boolean
+          id?: string
+          instructions?: string | null
+          linked_plan?: string | null
+          lot?: string | null
+          reserved_area?: string | null
+          space_zone?: string | null
+          updated_at?: string
+          visit_id: string
+        }
+        Update: {
+          ada_required?: boolean
+          arrival_route?: string | null
+          created_at?: string
+          drop_off?: string | null
+          escort_required?: boolean
+          exit_route?: string | null
+          gate?: string | null
+          golf_cart_required?: boolean
+          id?: string
+          instructions?: string | null
+          linked_plan?: string | null
+          lot?: string | null
+          reserved_area?: string | null
+          space_zone?: string | null
+          updated_at?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vip_parking_assignments_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "vip_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vip_status_history: {
+        Row: {
+          actor: string | null
+          created_at: string
+          id: string
+          note: string | null
+          status: string
+          visit_id: string
+        }
+        Insert: {
+          actor?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          status: string
+          visit_id: string
+        }
+        Update: {
+          actor?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          status?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vip_status_history_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "vip_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vip_vehicles: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          driver_company: string | null
+          driver_name: string | null
+          driver_on_site: boolean
+          driver_phone: string | null
+          driver_vehicle: string | null
+          id: string
+          make: string | null
+          model: string | null
+          plate: string | null
+          updated_at: string
+          vehicle_type: string | null
+          visit_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          driver_company?: string | null
+          driver_name?: string | null
+          driver_on_site?: boolean
+          driver_phone?: string | null
+          driver_vehicle?: string | null
+          id?: string
+          make?: string | null
+          model?: string | null
+          plate?: string | null
+          updated_at?: string
+          vehicle_type?: string | null
+          visit_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          driver_company?: string | null
+          driver_name?: string | null
+          driver_on_site?: boolean
+          driver_phone?: string | null
+          driver_vehicle?: string | null
+          id?: string
+          make?: string | null
+          model?: string | null
+          plate?: string | null
+          updated_at?: string
+          vehicle_type?: string | null
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vip_vehicles_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "vip_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vip_visits: {
+        Row: {
+          arrival_method: string
+          arrived_at: string | null
+          arrived_by: string | null
+          created_at: string
+          data: Json
+          departed_at: string | null
+          departed_by: string | null
+          departing_at: string | null
+          departing_by: string | null
+          departure_notes: string | null
+          event: string | null
+          expected_arrival: string | null
+          expected_departure: string | null
+          guest_id: string
+          host_name: string | null
+          host_phone: string | null
+          id: string
+          internal_notes: string | null
+          parked_at: string | null
+          parked_by: string | null
+          party_size: number
+          received_at: string | null
+          received_by: string | null
+          special_instructions: string | null
+          status: string
+          updated_at: string
+          visit_date: string
+        }
+        Insert: {
+          arrival_method?: string
+          arrived_at?: string | null
+          arrived_by?: string | null
+          created_at?: string
+          data?: Json
+          departed_at?: string | null
+          departed_by?: string | null
+          departing_at?: string | null
+          departing_by?: string | null
+          departure_notes?: string | null
+          event?: string | null
+          expected_arrival?: string | null
+          expected_departure?: string | null
+          guest_id: string
+          host_name?: string | null
+          host_phone?: string | null
+          id?: string
+          internal_notes?: string | null
+          parked_at?: string | null
+          parked_by?: string | null
+          party_size?: number
+          received_at?: string | null
+          received_by?: string | null
+          special_instructions?: string | null
+          status?: string
+          updated_at?: string
+          visit_date?: string
+        }
+        Update: {
+          arrival_method?: string
+          arrived_at?: string | null
+          arrived_by?: string | null
+          created_at?: string
+          data?: Json
+          departed_at?: string | null
+          departed_by?: string | null
+          departing_at?: string | null
+          departing_by?: string | null
+          departure_notes?: string | null
+          event?: string | null
+          expected_arrival?: string | null
+          expected_departure?: string | null
+          guest_id?: string
+          host_name?: string | null
+          host_phone?: string | null
+          id?: string
+          internal_notes?: string | null
+          parked_at?: string | null
+          parked_by?: string | null
+          party_size?: number
+          received_at?: string | null
+          received_by?: string | null
+          special_instructions?: string | null
+          status?: string
+          updated_at?: string
+          visit_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vip_visits_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "vip_guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

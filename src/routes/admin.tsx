@@ -127,7 +127,7 @@ function DeviceInvites() {
   const [rows, setRows] = useState<Array<Record<string, any>>>([]);
   const [newCode, setNewCode] = useState("");
   const [label, setLabel] = useState("");
-  const [role, setRole] = useState<"admin" | "executive">("admin");
+  const [role, setRole] = useState<"admin" | "executive" | "security" | "parking">("admin");
   const [error, setError] = useState<string | null>(null);
 
   const refresh = async (c: string) => {
@@ -185,7 +185,7 @@ function DeviceInvites() {
     }
   };
 
-  const changeRole = async (target: string, nextRole: "admin" | "executive") => {
+  const changeRole = async (target: string, nextRole: "admin" | "executive" | "security" | "parking") => {
     if (!code) return;
     try {
       await setDeviceRole({ data: { code, target, role: nextRole } });
@@ -236,11 +236,13 @@ function DeviceInvites() {
               <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Access level</span>
               <select
                 value={role}
-                onChange={(e) => setRole(e.target.value as "admin" | "executive")}
+                onChange={(e) => setRole(e.target.value as "admin" | "executive" | "security" | "parking")}
                 className="h-9 px-3 rounded-lg bg-bg-deep border border-white/10 text-sm text-white focus:outline-none focus:border-kairos-blue"
               >
                 <option value="admin">Admin — full access</option>
                 <option value="executive">Executive — view only</option>
+                <option value="security">Security command — VIP arrivals</option>
+                <option value="parking">Parking personnel — VIP arrivals (limited info)</option>
               </select>
             </label>
             <button
@@ -279,11 +281,13 @@ function DeviceInvites() {
                 </div>
                 <select
                   value={(r.role as string) ?? "admin"}
-                  onChange={(e) => void changeRole(r.code, e.target.value as "admin" | "executive")}
+                  onChange={(e) => void changeRole(r.code, e.target.value as "admin" | "executive" | "security" | "parking")}
                   className="shrink-0 h-7 px-2 rounded bg-bg-deep border border-white/10 text-[10px] text-slate-200"
                 >
                   <option value="admin">Admin</option>
                   <option value="executive">Executive (view only)</option>
+                  <option value="security">Security command</option>
+                  <option value="parking">Parking personnel</option>
                 </select>
                 <button
                   type="button"
