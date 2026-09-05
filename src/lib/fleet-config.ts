@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { pushSharedState } from "./shared-state";
 
 const CLOUD_SYNC_ENABLED = Boolean(
   import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
@@ -91,9 +92,7 @@ export function useFleetConfig(): [FleetConfig, (next: FleetConfig) => void] {
           writeFleetConfig(cloud);
           setConfig(cloud);
         } else {
-          await cloudDb
-            .from("kairos_state")
-            .upsert({ key: CLOUD_KEY, data: local });
+          await pushSharedState(CLOUD_KEY, local, { prompt: false });
         }
       } catch (e) {
         console.warn("Fleet config cloud sync is unavailable", e);
@@ -136,12 +135,7 @@ export function useFleetConfig(): [FleetConfig, (next: FleetConfig) => void] {
     const normalized = writeFleetConfig(next);
     setConfig(normalized);
     if (!CLOUD_SYNC_ENABLED) return;
-    cloudDb
-      .from("kairos_state")
-      .upsert({ key: CLOUD_KEY, data: normalized })
-      .then(({ error }: { error: unknown }) => {
-        if (error) console.warn("Failed to save fleet config to cloud", error);
-      });
+    void pushSharedState(CLOUD_KEY, normalized);
   };
   return [config, update];
 }
