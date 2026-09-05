@@ -99,6 +99,20 @@ function AdminSettings() {
           </div>
         </div>
 
+        <div className="rounded-2xl border border-kairos-gold/30 bg-surface p-6">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-white mb-1">Consulting Progress</h3>
+          <p className="text-xs text-slate-400 mb-4">
+            Executive view of consulting work: progress dashboard, work activity log, site visits, project timeline,
+            action items, recommendations, before/after improvements, hours history and printable executive reports.
+          </p>
+          <Link
+            to="/consulting"
+            className="inline-block px-4 py-2 rounded-lg bg-kairos-gold text-bg-deep text-xs font-bold uppercase tracking-wider"
+          >
+            Open Consulting Progress →
+          </Link>
+        </div>
+
         <DeviceInvites />
       </main>
     </div>
