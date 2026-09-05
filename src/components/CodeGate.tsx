@@ -18,15 +18,20 @@ export default function CodeGate({ onUnlock }: { onUnlock: (code: string) => voi
     setBusy(true);
     setError(null);
     try {
-      await verifyDeviceCode({ data: { code } });
+      const res: any = await verifyDeviceCode({ data: { code } });
+      if (!res?.ok) {
+        setError("That access code is not recognized (or has been revoked).");
+        return;
+      }
       setDeviceCode(code);
       await onUnlock(code);
     } catch {
-      setError("That access code is not recognized (or has been revoked).");
+      setError("Could not check that code right now. Please try again.");
     } finally {
       setBusy(false);
     }
   };
+
 
   return (
     <form onSubmit={submit} className="space-y-2">
