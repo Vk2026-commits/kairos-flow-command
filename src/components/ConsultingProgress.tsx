@@ -6,7 +6,9 @@ import {
   deleteConsultingRecord,
 } from "@/lib/consulting.functions";
 import { listDocuments, uploadDocument } from "@/lib/documents.functions";
-import { ensureDeviceCode, getDeviceCode } from "@/lib/device-access";
+import { getDeviceCode } from "@/lib/device-access";
+import CodeGate from "@/components/CodeGate";
+
 import {
   ENTITY_CONFIG,
   ENTITY_ORDER,

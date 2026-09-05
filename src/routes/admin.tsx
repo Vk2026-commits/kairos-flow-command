@@ -194,14 +194,14 @@ function DeviceInvites() {
       </p>
 
       {!code ? (
-        <button
-          type="button"
-          onClick={() => void unlock()}
-          className="px-3 py-2 rounded-lg bg-kairos-gold text-bg-deep text-xs font-bold"
-        >
-          Enter an access code to manage devices
-        </button>
+        <CodeGate
+          onUnlock={async (c) => {
+            setCode(c);
+            await refresh(c);
+          }}
+        />
       ) : (
+
         <>
           <div className="flex flex-wrap items-end gap-2 mb-4">
             <label className="block">
