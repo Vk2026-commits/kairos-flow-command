@@ -603,9 +603,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
           setLandmarks(cloud);
         } else if (local.length > 0) {
           landmarksLastSaved.current = JSON.stringify(local);
-          await cloudDb
-            .from("kairos_state")
-            .upsert({ key: LANDMARKS_CLOUD_KEY, data: { landmarks: local } });
+          await pushSharedState(LANDMARKS_CLOUD_KEY, { landmarks: local }, { prompt: false });
         }
         landmarksCloudReady.current = true;
       } catch (e) {
@@ -655,12 +653,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     const serialized = JSON.stringify(landmarks);
     if (serialized === landmarksLastSaved.current) return;
     landmarksLastSaved.current = serialized;
-    cloudDb
-      .from("kairos_state")
-      .upsert({ key: LANDMARKS_CLOUD_KEY, data: { landmarks } })
-      .then(({ error }: { error: unknown }) => {
-        if (error) console.warn("Failed to save landmarks to cloud", error);
-      });
+    void pushSharedState(LANDMARKS_CLOUD_KEY, { landmarks });
   }, [landmarks]);
 
   function saveAsLandmark(source: { query: string; address: string }) {
@@ -1271,9 +1264,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
           setAnnotations(cloud);
         } else if (local.length > 0) {
           annotationsLastSaved.current = JSON.stringify(local);
-          await cloudDb
-            .from("kairos_state")
-            .upsert({ key: ANNOTATIONS_CLOUD_KEY, data: { annotations: local } });
+          await pushSharedState(ANNOTATIONS_CLOUD_KEY, { annotations: local }, { prompt: false });
         }
         annotationsCloudReady.current = true;
       } catch (e) {
@@ -1323,12 +1314,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     const serialized = JSON.stringify(annotations);
     if (serialized === annotationsLastSaved.current) return;
     annotationsLastSaved.current = serialized;
-    cloudDb
-      .from("kairos_state")
-      .upsert({ key: ANNOTATIONS_CLOUD_KEY, data: { annotations } })
-      .then(({ error }: { error: unknown }) => {
-        if (error) console.warn("Failed to save annotations to cloud", error);
-      });
+    void pushSharedState(ANNOTATIONS_CLOUD_KEY, { annotations });
   }, [annotations]);
 
   const bases = useMemo(() => {
