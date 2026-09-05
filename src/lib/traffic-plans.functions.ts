@@ -108,13 +108,22 @@ export const importLegacyTrafficPlans = createServerFn({ method: "POST" })
 export const listDeviceCodes = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string }) => data)
   .handler(async ({ data }) => {
-    const { db } = await requireDevice(data?.code);
+    let db: any;
+    try {
+      ({ db } = await requireDevice(data?.code));
+    } catch (e) {
+      const reason = (e as Error).message || "Could not verify device access";
+      if (/not invited|access code|missing device|invalid device/i.test(reason)) {
+        return { rows: [] as PlanRow[], unauthorized: true as const, reason };
+      }
+      return { rows: [] as PlanRow[], unauthorized: false as const, reason };
+    }
     const { data: rows, error } = await db
       .from("device_access_codes")
       .select("code, label, revoked, role, last_used_at, created_at")
       .order("created_at", { ascending: true });
-    if (error) throw new Error("Could not load device codes");
-    return { rows: (rows ?? []) as PlanRow[] };
+    if (error) return { rows: [] as PlanRow[], unauthorized: false as const, reason: "Could not load device codes" };
+    return { rows: (rows ?? []) as PlanRow[], unauthorized: false as const, reason: null };
   });
 
 export const inviteDevice = createServerFn({ method: "POST" })
