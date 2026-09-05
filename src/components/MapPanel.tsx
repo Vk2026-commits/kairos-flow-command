@@ -16,12 +16,13 @@ import { pushSharedState } from "@/lib/shared-state";
 
 // Keep the map usable in previews where Lovable Cloud build variables have not
 // been injected yet. Local persistence remains available until cloud sync is.
-const CLOUD_SYNC_ENABLED = Boolean(
+// Reads and writes go through server functions, so cloud sync no longer needs
+// browser-side backend credentials.
+const CLOUD_SYNC_ENABLED = true;
+// Live push updates still use the browser client, which needs build variables.
+const REALTIME_ENABLED = Boolean(
   import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
 );
-// Lazily resolved: touching the client at module scope throws when backend env
-// vars are absent, which would break every page that imports this file.
-const cloudDb = () => supabase as any;
 
 type LayerKey =
   | "ingress"
@@ -610,6 +611,8 @@ export function MapPanel({ service, onServiceChange }: Props) {
         console.warn("Landmark cloud sync is unavailable", e);
       }
     })();
+
+    if (!REALTIME_ENABLED) return cleanupChannel;
 
     try {
       channel = supabase
@@ -1267,6 +1270,8 @@ export function MapPanel({ service, onServiceChange }: Props) {
         console.warn("Annotation cloud sync is unavailable", e);
       }
     })();
+
+    if (!REALTIME_ENABLED) return cleanupChannel;
 
     try {
       channel = supabase

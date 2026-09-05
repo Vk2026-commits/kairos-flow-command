@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { pushSharedState } from "./shared-state";
+import { loadSharedState } from "./shared-state.functions";
 
-const CLOUD_SYNC_ENABLED = Boolean(
-  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-);
-// Lazily resolved: touching the client at module scope throws when backend env
-// vars are absent, which would break every page that imports this file.
-const cloudDb = () => supabase as any;
+// Cloud sync runs through server functions now, so it works without
+// browser-side backend credentials.
+const CLOUD_SYNC_ENABLED = true;;
 
 const STORAGE_KEY = "kairos.parkingLots.v1";
 const EVENT = "kairos:parking-lots-changed";
