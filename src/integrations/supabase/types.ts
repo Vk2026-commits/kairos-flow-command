@@ -14,6 +14,252 @@ export type Database = {
   }
   public: {
     Tables: {
+      consulting_action_items: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          occurred_on: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      consulting_activities: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          occurred_on: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      consulting_before_after: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          occurred_on: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      consulting_milestones: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          occurred_on: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      consulting_notes: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          occurred_on: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      consulting_project: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          next_action: string | null
+          phase: string
+          progress_pct: number
+          status: string
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          next_action?: string | null
+          phase?: string
+          progress_pct?: number
+          status?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          next_action?: string | null
+          phase?: string
+          progress_pct?: number
+          status?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      consulting_recommendations: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          occurred_on: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      consulting_site_visits: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          occurred_on: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       device_access_codes: {
         Row: {
           code: string
@@ -21,6 +267,7 @@ export type Database = {
           label: string | null
           last_used_at: string | null
           revoked: boolean
+          role: string
           updated_at: string
         }
         Insert: {
@@ -29,6 +276,7 @@ export type Database = {
           label?: string | null
           last_used_at?: string | null
           revoked?: boolean
+          role?: string
           updated_at?: string
         }
         Update: {
@@ -37,6 +285,7 @@ export type Database = {
           label?: string | null
           last_used_at?: string | null
           revoked?: boolean
+          role?: string
           updated_at?: string
         }
         Relationships: []
