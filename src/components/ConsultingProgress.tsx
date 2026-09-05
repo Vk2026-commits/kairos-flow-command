@@ -6,7 +6,9 @@ import {
   deleteConsultingRecord,
 } from "@/lib/consulting.functions";
 import { listDocuments, uploadDocument } from "@/lib/documents.functions";
-import { ensureDeviceCode, getDeviceCode } from "@/lib/device-access";
+import { getDeviceCode } from "@/lib/device-access";
+import CodeGate from "@/components/CodeGate";
+
 import {
   ENTITY_CONFIG,
   ENTITY_ORDER,
@@ -107,12 +109,8 @@ export default function ConsultingProgress() {
     }
   }, []);
 
-  const unlock = async () => {
-    const c = await ensureDeviceCode({ force: !getDeviceCode() });
-    if (!c) return;
-    setCode(c);
-    await refresh(c);
-  };
+
+
 
   const canEdit = role === "admin";
 
@@ -165,12 +163,16 @@ export default function ConsultingProgress() {
           This area is restricted. Enter an access code to continue — admin codes can edit, executive codes are
           view-only.
         </p>
-        <button type="button" onClick={() => void unlock()} className="px-3 py-2 rounded-lg bg-kairos-gold text-bg-deep text-xs font-bold">
-          Enter access code
-        </button>
+        <CodeGate
+          onUnlock={async (c) => {
+            setCode(c);
+            await refresh(c);
+          }}
+        />
       </div>
     );
   }
+
 
   return (
     <div className="space-y-5">

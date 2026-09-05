@@ -2,7 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { listDeviceCodes, inviteDevice, setDeviceRevoked } from "@/lib/traffic-plans.functions";
 import { setDeviceRole } from "@/lib/consulting.functions";
-import { ensureDeviceCode, getDeviceCode } from "@/lib/device-access";
+import { getDeviceCode } from "@/lib/device-access";
+import CodeGate from "@/components/CodeGate";
+
 import { useFleetConfig, DEFAULT_FLEET_CONFIG, type FleetConfig } from "@/lib/fleet-config";
 
 export const Route = createFileRoute("/admin")({
@@ -138,12 +140,8 @@ function DeviceInvites() {
     }
   };
 
-  const unlock = async () => {
-    const c = await ensureDeviceCode({ force: !getDeviceCode() });
-    if (!c) return;
-    setCode(c);
-    await refresh(c);
-  };
+
+
 
   useEffect(() => {
     const stored = getDeviceCode();
@@ -194,14 +192,14 @@ function DeviceInvites() {
       </p>
 
       {!code ? (
-        <button
-          type="button"
-          onClick={() => void unlock()}
-          className="px-3 py-2 rounded-lg bg-kairos-gold text-bg-deep text-xs font-bold"
-        >
-          Enter an access code to manage devices
-        </button>
+        <CodeGate
+          onUnlock={async (c) => {
+            setCode(c);
+            await refresh(c);
+          }}
+        />
       ) : (
+
         <>
           <div className="flex flex-wrap items-end gap-2 mb-4">
             <label className="block">
@@ -251,10 +249,18 @@ function DeviceInvites() {
                 className="flex items-center justify-between gap-3 rounded-lg border border-white/5 bg-white/5 px-3 py-2"
               >
                 <div className="min-w-0">
-                  <div className="font-mono text-sm text-white truncate">
+                  <div className="font-mono text-sm text-white truncate flex items-center gap-2">
                     {r.code}
-                    {r.code === code && <span className="ml-2 text-[10px] text-emerald-400">this device</span>}
+                    <button
+                      type="button"
+                      onClick={() => void navigator.clipboard?.writeText(r.code)}
+                      className="text-[10px] font-sans font-bold px-2 py-0.5 rounded border border-white/15 text-slate-300 hover:bg-white/10"
+                    >
+                      Copy
+                    </button>
+                    {r.code === code && <span className="text-[10px] text-emerald-400">this device</span>}
                   </div>
+
                   <div className="text-[10px] text-slate-500 truncate">
                     {r.label || "No label"} · {r.last_used_at ? `last used ${new Date(r.last_used_at).toLocaleString()}` : "never used"}
                   </div>
