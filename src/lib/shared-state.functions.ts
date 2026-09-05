@@ -40,3 +40,20 @@ export const saveSharedState = createServerFn({ method: "POST" })
     if (error) throw new Error("Could not save shared state");
     return { ok: true as const };
   });
+
+// Reads mirror the table's public read policy, but go through the server so the
+// browser never needs backend credentials of its own.
+export const loadSharedState = createServerFn({ method: "POST" })
+  .inputValidator((data: { key: string }) => data)
+  .handler(async ({ data }) => {
+    const key = String(data?.key ?? "");
+    if (!ALLOWED_KEY.test(key)) throw new Error("Unknown state key");
+    const db = await admin();
+    const { data: row, error } = await db
+      .from("kairos_state")
+      .select("data")
+      .eq("key", key)
+      .maybeSingle();
+    if (error) throw new Error("Could not load shared state");
+    return { data: (row?.data ?? null) as unknown };
+  });
