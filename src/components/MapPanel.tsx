@@ -13,6 +13,7 @@ import {
 } from "@/lib/traffic-plans.functions";
 import { ensureDeviceCode, getDeviceCode, setDeviceCode } from "@/lib/device-access";
 import { pushSharedState } from "@/lib/shared-state";
+import { loadSharedState } from "@/lib/shared-state.functions";
 
 // Keep the map usable in previews where Lovable Cloud build variables have not
 // been injected yet. Local persistence remains available until cloud sync is.
@@ -612,9 +613,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
       }
     })();
 
-    if (!REALTIME_ENABLED) return cleanupChannel;
-
-    try {
+    if (REALTIME_ENABLED) try {
       channel = supabase
         .channel("kairos_landmark_changes")
         .on(
@@ -1271,9 +1270,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
       }
     })();
 
-    if (!REALTIME_ENABLED) return cleanupChannel;
-
-    try {
+    if (REALTIME_ENABLED) try {
       channel = supabase
         .channel("kairos_annotation_changes")
         .on(
