@@ -6,7 +6,7 @@ import {
   deleteConsultingRecord,
 } from "@/lib/consulting.functions";
 import { listDocuments, uploadDocument } from "@/lib/documents.functions";
-import { getDeviceCode } from "@/lib/device-access";
+import { getDeviceCode, setDeviceCode } from "@/lib/device-access";
 import CodeGate from "@/components/CodeGate";
 
 import {
