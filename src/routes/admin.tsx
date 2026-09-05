@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { listDeviceCodes, inviteDevice, setDeviceRevoked } from "@/lib/traffic-plans.functions";
 import { setDeviceRole } from "@/lib/consulting.functions";
-import { getDeviceCode } from "@/lib/device-access";
+import { getDeviceCode, setDeviceCode } from "@/lib/device-access";
 import CodeGate from "@/components/CodeGate";
 
 import { useFleetConfig, DEFAULT_FLEET_CONFIG, type FleetConfig } from "@/lib/fleet-config";
@@ -132,11 +132,24 @@ function DeviceInvites() {
 
   const refresh = async (c: string) => {
     try {
-      const { rows } = await listDeviceCodes({ data: { code: c } });
-      setRows(rows);
+      const result = await listDeviceCodes({ data: { code: c } });
+      if (result.unauthorized) {
+        setDeviceCode(null);
+        setCode(null);
+        setRows([]);
+        setError("That saved access code is no longer valid. Enter an active admin code.");
+        return false;
+      }
+      if (result.reason) {
+        setError(result.reason);
+        return false;
+      }
+      setRows(result.rows);
       setError(null);
+      return true;
     } catch (e) {
       setError((e as Error).message || "Could not load invited devices");
+      return false;
     }
   };
 
@@ -146,7 +159,6 @@ function DeviceInvites() {
   useEffect(() => {
     const stored = getDeviceCode();
     if (stored) {
-      setCode(stored);
       void refresh(stored);
     }
   }, []);
@@ -194,8 +206,8 @@ function DeviceInvites() {
       {!code ? (
         <CodeGate
           onUnlock={async (c) => {
-            setCode(c);
-            await refresh(c);
+              const valid = await refresh(c);
+              if (valid) setCode(c);
           }}
         />
       ) : (
