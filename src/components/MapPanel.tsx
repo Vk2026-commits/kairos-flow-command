@@ -12,6 +12,7 @@ import {
   importLegacyTrafficPlans,
 } from "@/lib/traffic-plans.functions";
 import { ensureDeviceCode, getDeviceCode, setDeviceCode } from "@/lib/device-access";
+import { pushSharedState } from "@/lib/shared-state";
 
 // Keep the map usable in previews where Lovable Cloud build variables have not
 // been injected yet. Local persistence remains available until cloud sync is.
