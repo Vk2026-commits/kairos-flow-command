@@ -82,17 +82,28 @@ export default function ConsultingProgress() {
 
   const refresh = async (c: string) => {
     setLoading(true);
+    let ok = false;
     try {
       const res: any = await loadConsulting({ data: { code: c } });
       setRole((res.role ?? "executive") as Role);
       setProject({ ...DEFAULT_PROJECT, ...(res.project ?? {}) });
       setRecords({ ...EMPTY, ...(res.records ?? {}) });
       setError(null);
+      ok = true;
     } catch (e) {
-      setError((e as Error).message || "Could not load consulting progress");
+      const msg = (e as Error).message || "";
+      if (/not invited|access code/i.test(msg)) {
+        // Stale code stored on this device: drop it and show the gate again.
+        setDeviceCode(null);
+        setCode(null);
+        setError(null);
+      } else {
+        setError(msg || "Could not load consulting progress");
+      }
     } finally {
       setLoading(false);
     }
+    if (!ok) return;
     try {
       const d: any = await listDocuments({ data: { code: c } });
       setDocs((d?.rows ?? []) as DocRow[]);
@@ -108,6 +119,7 @@ export default function ConsultingProgress() {
       void refresh(stored);
     }
   }, []);
+
 
 
 
