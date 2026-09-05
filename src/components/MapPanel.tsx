@@ -19,7 +19,9 @@ import { pushSharedState } from "@/lib/shared-state";
 const CLOUD_SYNC_ENABLED = Boolean(
   import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
 );
-const cloudDb = supabase as any;
+// Lazily resolved: touching the client at module scope throws when backend env
+// vars are absent, which would break every page that imports this file.
+const cloudDb = () => supabase as any;
 
 type LayerKey =
   | "ingress"
@@ -589,7 +591,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
     (async () => {
       try {
-        const { data, error } = await cloudDb
+        const { data, error } = await cloudDb()
           .from("kairos_state")
           .select("data")
           .eq("key", LANDMARKS_CLOUD_KEY)
@@ -1250,7 +1252,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
     (async () => {
       try {
-        const { data, error } = await cloudDb
+        const { data, error } = await cloudDb()
           .from("kairos_state")
           .select("data")
           .eq("key", ANNOTATIONS_CLOUD_KEY)

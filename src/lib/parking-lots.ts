@@ -5,7 +5,9 @@ import { pushSharedState } from "./shared-state";
 const CLOUD_SYNC_ENABLED = Boolean(
   import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
 );
-const cloudDb = supabase as any;
+// Lazily resolved: touching the client at module scope throws when backend env
+// vars are absent, which would break every page that imports this file.
+const cloudDb = () => supabase as any;
 
 const STORAGE_KEY = "kairos.parkingLots.v1";
 const EVENT = "kairos:parking-lots-changed";
@@ -175,7 +177,7 @@ export function useParkingState(): [ParkingState, (next: ParkingState) => void] 
     (async () => {
       try {
         const local = readParkingState();
-        const { data, error } = await cloudDb
+        const { data, error } = await cloudDb()
           .from("kairos_state")
           .select("data")
           .eq("key", CLOUD_KEY)
