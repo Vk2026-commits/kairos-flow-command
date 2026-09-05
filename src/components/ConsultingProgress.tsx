@@ -165,12 +165,16 @@ export default function ConsultingProgress() {
           This area is restricted. Enter an access code to continue — admin codes can edit, executive codes are
           view-only.
         </p>
-        <button type="button" onClick={() => void unlock()} className="px-3 py-2 rounded-lg bg-kairos-gold text-bg-deep text-xs font-bold">
-          Enter access code
-        </button>
+        <CodeGate
+          onUnlock={async (c) => {
+            setCode(c);
+            await refresh(c);
+          }}
+        />
       </div>
     );
   }
+
 
   return (
     <div className="space-y-5">
