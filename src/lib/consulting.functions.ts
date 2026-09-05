@@ -42,7 +42,11 @@ async function requireDevice(rawCode: unknown) {
   if (error) throw new Error("Could not verify device access");
   if (!data || data.revoked) throw new Error("This device is not invited");
   void db.from("device_access_codes").update({ last_used_at: new Date().toISOString() }).eq("code", code);
-  return { code, db, role: (data.role ?? "admin") as "admin" | "executive", label: data.label ?? null };
+  const role = (data.role ?? "admin") as string;
+  if (role !== "admin" && role !== "executive") {
+    throw new Error("This device does not have access to Consulting Progress");
+  }
+  return { code, db, role: role as "admin" | "executive", label: data.label ?? null };
 }
 
 async function requireAdmin(rawCode: unknown) {
@@ -139,11 +143,11 @@ export const deleteConsultingRecord = createServerFn({ method: "POST" })
   });
 
 export const setDeviceRole = createServerFn({ method: "POST" })
-  .inputValidator((data: { code: string; target: string; role: "admin" | "executive" }) => data)
+  .inputValidator((data: { code: string; target: string; role: "admin" | "executive" | "security" | "parking" }) => data)
   .handler(async ({ data }) => {
     const { code, db } = await requireAdmin(data?.code);
     const target = normalizeCode(data?.target);
-    const role = data?.role === "executive" ? "executive" : "admin";
+    const role = ["executive", "security", "parking"].includes(String(data?.role)) ? String(data?.role) : "admin";
     if (target === code && role !== "admin") throw new Error("You cannot downgrade the device you are using");
     const { error } = await db.from("device_access_codes").update({ role }).eq("code", target);
     if (error) throw new Error("Could not update that device");

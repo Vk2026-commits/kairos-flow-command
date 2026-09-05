@@ -127,14 +127,14 @@ export const listDeviceCodes = createServerFn({ method: "POST" })
   });
 
 export const inviteDevice = createServerFn({ method: "POST" })
-  .inputValidator((data: { code: string; newCode: string; label?: string; role?: "admin" | "executive" }) => data)
+  .inputValidator((data: { code: string; newCode: string; label?: string; role?: "admin" | "executive" | "security" | "parking" }) => data)
   .handler(async ({ data }) => {
     const { db } = await requireDevice(data?.code);
     const newCode = normalizeCode(data?.newCode);
     const { error } = await db.from("device_access_codes").insert({
       code: newCode,
       label: (data?.label ?? "").trim() || null,
-      role: data?.role === "executive" ? "executive" : "admin",
+      role: ["executive", "security", "parking"].includes(String(data?.role)) ? String(data?.role) : "admin",
     });
     if (error) throw new Error("Could not create that code (it may already exist)");
     return { code: newCode };
