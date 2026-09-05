@@ -29,8 +29,9 @@ export async function ensureDeviceCode(opts?: { force?: boolean }): Promise<stri
   const stored = getDeviceCode();
   if (stored && !opts?.force) {
     try {
-      await verifyDeviceCode({ data: { code: stored } });
-      return stored;
+      const res: any = await verifyDeviceCode({ data: { code: stored } });
+      if (res?.ok) return stored;
+      setDeviceCode(null);
     } catch {
       setDeviceCode(null);
     }
@@ -41,11 +42,16 @@ export async function ensureDeviceCode(opts?: { force?: boolean }): Promise<stri
     .toUpperCase();
   if (!entered) return null;
   try {
-    await verifyDeviceCode({ data: { code: entered } });
+    const res: any = await verifyDeviceCode({ data: { code: entered } });
+    if (!res?.ok) {
+      window.alert("That access code is not invited (or has been revoked).");
+      return null;
+    }
     setDeviceCode(entered);
     return entered;
   } catch {
-    window.alert("That access code is not invited (or has been revoked).");
+    window.alert("Could not check that code right now. Please try again.");
     return null;
   }
 }
+
