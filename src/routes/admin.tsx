@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { listDeviceCodes, inviteDevice, setDeviceRevoked } from "@/lib/traffic-plans.functions";
+import { setDeviceRole } from "@/lib/consulting.functions";
 import { ensureDeviceCode, getDeviceCode } from "@/lib/device-access";
 import { useFleetConfig, DEFAULT_FLEET_CONFIG, type FleetConfig } from "@/lib/fleet-config";
 
@@ -124,6 +125,7 @@ function DeviceInvites() {
   const [rows, setRows] = useState<Array<Record<string, any>>>([]);
   const [newCode, setNewCode] = useState("");
   const [label, setLabel] = useState("");
+  const [role, setRole] = useState<"admin" | "executive">("admin");
   const [error, setError] = useState<string | null>(null);
 
   const refresh = async (c: string) => {
@@ -154,7 +156,7 @@ function DeviceInvites() {
   const invite = async () => {
     if (!code || !newCode.trim()) return;
     try {
-      await inviteDevice({ data: { code, newCode: newCode.trim(), label: label.trim() } });
+      await inviteDevice({ data: { code, newCode: newCode.trim(), label: label.trim(), role } });
       setNewCode("");
       setLabel("");
       await refresh(code);
@@ -170,6 +172,16 @@ function DeviceInvites() {
       await refresh(code);
     } catch (e) {
       setError((e as Error).message || "Could not update that device");
+    }
+  };
+
+  const changeRole = async (target: string, nextRole: "admin" | "executive") => {
+    if (!code) return;
+    try {
+      await setDeviceRole({ data: { code, target, role: nextRole } });
+      await refresh(code);
+    } catch (e) {
+      setError((e as Error).message || "Could not update that device's access level");
     }
   };
 
@@ -210,6 +222,17 @@ function DeviceInvites() {
                 className="h-9 px-3 rounded-lg bg-bg-deep border border-white/10 text-sm text-white focus:outline-none focus:border-kairos-blue"
               />
             </label>
+            <label className="block">
+              <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Access level</span>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as "admin" | "executive")}
+                className="h-9 px-3 rounded-lg bg-bg-deep border border-white/10 text-sm text-white focus:outline-none focus:border-kairos-blue"
+              >
+                <option value="admin">Admin — full access</option>
+                <option value="executive">Executive — view only</option>
+              </select>
+            </label>
             <button
               type="button"
               onClick={() => void invite()}
@@ -236,6 +259,14 @@ function DeviceInvites() {
                     {r.label || "No label"} · {r.last_used_at ? `last used ${new Date(r.last_used_at).toLocaleString()}` : "never used"}
                   </div>
                 </div>
+                <select
+                  value={(r.role as string) ?? "admin"}
+                  onChange={(e) => void changeRole(r.code, e.target.value as "admin" | "executive")}
+                  className="shrink-0 h-7 px-2 rounded bg-bg-deep border border-white/10 text-[10px] text-slate-200"
+                >
+                  <option value="admin">Admin</option>
+                  <option value="executive">Executive (view only)</option>
+                </select>
                 <button
                   type="button"
                   onClick={() => void toggle(r.code, !r.revoked)}
