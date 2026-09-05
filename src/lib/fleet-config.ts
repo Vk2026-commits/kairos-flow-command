@@ -81,12 +81,8 @@ export function useFleetConfig(): [FleetConfig, (next: FleetConfig) => void] {
     (async () => {
       try {
         const local = readFleetConfig();
-        const { data, error } = await cloudDb()
-          .from("kairos_state")
-          .select("data")
-          .eq("key", CLOUD_KEY)
-          .maybeSingle();
-        if (error) throw error;
+        const res = await loadSharedState({ data: { key: CLOUD_KEY } });
+        const data = { data: res?.data ?? null };
         if (cancelled) return;
 
         if (data?.data && typeof data.data === "object" && !Array.isArray(data.data)) {

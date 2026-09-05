@@ -591,12 +591,8 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
     (async () => {
       try {
-        const { data, error } = await cloudDb()
-          .from("kairos_state")
-          .select("data")
-          .eq("key", LANDMARKS_CLOUD_KEY)
-          .maybeSingle();
-        if (error) throw error;
+        const res = await loadSharedState({ data: { key: LANDMARKS_CLOUD_KEY } });
+        const data = { data: res?.data ?? null };
         if (cancelled) return;
 
         const cloudData = data?.data as { landmarks?: Landmark[] } | null;
@@ -1252,12 +1248,8 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
     (async () => {
       try {
-        const { data, error } = await cloudDb()
-          .from("kairos_state")
-          .select("data")
-          .eq("key", ANNOTATIONS_CLOUD_KEY)
-          .maybeSingle();
-        if (error) throw error;
+        const res = await loadSharedState({ data: { key: ANNOTATIONS_CLOUD_KEY } });
+        const data = { data: res?.data ?? null };
         if (cancelled) return;
 
         const cloudData = data?.data as { annotations?: Annotation[] } | null;

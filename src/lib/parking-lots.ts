@@ -177,12 +177,8 @@ export function useParkingState(): [ParkingState, (next: ParkingState) => void] 
     (async () => {
       try {
         const local = readParkingState();
-        const { data, error } = await cloudDb()
-          .from("kairos_state")
-          .select("data")
-          .eq("key", CLOUD_KEY)
-          .maybeSingle();
-        if (error) throw error;
+        const res = await loadSharedState({ data: { key: CLOUD_KEY } });
+        const data = { data: res?.data ?? null };
         if (cancelled) return;
         if (data?.data && typeof data.data === "object") {
           const cloud = normalize(data.data);
