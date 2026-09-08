@@ -36,12 +36,14 @@ const EMPTY: Records = {
   recommendations: [],
   notes: [],
   beforeAfter: [],
+  briefings: [],
 };
 
 type Tab = "dashboard" | EntityKey | "history" | "report";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "dashboard", label: "Executive Dashboard" },
+  { key: "briefings", label: "Assessments by Date" },
   { key: "activities", label: "Work Activity" },
   { key: "siteVisits", label: "Site Visits" },
   { key: "milestones", label: "Timeline" },
