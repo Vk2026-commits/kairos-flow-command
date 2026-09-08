@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { lookupDeviceRow, normalizeCode } from "./device-codes.server";
+
 
 // Traffic plans are locked to invited devices. The browser never touches the
 // table directly: every call carries a device access code that the server
