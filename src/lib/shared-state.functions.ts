@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { lookupDeviceRow } from "./device-codes.server";
+
 
 // Shared board state (map annotations, landmarks, parking lots, fleet counts)
 // is readable by anyone on the campus display, but only an invited admin
