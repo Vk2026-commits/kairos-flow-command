@@ -125,7 +125,7 @@ function AdminSettings() {
 }
 
 function DeviceInvites() {
-  const [code, setCode] = useState<string | null>(null);
+  const [code, setCode] = useState<string | null>(getDeviceCode());
   const [rows, setRows] = useState<Array<Record<string, any>>>([]);
   const [newCode, setNewCode] = useState("");
   const [label, setLabel] = useState("");
