@@ -16,6 +16,12 @@ export type ParkingLot = {
   name: string;
   color: string;
   spaces: number;
+  /** e.g. "Verified / High Confidence" or "Working Capacity – Pending Final Field Verification" */
+  verification?: string;
+  /** operational / capacity notes for the lot */
+  notes?: string;
+  /** YYYY-MM-DD of the last field assessment */
+  assessedOn?: string;
 };
 
 export const SERVICES = [
@@ -34,6 +40,8 @@ export type LotCount = {
   cars: number;
   full: boolean;
   note?: string;
+  /** observed fill percentage when the field note gave a percentage, not an exact car count */
+  estimatePct?: number;
   /** Which church service this count belongs to */
   serviceId?: string;
   /** Service date, YYYY-MM-DD */
@@ -100,6 +108,9 @@ function normalize(raw: unknown): ParkingState {
         name: String(l?.name ?? `Lot ${i + 1}`),
         color: String(l?.color ?? "#64748b"),
         spaces: num(l?.spaces, 20000),
+        verification: l?.verification ? String(l.verification) : undefined,
+        notes: l?.notes ? String(l.notes) : undefined,
+        assessedOn: l?.assessedOn ? String(l.assessedOn) : undefined,
       }))
     : DEFAULT_PARKING_STATE.lots;
   const counts = Array.isArray(obj.counts)
@@ -111,6 +122,10 @@ function normalize(raw: unknown): ParkingState {
           cars: num(c?.cars, 20000),
           full: Boolean(c?.full),
           note: c?.note ? String(c.note) : undefined,
+          estimatePct:
+            c?.estimatePct === undefined || c?.estimatePct === null
+              ? undefined
+              : num(c.estimatePct, 100),
           serviceId: c?.serviceId ? String(c.serviceId) : undefined,
           date: c?.date ? String(c.date) : toDateKey(String(c?.at ?? "")),
 

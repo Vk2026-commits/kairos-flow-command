@@ -326,7 +326,12 @@ export function ParkingLotsPanel() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {state.lots.map((lot) => {
           const last = latest[lot.id];
-          const pct = lot.spaces > 0 && last ? Math.min(100, (last.cars / lot.spaces) * 100) : 0;
+          const countPct =
+            lot.spaces > 0 && last && last.cars > 0
+              ? Math.min(100, (last.cars / lot.spaces) * 100)
+              : 0;
+          const pct = countPct > 0 ? countPct : (last?.estimatePct ?? 0);
+          const remaining = lot.spaces > 0 && last ? Math.max(0, lot.spaces - last.cars) : null;
           return (
             <div
               key={lot.id}
@@ -392,9 +397,41 @@ export function ParkingLotsPanel() {
               </div>
               <p className="text-[10px] font-mono text-slate-500 uppercase">
                 {last
-                  ? `${last.cars}/${lot.spaces || "?"} · ${fmt(last.at)}`
+                  ? last.cars > 0
+                    ? `${last.cars}/${lot.spaces || "?"} · ${Math.round(pct)}% · ${
+                        remaining === null ? "" : `${remaining} open · `
+                      }${fmt(last.at)}`
+                    : `~${last.estimatePct ?? 0}% full (estimate) · ${fmt(last.at)}`
                   : "No counts recorded yet"}
               </p>
+              {last?.note && (
+                <p className="text-[10px] text-slate-400 leading-snug">{last.note}</p>
+              )}
+              {(lot.verification || lot.notes || lot.assessedOn) && (
+                <div className="flex flex-col gap-1.5 pt-1 border-t border-white/5">
+                  {lot.verification && (
+                    <span
+                      className={`self-start text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded border ${
+                        /verified/i.test(lot.verification)
+                          ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10"
+                          : "text-amber-400 border-amber-500/30 bg-amber-500/10"
+                      }`}
+                    >
+                      {lot.verification}
+                    </span>
+                  )}
+                  {lot.notes && (
+                    <p className="text-[10px] text-slate-400 leading-snug whitespace-pre-line">
+                      {lot.notes}
+                    </p>
+                  )}
+                  {lot.assessedOn && (
+                    <p className="text-[9px] font-mono uppercase tracking-widest text-slate-500">
+                      Last assessment · {fmtDate(lot.assessedOn)}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-white/5">
                 {SERVICES.map((s) => {
@@ -466,11 +503,20 @@ export function ParkingLotsPanel() {
                     {(SERVICES.find((s) => s.id === (c.serviceId ?? SERVICES[0].id))?.name ?? "")
                       .replace(" Service", "")}
                   </span>
-                  <span className="text-[11px] font-mono text-slate-400 flex-1">{fmt(c.at)}</span>
+                  <span className="text-[11px] font-mono text-slate-400 flex-1">
+                    {fmt(c.at)}
+                    {c.note ? ` · ${c.note}` : ""}
+                  </span>
 
                   <span className="text-xs font-mono text-white tabular-nums">
-                    {c.cars}
-                    {lot?.spaces ? `/${lot.spaces}` : ""}
+                    {c.cars > 0 || c.estimatePct === undefined ? (
+                      <>
+                        {c.cars}
+                        {lot?.spaces ? `/${lot.spaces}` : ""}
+                      </>
+                    ) : (
+                      <span className="text-amber-400">~{c.estimatePct}%</span>
+                    )}
                   </span>
                   {c.full && (
                     <span className="text-[9px] font-bold uppercase tracking-widest text-red-400">
