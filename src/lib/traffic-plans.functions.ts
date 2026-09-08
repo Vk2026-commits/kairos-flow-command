@@ -13,7 +13,7 @@ async function admin() {
 
 function normalizeCode(input: unknown): string {
   if (typeof input !== "string") throw new Error("Missing device access code");
-  const code = input.trim().toUpperCase();
+  const code = input.trim().toUpperCase().replaceAll("/", "-");
   if (code.length < 4 || code.length > 64) throw new Error("Invalid device access code");
   return code;
 }
