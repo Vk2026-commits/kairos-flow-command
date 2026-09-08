@@ -104,6 +104,36 @@ export type Database = {
         }
         Relationships: []
       }
+      consulting_briefings: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          occurred_on: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       consulting_milestones: {
         Row: {
           created_at: string

@@ -17,6 +17,7 @@ const ENTITIES = {
   recommendations: "consulting_recommendations",
   notes: "consulting_notes",
   beforeAfter: "consulting_before_after",
+  briefings: "consulting_briefings",
 } as const;
 
 export type ConsultingEntity = keyof typeof ENTITIES;

@@ -103,7 +103,10 @@ export type EntityKey =
   | "actionItems"
   | "recommendations"
   | "notes"
-  | "beforeAfter";
+  | "beforeAfter"
+  | "briefings";
+
+export const BRIEFING_STATUSES = ["Published", "Draft"] as const;
 
 export type EntityConfig = {
   key: EntityKey;
@@ -260,9 +263,32 @@ export const ENTITY_CONFIG: Record<EntityKey, EntityConfig> = {
       { key: "afterDocs", label: "After — New Photos / Updated Map", type: "docs", wide: true },
     ],
   },
+  briefings: {
+    key: "briefings",
+    label: "Assessment Briefings",
+    singular: "Briefing",
+    titleLabel: "Briefing Title",
+    statusLabel: "Status",
+    statusOptions: BRIEFING_STATUSES,
+    dateLabel: "Date Covered",
+    fields: [
+      { key: "phase", label: "Phase at This Date", type: "text" },
+      { key: "progress", label: "Overall Progress % at This Date", type: "number" },
+      { key: "preparedBy", label: "Prepared By", type: "text" },
+      { key: "serviceOrEvent", label: "Service / Event Covered", type: "text" },
+      { key: "summary", label: "Executive Summary", type: "textarea", wide: true },
+      { key: "keyFindings", label: "Key Findings", type: "textarea", wide: true },
+      { key: "assessments", label: "Assessments Performed", type: "textarea", wide: true },
+      { key: "workCompleted", label: "Work Completed", type: "textarea", wide: true },
+      { key: "recommendations", label: "Recommendations", type: "textarea", wide: true },
+      { key: "nextSteps", label: "Next Steps", type: "textarea", wide: true },
+      { key: "attachments", label: "Attachments / Maps / Photos", type: "docs", wide: true },
+    ],
+  },
 };
 
 export const ENTITY_ORDER: readonly EntityKey[] = [
+  "briefings",
   "activities",
   "siteVisits",
   "milestones",
