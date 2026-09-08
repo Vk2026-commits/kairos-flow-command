@@ -414,6 +414,147 @@ function Dashboard({
           </ul>
         </div>
       </div>
+
+      <BriefingArchive
+        project={project}
+        briefings={records.briefings}
+        canEdit={canEdit}
+        onSaveRecord={onSaveRecord}
+        onOpenBriefings={onOpenBriefings}
+      />
+    </div>
+  );
+}
+
+/* ===================== Saved assessments (by date) ===================== */
+
+function BriefingArchive({
+  project,
+  briefings,
+  canEdit,
+  onSaveRecord,
+  onOpenBriefings,
+}: {
+  project: ConsultingProject;
+  briefings: ConsultingRecord[];
+  canEdit: boolean;
+  onSaveRecord: (entity: EntityKey, id: string | null, record: Partial<ConsultingRecord>) => void;
+  onOpenBriefings: () => void;
+}) {
+  const sorted = useMemo(
+    () =>
+      [...briefings].sort((a, b) =>
+        String(b.occurred_on ?? b.created_at ?? "").localeCompare(String(a.occurred_on ?? a.created_at ?? "")),
+      ),
+    [briefings],
+  );
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [saveDate, setSaveDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [saving, setSaving] = useState(false);
+
+  const open = sorted.find((b) => b.id === openId) ?? null;
+
+  const saveSnapshot = async () => {
+    setSaving(true);
+    try {
+      onSaveRecord("briefings", null, {
+        title: `Assessment Briefing — ${fmtDay(saveDate)}`,
+        status: "Published",
+        occurred_on: saveDate,
+        data: {
+          phase: project.phase ?? "",
+          progress: project.progress_pct ?? 0,
+          summary: project.summary ?? "",
+          nextSteps: project.next_action ?? "",
+        },
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className={card}>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">Saved Assessments by Date</h3>
+          <p className="text-[11px] text-slate-400 mt-1">
+            Every saved assessment is kept permanently. Pick a date to read exactly what was done and what was found.
+          </p>
+        </div>
+        <div className="flex items-end gap-2 flex-wrap">
+          {canEdit && (
+            <>
+              <label className="block">
+                <span className={labelCls}>Date</span>
+                <input type="date" value={saveDate} onChange={(e) => setSaveDate(e.target.value)} className={inputCls} />
+              </label>
+              <button type="button" onClick={saveSnapshot} disabled={saving} className={btnPrimary}>
+                Save this summary to {saveDate}
+              </button>
+            </>
+          )}
+          <button type="button" onClick={onOpenBriefings} className={btnGhost}>
+            Full briefing editor
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {sorted.length === 0 && (
+          <p className="text-xs text-slate-500">
+            No dated assessments saved yet{canEdit ? " — save today's summary above to start the archive." : "."}
+          </p>
+        )}
+        {sorted.map((b) => (
+          <button
+            key={b.id}
+            type="button"
+            onClick={() => setOpenId(openId === b.id ? null : b.id)}
+            className={`px-3 py-2 rounded-lg text-[11px] font-semibold border transition ${
+              openId === b.id
+                ? "bg-kairos-blue border-kairos-blue text-white"
+                : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"
+            }`}
+          >
+            {fmtDay(b.occurred_on)}
+            <span className="ml-2 text-[10px] text-slate-400">{b.status}</span>
+          </button>
+        ))}
+      </div>
+
+      {open && (
+        <div className="mt-4 rounded-xl border border-white/10 bg-bg-deep p-4 space-y-3">
+          <div className="flex items-baseline justify-between gap-3 flex-wrap">
+            <h4 className="text-sm font-bold text-white">{open.title}</h4>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-slate-500">
+              {fmtDay(open.occurred_on)}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Stat label="Phase" value={String(open.data?.phase || "—")} />
+            <Stat label="Progress" value={open.data?.progress ? `${open.data.progress}%` : "—"} />
+            <Stat label="Service / Event" value={String(open.data?.serviceOrEvent || "—")} />
+          </div>
+          {(
+            [
+              ["Executive Summary", "summary"],
+              ["Key Findings", "keyFindings"],
+              ["Assessments Performed", "assessments"],
+              ["Work Completed", "workCompleted"],
+              ["Recommendations", "recommendations"],
+              ["Next Steps", "nextSteps"],
+            ] as const
+          ).map(([label, key]) =>
+            open.data?.[key] ? (
+              <div key={key}>
+                <div className={labelCls}>{label}</div>
+                <p className="text-sm text-slate-300 whitespace-pre-wrap">{String(open.data[key])}</p>
+              </div>
+            ) : null,
+          )}
+        </div>
+      )}
     </div>
   );
 }
