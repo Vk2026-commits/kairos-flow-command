@@ -326,7 +326,12 @@ export function ParkingLotsPanel() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {state.lots.map((lot) => {
           const last = latest[lot.id];
-          const pct = lot.spaces > 0 && last ? Math.min(100, (last.cars / lot.spaces) * 100) : 0;
+          const countPct =
+            lot.spaces > 0 && last && last.cars > 0
+              ? Math.min(100, (last.cars / lot.spaces) * 100)
+              : 0;
+          const pct = countPct > 0 ? countPct : (last?.estimatePct ?? 0);
+          const remaining = lot.spaces > 0 && last ? Math.max(0, lot.spaces - last.cars) : null;
           return (
             <div
               key={lot.id}
