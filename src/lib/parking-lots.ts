@@ -122,6 +122,10 @@ function normalize(raw: unknown): ParkingState {
           cars: num(c?.cars, 20000),
           full: Boolean(c?.full),
           note: c?.note ? String(c.note) : undefined,
+          estimatePct:
+            c?.estimatePct === undefined || c?.estimatePct === null
+              ? undefined
+              : num(c.estimatePct, 100),
           serviceId: c?.serviceId ? String(c.serviceId) : undefined,
           date: c?.date ? String(c.date) : toDateKey(String(c?.at ?? "")),
 
