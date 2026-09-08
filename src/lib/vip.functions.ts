@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { lookupDeviceRow } from "./device-codes.server";
+
 
 // VIP & Special Guests. Same security model as the consulting and document
 // areas: the browser never touches these tables. Every call carries a device
