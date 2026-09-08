@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { lookupDeviceRow } from "./device-codes.server";
+
 
 // Shared board state (map annotations, landmarks, parking lots, fleet counts)
 // is readable by anyone on the campus display, but only an invited admin
@@ -13,20 +15,12 @@ async function admin() {
 }
 
 async function requireAdminDevice(rawCode: unknown) {
-  if (typeof rawCode !== "string") throw new Error("Missing device access code");
-  const code = rawCode.trim().toUpperCase();
-  if (code.length < 4 || code.length > 64) throw new Error("Invalid device access code");
   const db = await admin();
-  const { data, error } = await db
-    .from("device_access_codes")
-    .select("code, revoked, role")
-    .eq("code", code)
-    .maybeSingle();
-  if (error) throw new Error("Could not verify device access");
-  if (!data || data.revoked) throw new Error("This device is not invited");
+  const data = await lookupDeviceRow(db, rawCode, "code, revoked, role");
   if ((data.role ?? "admin") !== "admin") throw new Error("This device has view-only executive access");
   return db;
 }
+
 
 export const saveSharedState = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string; key: string; data: unknown }) => data)
