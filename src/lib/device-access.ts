@@ -4,13 +4,19 @@ import { verifyDeviceCode } from "./traffic-plans.functions";
 // access code that an admin hands out, and only invited codes can sync plans.
 const CODE_KEY = "kairos:device-code:v1";
 
+// TEMPORARY: access codes are switched off, so every device is treated as an
+// invited admin device. Mirror of ACCESS_CODES_DISABLED in device-codes.server.ts.
+export const ACCESS_CODES_DISABLED = true;
+
 export function getDeviceCode(): string | null {
+  if (ACCESS_CODES_DISABLED) return "OPEN-ACCESS";
   try {
     return localStorage.getItem(CODE_KEY);
   } catch {
     return null;
   }
 }
+
 
 export function setDeviceCode(code: string | null) {
   try {
