@@ -267,6 +267,9 @@ export function ParkingLotsPanel() {
         </div>
       </div>
 
+      <div className="mb-4 -mt-2">
+        <LiveCountForm />
+      </div>
 
       <div className="mb-4">
         {adding ? (
