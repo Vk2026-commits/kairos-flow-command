@@ -545,7 +545,10 @@ export function ParkingLotsPanel() {
         )}
       </div>
 
+      <SundayServiceCounts state={state} setState={setState} />
+
       <ParkingReport state={state} />
+
     </div>
 
   );
