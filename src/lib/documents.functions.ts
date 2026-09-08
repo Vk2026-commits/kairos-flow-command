@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { lookupDeviceRow } from "./device-codes.server";
+
 
 // Uploaded documents are locked to invited devices, exactly like traffic plans.
 // The browser never touches the documents table or the private storage bucket:
