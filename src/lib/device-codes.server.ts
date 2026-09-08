@@ -3,6 +3,11 @@
 // spacing must not decide whether they get in: KAIROS-2026, kairos 2026 and
 // kairos2026 all resolve to the same invited device.
 
+// TEMPORARY: access codes are switched off at the owner's request so the admin
+// and consulting areas open without a code. Set to false to turn codes back on.
+export const ACCESS_CODES_DISABLED = true;
+
+
 export function normalizeCode(input: unknown): string {
   if (typeof input !== "string") throw new Error("Missing device access code");
   const code = input.trim().toUpperCase();
