@@ -503,11 +503,20 @@ export function ParkingLotsPanel() {
                     {(SERVICES.find((s) => s.id === (c.serviceId ?? SERVICES[0].id))?.name ?? "")
                       .replace(" Service", "")}
                   </span>
-                  <span className="text-[11px] font-mono text-slate-400 flex-1">{fmt(c.at)}</span>
+                  <span className="text-[11px] font-mono text-slate-400 flex-1">
+                    {fmt(c.at)}
+                    {c.note ? ` · ${c.note}` : ""}
+                  </span>
 
                   <span className="text-xs font-mono text-white tabular-nums">
-                    {c.cars}
-                    {lot?.spaces ? `/${lot.spaces}` : ""}
+                    {c.cars > 0 || c.estimatePct === undefined ? (
+                      <>
+                        {c.cars}
+                        {lot?.spaces ? `/${lot.spaces}` : ""}
+                      </>
+                    ) : (
+                      <span className="text-amber-400">~{c.estimatePct}%</span>
+                    )}
                   </span>
                   {c.full && (
                     <span className="text-[9px] font-bold uppercase tracking-widest text-red-400">
