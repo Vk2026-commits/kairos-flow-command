@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { lookupDeviceRow, normalizeCode } from "./device-codes.server";
+
 
 // Consulting Progress records live in their own tables and are locked to
 // invited devices, exactly like traffic plans and documents. The browser never
