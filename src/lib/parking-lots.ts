@@ -108,6 +108,9 @@ function normalize(raw: unknown): ParkingState {
         name: String(l?.name ?? `Lot ${i + 1}`),
         color: String(l?.color ?? "#64748b"),
         spaces: num(l?.spaces, 20000),
+        verification: l?.verification ? String(l.verification) : undefined,
+        notes: l?.notes ? String(l.notes) : undefined,
+        assessedOn: l?.assessedOn ? String(l.assessedOn) : undefined,
       }))
     : DEFAULT_PARKING_STATE.lots;
   const counts = Array.isArray(obj.counts)
