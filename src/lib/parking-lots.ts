@@ -40,6 +40,8 @@ export type LotCount = {
   cars: number;
   full: boolean;
   note?: string;
+  /** observed fill percentage when the field note gave a percentage, not an exact car count */
+  estimatePct?: number;
   /** Which church service this count belongs to */
   serviceId?: string;
   /** Service date, YYYY-MM-DD */
