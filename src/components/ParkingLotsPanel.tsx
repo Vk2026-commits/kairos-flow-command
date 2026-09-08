@@ -191,7 +191,14 @@ export function ParkingLotsPanel() {
             {fmtDate(date)} · {service.name} · {recordedLots}/{state.lots.length} lots recorded ·{" "}
             {totalCars}/{totalSpaces || "?"} cars
           </p>
+          <Link
+            to="/parking-summary"
+            className="inline-block mt-2 text-[10px] font-bold uppercase tracking-widest text-white/80 border border-white/15 rounded-lg px-3 py-1.5 hover:bg-white/10"
+          >
+            Weekly summary + PDF →
+          </Link>
         </div>
+
         <div className="flex items-end gap-3 flex-wrap">
           <label className="flex flex-col gap-1">
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
