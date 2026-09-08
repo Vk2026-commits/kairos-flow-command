@@ -397,9 +397,41 @@ export function ParkingLotsPanel() {
               </div>
               <p className="text-[10px] font-mono text-slate-500 uppercase">
                 {last
-                  ? `${last.cars}/${lot.spaces || "?"} · ${fmt(last.at)}`
+                  ? last.cars > 0
+                    ? `${last.cars}/${lot.spaces || "?"} · ${Math.round(pct)}% · ${
+                        remaining === null ? "" : `${remaining} open · `
+                      }${fmt(last.at)}`
+                    : `~${last.estimatePct ?? 0}% full (estimate) · ${fmt(last.at)}`
                   : "No counts recorded yet"}
               </p>
+              {last?.note && (
+                <p className="text-[10px] text-slate-400 leading-snug">{last.note}</p>
+              )}
+              {(lot.verification || lot.notes || lot.assessedOn) && (
+                <div className="flex flex-col gap-1.5 pt-1 border-t border-white/5">
+                  {lot.verification && (
+                    <span
+                      className={`self-start text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded border ${
+                        /verified/i.test(lot.verification)
+                          ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10"
+                          : "text-amber-400 border-amber-500/30 bg-amber-500/10"
+                      }`}
+                    >
+                      {lot.verification}
+                    </span>
+                  )}
+                  {lot.notes && (
+                    <p className="text-[10px] text-slate-400 leading-snug whitespace-pre-line">
+                      {lot.notes}
+                    </p>
+                  )}
+                  {lot.assessedOn && (
+                    <p className="text-[9px] font-mono uppercase tracking-widest text-slate-500">
+                      Last assessment · {fmtDate(lot.assessedOn)}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-white/5">
                 {SERVICES.map((s) => {
