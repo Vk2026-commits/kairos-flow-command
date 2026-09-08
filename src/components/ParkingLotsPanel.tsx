@@ -202,6 +202,12 @@ export function ParkingLotsPanel() {
           >
             Weekly summary + PDF →
           </Link>
+          <Link
+            to="/parking-plan"
+            className="inline-block mt-2 ml-2 text-[10px] font-bold uppercase tracking-widest text-white/80 border border-white/15 rounded-lg px-3 py-1.5 hover:bg-white/10"
+          >
+            Parking plan →
+          </Link>
         </div>
 
         <div className="flex items-end gap-3 flex-wrap">
