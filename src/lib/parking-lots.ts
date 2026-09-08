@@ -22,6 +22,21 @@ export type ParkingLot = {
   notes?: string;
   /** YYYY-MM-DD of the last field assessment */
   assessedOn?: string;
+  /** parking plan allocation: how the lot's spaces are designated */
+  plan?: LotPlan;
+};
+
+export type LotPlan = {
+  /** reserved spaces (staff, guests, pastoral) */
+  reserved: number;
+  /** Houston PD / law enforcement staging spaces */
+  hpd: number;
+  /** ministry team spaces */
+  ministry: number;
+  /** ADA / accessible spaces */
+  ada: number;
+  /** who parks where / plan notes */
+  notes?: string;
 };
 
 export const SERVICES = [
@@ -111,6 +126,15 @@ function normalize(raw: unknown): ParkingState {
         verification: l?.verification ? String(l.verification) : undefined,
         notes: l?.notes ? String(l.notes) : undefined,
         assessedOn: l?.assessedOn ? String(l.assessedOn) : undefined,
+        plan: l?.plan
+          ? {
+              reserved: num(l.plan.reserved, 20000),
+              hpd: num(l.plan.hpd, 20000),
+              ministry: num(l.plan.ministry, 20000),
+              ada: num(l.plan.ada, 20000),
+              notes: l.plan.notes ? String(l.plan.notes) : undefined,
+            }
+          : undefined,
       }))
     : DEFAULT_PARKING_STATE.lots;
   const counts = Array.isArray(obj.counts)
