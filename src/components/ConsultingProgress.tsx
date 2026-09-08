@@ -214,7 +214,14 @@ export default function ConsultingProgress() {
       {error && <div className="text-[11px] text-red-400">{error}</div>}
 
       {tab === "dashboard" && (
-        <Dashboard project={project} records={records} canEdit={canEdit} onSaveProject={saveProject} />
+        <Dashboard
+          project={project}
+          records={records}
+          canEdit={canEdit}
+          onSaveProject={saveProject}
+          onSaveRecord={saveRecord}
+          onOpenBriefings={() => setTab("briefings")}
+        />
       )}
 
       {ENTITY_ORDER.includes(tab as EntityKey) && (
@@ -242,11 +249,15 @@ function Dashboard({
   records,
   canEdit,
   onSaveProject,
+  onSaveRecord,
+  onOpenBriefings,
 }: {
   project: ConsultingProject;
   records: Records;
   canEdit: boolean;
   onSaveProject: (p: ConsultingProject) => void;
+  onSaveRecord: (entity: EntityKey, id: string | null, record: Partial<ConsultingRecord>) => void;
+  onOpenBriefings: () => void;
 }) {
   const [draft, setDraft] = useState(project);
   useEffect(() => setDraft(project), [project]);
