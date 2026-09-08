@@ -16,6 +16,12 @@ export type ParkingLot = {
   name: string;
   color: string;
   spaces: number;
+  /** e.g. "Verified / High Confidence" or "Working Capacity – Pending Final Field Verification" */
+  verification?: string;
+  /** operational / capacity notes for the lot */
+  notes?: string;
+  /** YYYY-MM-DD of the last field assessment */
+  assessedOn?: string;
 };
 
 export const SERVICES = [
