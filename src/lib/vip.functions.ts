@@ -37,28 +37,15 @@ async function admin() {
   return supabaseAdmin as any;
 }
 
-function normalizeCode(input: unknown): string {
-  if (typeof input !== "string") throw new Error("Missing device access code");
-  const code = input.trim().toUpperCase();
-  if (code.length < 4 || code.length > 64) throw new Error("Invalid device access code");
-  return code;
-}
-
 async function requireDevice(rawCode: unknown) {
-  const code = normalizeCode(rawCode);
   const db = await admin();
-  const { data, error } = await db
-    .from("device_access_codes")
-    .select("code, revoked, role, label")
-    .eq("code", code)
-    .maybeSingle();
-  if (error) throw new Error("Could not verify device access");
-  if (!data || data.revoked) throw new Error("This device is not invited");
-  void db.from("device_access_codes").update({ last_used_at: new Date().toISOString() }).eq("code", code);
+  const data = await lookupDeviceRow(db, rawCode, "code, revoked, role, label");
+  const code = String(data.code);
   const role = (data.role ?? "admin") as VipRole;
   const actor = (data.label ?? code) as string;
   return { code, db, role, actor };
 }
+
 
 async function requireEditor(rawCode: unknown) {
   const ctx = await requireDevice(rawCode);
