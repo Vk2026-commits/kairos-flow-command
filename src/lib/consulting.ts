@@ -103,7 +103,10 @@ export type EntityKey =
   | "actionItems"
   | "recommendations"
   | "notes"
-  | "beforeAfter";
+  | "beforeAfter"
+  | "briefings";
+
+export const BRIEFING_STATUSES = ["Published", "Draft"] as const;
 
 export type EntityConfig = {
   key: EntityKey;
