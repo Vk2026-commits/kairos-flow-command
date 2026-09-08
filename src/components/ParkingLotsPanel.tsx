@@ -10,6 +10,8 @@ import {
   type LotCount,
 } from "@/lib/parking-lots";
 import { ParkingReport } from "@/components/ParkingReport";
+import { SundayServiceCounts } from "@/components/SundayServiceCounts";
+
 
 function fmt(at: string) {
   const d = new Date(at);
