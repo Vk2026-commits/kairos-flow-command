@@ -29,7 +29,12 @@ export async function lookupDeviceRow(
   rawCode: unknown,
   select = "code, revoked",
 ): Promise<Record<string, any>> {
+  if (ACCESS_CODES_DISABLED) {
+    return { code: "OPEN-ACCESS", revoked: false, role: "admin", label: "Command Hub (codes off)" };
+  }
+
   const typed = normalizeCode(rawCode);
+
 
   const exact = await db.from("device_access_codes").select(select).eq("code", typed).maybeSingle();
   if (exact.error) throw new Error("Could not verify device access");
