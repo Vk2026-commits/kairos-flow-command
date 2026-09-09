@@ -13,6 +13,7 @@ import { Route as StatusRouteImport } from './routes/status'
 import { Route as PresentationRouteImport } from './routes/presentation'
 import { Route as ParkingSummaryRouteImport } from './routes/parking-summary'
 import { Route as ParkingPlanRouteImport } from './routes/parking-plan'
+import { Route as LotsMobileRouteImport } from './routes/lots-mobile'
 import { Route as ConsultingRouteImport } from './routes/consulting'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -37,6 +38,11 @@ const ParkingPlanRoute = ParkingPlanRouteImport.update({
   path: '/parking-plan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LotsMobileRoute = LotsMobileRouteImport.update({
+  id: '/lots-mobile',
+  path: '/lots-mobile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConsultingRoute = ConsultingRouteImport.update({
   id: '/consulting',
   path: '/consulting',
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/consulting': typeof ConsultingRoute
+  '/lots-mobile': typeof LotsMobileRoute
   '/parking-plan': typeof ParkingPlanRoute
   '/parking-summary': typeof ParkingSummaryRoute
   '/presentation': typeof PresentationRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/consulting': typeof ConsultingRoute
+  '/lots-mobile': typeof LotsMobileRoute
   '/parking-plan': typeof ParkingPlanRoute
   '/parking-summary': typeof ParkingSummaryRoute
   '/presentation': typeof PresentationRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/consulting': typeof ConsultingRoute
+  '/lots-mobile': typeof LotsMobileRoute
   '/parking-plan': typeof ParkingPlanRoute
   '/parking-summary': typeof ParkingSummaryRoute
   '/presentation': typeof PresentationRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/consulting'
+    | '/lots-mobile'
     | '/parking-plan'
     | '/parking-summary'
     | '/presentation'
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/consulting'
+    | '/lots-mobile'
     | '/parking-plan'
     | '/parking-summary'
     | '/presentation'
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/consulting'
+    | '/lots-mobile'
     | '/parking-plan'
     | '/parking-summary'
     | '/presentation'
@@ -115,6 +127,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   ConsultingRoute: typeof ConsultingRoute
+  LotsMobileRoute: typeof LotsMobileRoute
   ParkingPlanRoute: typeof ParkingPlanRoute
   ParkingSummaryRoute: typeof ParkingSummaryRoute
   PresentationRoute: typeof PresentationRoute
@@ -151,6 +164,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParkingPlanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lots-mobile': {
+      id: '/lots-mobile'
+      path: '/lots-mobile'
+      fullPath: '/lots-mobile'
+      preLoaderRoute: typeof LotsMobileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/consulting': {
       id: '/consulting'
       path: '/consulting'
@@ -179,6 +199,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   ConsultingRoute: ConsultingRoute,
+  LotsMobileRoute: LotsMobileRoute,
   ParkingPlanRoute: ParkingPlanRoute,
   ParkingSummaryRoute: ParkingSummaryRoute,
   PresentationRoute: PresentationRoute,
