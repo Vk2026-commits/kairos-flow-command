@@ -415,7 +415,10 @@ function Dashboard({
         </div>
       </div>
 
+      <TimeLog activities={records.activities} siteVisits={records.siteVisits} canEdit={canEdit} onSaveRecord={onSaveRecord} />
+
       <BriefingArchive
+
         project={project}
         briefings={records.briefings}
         canEdit={canEdit}
