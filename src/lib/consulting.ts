@@ -43,6 +43,11 @@ export const PROJECT_STATUSES = [
 ] as const;
 
 export const ACTIVITY_TYPES = [
+  "Phone Call",
+  "App Development",
+  "App Data Entry",
+  "Report Writing",
+  "Virtual Meeting",
   "Site Visit",
   "Sunday Observation",
   "Leadership Meeting",
@@ -61,6 +66,16 @@ export const ACTIVITY_TYPES = [
   "Performance Review",
   "Other",
 ] as const;
+
+// Categories of consultant time that happen away from the property.
+export const REMOTE_TIME_TYPES = [
+  "Phone Call",
+  "App Development",
+  "App Data Entry",
+  "Report Writing",
+  "Virtual Meeting",
+] as const;
+
 
 export const MILESTONE_NAMES = [
   "Initial Walkthrough",
