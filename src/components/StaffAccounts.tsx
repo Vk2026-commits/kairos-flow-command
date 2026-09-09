@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { getMyStaffAccount, listStaff, setStaffRole, type StaffRole } from "@/lib/staff.functions";
+import {
+  createStaffAccount,
+  getMyStaffAccount,
+  listStaff,
+  setStaffRole,
+  type StaffRole,
+} from "@/lib/staff.functions";
 
 // Admin panel: see every staff account and set what each person may do.
 const LEVELS: { value: StaffRole; label: string; hint: string }[] = [
@@ -27,6 +33,12 @@ export default function StaffAccounts() {
   const [rows, setRows] = useState<StaffRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+  const [newRole, setNewRole] = useState<StaffRole>("viewer");
+  const [newPass, setNewPass] = useState("");
+  const [created, setCreated] = useState<string | null>(null);
 
   const load = async () => {
     try {
@@ -57,6 +69,36 @@ export default function StaffAccounts() {
       await load();
     } catch (e) {
       setError((e as Error).message || "Could not change that permission level");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const randomPass = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    let out = "";
+    const buf = new Uint32Array(12);
+    crypto.getRandomValues(buf);
+    buf.forEach((n) => (out += chars[n % chars.length]));
+    setNewPass(out);
+  };
+
+  const addStaff = async () => {
+    setBusy("new");
+    setError(null);
+    setCreated(null);
+    try {
+      const res: any = await createStaffAccount({
+        data: { email: newEmail, password: newPass, fullName: newName, title: newTitle, role: newRole },
+      });
+      setCreated(`${res.email} · temporary password: ${newPass}`);
+      setNewName("");
+      setNewEmail("");
+      setNewTitle("");
+      setNewPass("");
+      await load();
+    } catch (e) {
+      setError((e as Error).message || "Could not create that account");
     } finally {
       setBusy(null);
     }
@@ -105,6 +147,74 @@ export default function StaffAccounts() {
         </p>
       ) : (
         <>
+          <div className="mb-5 rounded-xl border border-white/10 bg-bg-deep p-4">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-white mb-1">Add a team member</h3>
+            <p className="text-[11px] text-slate-400 mb-3">
+              Creates their account right away. Give them the temporary password shown after you add them; they can
+              change it later.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Full name"
+                className="h-10 px-3 rounded-lg bg-surface border border-white/10 text-xs text-white placeholder:text-slate-500"
+              />
+              <input
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="Email address"
+                type="email"
+                className="h-10 px-3 rounded-lg bg-surface border border-white/10 text-xs text-white placeholder:text-slate-500"
+              />
+              <input
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Title (optional)"
+                className="h-10 px-3 rounded-lg bg-surface border border-white/10 text-xs text-white placeholder:text-slate-500"
+              />
+              <select
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value as StaffRole)}
+                className="h-10 px-2 rounded-lg bg-surface border border-white/10 text-xs text-white"
+              >
+                {LEVELS.map((l) => (
+                  <option key={l.value} value={l.value}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+              <div className="flex gap-2 sm:col-span-2">
+                <input
+                  value={newPass}
+                  onChange={(e) => setNewPass(e.target.value)}
+                  placeholder="Temporary password (8+ characters)"
+                  className="flex-1 h-10 px-3 rounded-lg bg-surface border border-white/10 text-xs text-white placeholder:text-slate-500"
+                />
+                <button
+                  type="button"
+                  onClick={randomPass}
+                  className="h-10 px-3 rounded-lg border border-white/10 text-[11px] text-slate-300 hover:bg-white/10 transition"
+                >
+                  Generate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void addStaff()}
+                  disabled={busy === "new" || !newEmail || newPass.length < 8}
+                  className="h-10 px-4 rounded-lg bg-kairos-gold text-bg-deep text-xs font-bold disabled:opacity-50"
+                >
+                  {busy === "new" ? "Adding…" : "Add account"}
+                </button>
+              </div>
+            </div>
+            {created && (
+              <div className="mt-3 rounded-lg border border-kairos-gold/40 bg-kairos-gold/10 px-3 py-2 text-[11px] text-white">
+                Account created — {created}
+              </div>
+            )}
+          </div>
+
           <div className="space-y-2">
             {rows.map((row) => (
               <div
