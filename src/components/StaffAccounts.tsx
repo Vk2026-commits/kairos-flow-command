@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { getMyStaffAccount, listStaff, setStaffRole, type StaffRole } from "@/lib/staff.functions";
+import {
+  createStaffAccount,
+  getMyStaffAccount,
+  listStaff,
+  setStaffRole,
+  type StaffRole,
+} from "@/lib/staff.functions";
 
 // Admin panel: see every staff account and set what each person may do.
 const LEVELS: { value: StaffRole; label: string; hint: string }[] = [
