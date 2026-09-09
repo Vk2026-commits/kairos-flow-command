@@ -148,6 +148,13 @@ export const ENTITY_CONFIG: Record<EntityKey, EntityConfig> = {
       { key: "activityType", label: "Activity Type", type: "select", options: ACTIVITY_TYPES },
       { key: "startTime", label: "Start Time", type: "time" },
       { key: "endTime", label: "End Time", type: "time" },
+      {
+        key: "hours",
+        label: "Hours Spent",
+        type: "number",
+        hint: "Use this for calls or app work when there is no start/end time.",
+      },
+
       { key: "location", label: "Location", type: "text" },
       { key: "assignedTo", label: "Assigned To", type: "text" },
       { key: "relatedLot", label: "Related Parking Lot / Zone", type: "text" },
