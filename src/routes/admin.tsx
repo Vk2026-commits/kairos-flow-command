@@ -118,7 +118,10 @@ function AdminSettings() {
           </Link>
         </div>
 
+        <StaffAccounts />
+
         <DeviceInvites />
+
       </main>
     </div>
   );
