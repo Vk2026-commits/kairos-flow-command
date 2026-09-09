@@ -76,8 +76,9 @@ const btnGhost =
   "px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-200 transition";
 
 export default function ConsultingProgress() {
-  const [code, setCode] = useState<string | null>(null);
-  const [role, setRole] = useState<Role>("executive");
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const [role, setRole] = useState<Role>("viewer");
+  const [who, setWho] = useState<string>("");
   const [project, setProject] = useState<ConsultingProject>(DEFAULT_PROJECT);
   const [records, setRecords] = useState<Records>(EMPTY);
   const [docs, setDocs] = useState<DocRow[]>([]);
@@ -85,22 +86,25 @@ export default function ConsultingProgress() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const refresh = async (c: string) => {
+  // Attachments still use the shared board code; consulting records use the
+  // signed-in staff account.
+  const docCode = getDeviceCode() ?? "OPEN-ACCESS";
+
+  const refresh = async () => {
     setLoading(true);
     let ok = false;
     try {
-      const res: any = await loadConsulting({ data: { code: c } });
-      setRole((res.role ?? "executive") as Role);
+      const res: any = await loadConsulting({ data: {} as any });
+      setRole((res.role ?? "viewer") as Role);
+      setWho(String(res.label ?? ""));
       setProject({ ...DEFAULT_PROJECT, ...(res.project ?? {}) });
       setRecords({ ...EMPTY, ...(res.records ?? {}) });
       setError(null);
       ok = true;
     } catch (e) {
       const msg = (e as Error).message || "";
-      if (/not invited|access code/i.test(msg)) {
-        // Stale code stored on this device: drop it and show the gate again.
-        setDeviceCode(null);
-        setCode(null);
+      if (/unauthorized|authorization/i.test(msg)) {
+        setSignedIn(false);
         setError(null);
       } else {
         setError(msg || "Could not load consulting progress");
@@ -110,7 +114,7 @@ export default function ConsultingProgress() {
     }
     if (!ok) return;
     try {
-      const d: any = await listDocuments({ data: { code: c } });
+      const d: any = await listDocuments({ data: { code: docCode } });
       setDocs((d?.rows ?? []) as DocRow[]);
     } catch {
       /* attachments are optional */
@@ -118,74 +122,82 @@ export default function ConsultingProgress() {
   };
 
   useEffect(() => {
-    const stored = getDeviceCode();
-    if (stored) {
-      setCode(stored);
-      void refresh(stored);
-    }
+    void (async () => {
+      const { data } = await supabase.auth.getUser();
+      setSignedIn(Boolean(data.user));
+      if (data.user) await refresh();
+    })();
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") {
+        setSignedIn(true);
+        void refresh();
+      }
+      if (event === "SIGNED_OUT") {
+        setSignedIn(false);
+        setRecords(EMPTY);
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-
-
-
-
-  const canEdit = role === "admin";
+  const canEdit = role === "admin" || role === "contributor";
 
   const saveRecord = async (entity: EntityKey, id: string | null, record: Partial<ConsultingRecord>) => {
-    if (!code) return;
     try {
-      await saveConsultingRecord({ data: { code, entity, id, record: record as any } });
-      await refresh(code);
+      await saveConsultingRecord({ data: { entity, id, record: record as any } });
+      await refresh();
     } catch (e) {
       setError((e as Error).message || "Could not save that record");
     }
   };
 
   const removeRecord = async (entity: EntityKey, id: string) => {
-    if (!code) return;
     if (!window.confirm("Delete this record? This cannot be undone.")) return;
     try {
-      await deleteConsultingRecord({ data: { code, entity, id } });
-      await refresh(code);
+      await deleteConsultingRecord({ data: { entity, id } });
+      await refresh();
     } catch (e) {
       setError((e as Error).message || "Could not delete that record");
     }
   };
 
   const saveProject = async (next: ConsultingProject) => {
-    if (!code) return;
     setProject(next);
     try {
-      await saveConsultingProject({ data: { code, project: next as any } });
+      await saveConsultingProject({ data: { project: next as any } });
     } catch (e) {
       setError((e as Error).message || "Could not save the project summary");
     }
   };
 
   const uploadAttachment = async (file: File) => {
-    if (!code) return;
     const base64 = await fileToBase64(file);
     await uploadDocument({
-      data: { code, name: file.name, contentType: file.type || "application/octet-stream", size: file.size, base64 },
+      data: { code: docCode, name: file.name, contentType: file.type || "application/octet-stream", size: file.size, base64 },
     });
-    const d: any = await listDocuments({ data: { code } });
+    const d: any = await listDocuments({ data: { code: docCode } });
     setDocs((d?.rows ?? []) as DocRow[]);
   };
 
-  if (!code) {
+  if (signedIn === null) {
+    return <div className="text-xs text-slate-500">Checking your account…</div>;
+  }
+
+  if (!signedIn) {
     return (
       <div className={`${card} max-w-xl`}>
         <h2 className="text-sm font-bold uppercase tracking-widest text-white mb-1">Consulting Progress</h2>
         <p className="text-xs text-slate-400 mb-4">
-          This area is restricted. Enter an access code to continue — admin codes can edit, executive codes are
-          view-only.
+          Sign in with your own staff account. Your hours, progress notes and assessments stay private to you — only a
+          full admin sees everyone's.
         </p>
-        <CodeGate
-          onUnlock={async (c) => {
-            setCode(c);
-            await refresh(c);
-          }}
-        />
+        <Link
+          to="/auth"
+          className="inline-block px-4 h-10 leading-10 rounded-lg bg-kairos-gold text-bg-deep text-xs font-bold"
+        >
+          Sign in
+        </Link>
       </div>
     );
   }
@@ -209,10 +221,16 @@ export default function ConsultingProgress() {
           </button>
         ))}
         <span className="ml-auto text-[10px] font-mono uppercase tracking-widest text-slate-500">
-          {role === "admin" ? "Admin · full access" : "Executive · view only"}
+          {who ? `${who} · ` : ""}
+          {role === "admin"
+            ? "Full admin"
+            : role === "contributor"
+              ? "Notes & own hours"
+              : "Read only"}
           {loading && " · loading…"}
         </span>
       </div>
+
 
       {error && <div className="text-[11px] text-red-400">{error}</div>}
 
