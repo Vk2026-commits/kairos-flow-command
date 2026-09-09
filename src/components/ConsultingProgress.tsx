@@ -6,8 +6,10 @@ import {
   deleteConsultingRecord,
 } from "@/lib/consulting.functions";
 import { listDocuments, uploadDocument } from "@/lib/documents.functions";
-import { getDeviceCode, setDeviceCode } from "@/lib/device-access";
-import CodeGate from "@/components/CodeGate";
+import { getDeviceCode } from "@/lib/device-access";
+import { Link } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
+
 
 import {
   ENTITY_CONFIG,
