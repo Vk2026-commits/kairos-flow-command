@@ -120,26 +120,31 @@ function AuthPage() {
       <main className="flex-1 flex items-start justify-center p-6">
         <div className="w-full max-w-md rounded-2xl border border-white/5 bg-surface p-6 mt-8">
           <h2 className="text-sm font-bold uppercase tracking-widest text-white">
-            {mode === "signin" ? "Sign in" : "Create your account"}
+            {mode === "signin" ? "Sign in" : mode === "signup" ? "Create your account" : "Reset your password"}
           </h2>
           <p className="text-xs text-slate-400 mt-1 mb-5">
-            Every executive and consultant has their own account. Your hours, progress notes and assessments are
-            visible only to you and a full admin.
+            {mode === "forgot"
+              ? "Enter the email on your staff account and we'll send you a link to choose a new password."
+              : "Every executive and consultant has their own account. Your hours, progress notes and assessments are visible only to you and a full admin."}
           </p>
 
-          <button
-            type="button"
-            onClick={google}
-            className="w-full h-10 rounded-lg bg-white text-bg-deep text-sm font-bold mb-4"
-          >
-            Continue with Google
-          </button>
+          {mode !== "forgot" && (
+            <>
+              <button
+                type="button"
+                onClick={google}
+                className="w-full h-10 rounded-lg bg-white text-bg-deep text-sm font-bold mb-4"
+              >
+                Continue with Google
+              </button>
 
-          <div className="flex items-center gap-3 mb-4">
-            <div className="h-px flex-1 bg-white/10" />
-            <span className="text-[10px] uppercase tracking-widest text-slate-500">or email</span>
-            <div className="h-px flex-1 bg-white/10" />
-          </div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-px flex-1 bg-white/10" />
+                <span className="text-[10px] uppercase tracking-widest text-slate-500">or email</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+            </>
+          )}
 
           <form onSubmit={submit} className="space-y-3">
             {mode === "signup" && (
