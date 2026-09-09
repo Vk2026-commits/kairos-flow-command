@@ -33,6 +33,8 @@ export function setDeviceCode(code: string | null) {
  */
 export async function ensureDeviceCode(opts?: { force?: boolean }): Promise<string | null> {
   const stored = getDeviceCode();
+  // Codes are disabled: never verify or prompt, just act as an invited device.
+  if (ACCESS_CODES_DISABLED) return stored;
   if (stored && !opts?.force) {
     try {
       const res: any = await verifyDeviceCode({ data: { code: stored } });
