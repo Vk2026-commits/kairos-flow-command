@@ -30,7 +30,7 @@ const labelCls = "block text-[10px] font-bold uppercase tracking-widest text-sla
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -58,7 +58,14 @@ function AuthPage() {
     setError(null);
     setNotice(null);
     try {
-      if (mode === "signup") {
+      if (mode === "forgot") {
+        const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (err) throw err;
+        setNotice("Reset link sent. Check your email and click the link to choose a new password.");
+        setMode("signin");
+      } else if (mode === "signup") {
         const { data, error: err } = await supabase.auth.signUp({
           email: email.trim(),
           password,
@@ -113,26 +120,31 @@ function AuthPage() {
       <main className="flex-1 flex items-start justify-center p-6">
         <div className="w-full max-w-md rounded-2xl border border-white/5 bg-surface p-6 mt-8">
           <h2 className="text-sm font-bold uppercase tracking-widest text-white">
-            {mode === "signin" ? "Sign in" : "Create your account"}
+            {mode === "signin" ? "Sign in" : mode === "signup" ? "Create your account" : "Reset your password"}
           </h2>
           <p className="text-xs text-slate-400 mt-1 mb-5">
-            Every executive and consultant has their own account. Your hours, progress notes and assessments are
-            visible only to you and a full admin.
+            {mode === "forgot"
+              ? "Enter the email on your staff account and we'll send you a link to choose a new password."
+              : "Every executive and consultant has their own account. Your hours, progress notes and assessments are visible only to you and a full admin."}
           </p>
 
-          <button
-            type="button"
-            onClick={google}
-            className="w-full h-10 rounded-lg bg-white text-bg-deep text-sm font-bold mb-4"
-          >
-            Continue with Google
-          </button>
+          {mode !== "forgot" && (
+            <>
+              <button
+                type="button"
+                onClick={google}
+                className="w-full h-10 rounded-lg bg-white text-bg-deep text-sm font-bold mb-4"
+              >
+                Continue with Google
+              </button>
 
-          <div className="flex items-center gap-3 mb-4">
-            <div className="h-px flex-1 bg-white/10" />
-            <span className="text-[10px] uppercase tracking-widest text-slate-500">or email</span>
-            <div className="h-px flex-1 bg-white/10" />
-          </div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-px flex-1 bg-white/10" />
+                <span className="text-[10px] uppercase tracking-widest text-slate-500">or email</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+            </>
+          )}
 
           <form onSubmit={submit} className="space-y-3">
             {mode === "signup" && (
@@ -164,21 +176,36 @@ function AuthPage() {
                 autoComplete="email"
               />
             </div>
-            <div>
-              <label className={labelCls} htmlFor="password">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                minLength={8}
-                className={inputCls}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-              />
-            </div>
+            {mode !== "forgot" && (
+              <div>
+                <label className={labelCls} htmlFor="password">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  minLength={8}
+                  className={inputCls}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                />
+                {mode === "signin" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("forgot");
+                      setError(null);
+                      setNotice(null);
+                    }}
+                    className="mt-1 text-[11px] text-slate-400 hover:text-white transition"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+            )}
 
             {error && <div className="text-[11px] text-red-400">{error}</div>}
             {notice && <div className="text-[11px] text-emerald-400">{notice}</div>}
@@ -188,7 +215,13 @@ function AuthPage() {
               disabled={busy}
               className="w-full h-10 rounded-lg bg-kairos-blue text-white text-sm font-bold disabled:opacity-40"
             >
-              {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
+              {busy
+                ? "Please wait…"
+                : mode === "signin"
+                  ? "Sign in"
+                  : mode === "signup"
+                    ? "Create account"
+                    : "Send reset link"}
             </button>
           </form>
 
@@ -201,7 +234,9 @@ function AuthPage() {
             }}
             className="mt-4 text-[11px] text-slate-400 hover:text-white transition"
           >
-            {mode === "signin" ? "Need an account? Create one" : "Already have an account? Sign in"}
+            {mode === "signin"
+              ? "Need an account? Create one"
+              : "Already have an account? Sign in"}
           </button>
 
           <p className="mt-4 text-[11px] text-slate-500">
