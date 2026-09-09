@@ -14,6 +14,7 @@ import {
   ENTITY_ORDER,
   PROJECT_STATUSES,
   fmtDay,
+  activityHours,
   hoursBetween,
   priorityTone,
   statusTone,
@@ -1274,4 +1275,204 @@ function fileToBase64(file: File): Promise<string> {
     reader.onerror = () => reject(new Error("Could not read that file"));
     reader.readAsDataURL(file);
   });
+}
+
+/* ===================== Consultant time & hours ===================== */
+
+const TIME_TYPES = [
+  "Phone Call",
+  "App Development",
+  "App Data Entry",
+  "Report Writing",
+  "Virtual Meeting",
+  "Leadership Meeting",
+  "Traffic Assessment",
+  "Parking Assessment",
+  "Map Update",
+  "Follow-Up",
+  "Other",
+] as const;
+
+function TimeLog({
+  activities,
+  siteVisits,
+  canEdit,
+  onSaveRecord,
+}: {
+  activities: ConsultingRecord[];
+  siteVisits: ConsultingRecord[];
+  canEdit: boolean;
+  onSaveRecord: (entity: EntityKey, id: string | null, record: Partial<ConsultingRecord>) => void;
+}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [date, setDate] = useState(today);
+  const [type, setType] = useState<string>("Phone Call");
+  const [hrs, setHrs] = useState("");
+  const [title, setTitle] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const entries = useMemo(
+    () =>
+      activities
+        .map((a) => ({ rec: a, hours: activityHours(a) }))
+        .filter((e) => e.hours > 0)
+        .sort((a, b) => String(b.rec.occurred_on ?? "").localeCompare(String(a.rec.occurred_on ?? ""))),
+    [activities],
+  );
+
+  const onSiteHours = siteVisits.reduce((s, v) => s + hoursBetween(v.data?.arrival, v.data?.departure), 0);
+  const workHours = entries.reduce((s, e) => s + e.hours, 0);
+  const todayHours = entries.filter((e) => e.rec.occurred_on === today).reduce((s, e) => s + e.hours, 0);
+
+  const byType = useMemo(() => {
+    const m = new Map<string, number>();
+    entries.forEach((e) => {
+      const k = String(e.rec.data?.activityType ?? "Other");
+      m.set(k, (m.get(k) ?? 0) + e.hours);
+    });
+    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  }, [entries]);
+
+  const byDay = useMemo(() => {
+    const m = new Map<string, { hours: number; items: string[] }>();
+    entries.forEach((e) => {
+      const k = e.rec.occurred_on ?? "—";
+      const cur = m.get(k) ?? { hours: 0, items: [] };
+      cur.hours += e.hours;
+      cur.items.push(`${e.rec.data?.activityType ?? "Work"} — ${e.rec.title} (${e.hours.toFixed(2)} hrs)`);
+      m.set(k, cur);
+    });
+    return [...m.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+  }, [entries]);
+
+  const add = async () => {
+    const hours = Math.round(Number(hrs) * 100) / 100;
+    if (!(hours > 0)) return;
+    setSaving(true);
+    try {
+      onSaveRecord("activities", null, {
+        title: title.trim() || type,
+        status: "Completed",
+        occurred_on: date,
+        data: { activityType: type, hours, notes, createdBy: "Consultant" },
+      });
+      setHrs("");
+      setTitle("");
+      setNotes("");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className={card}>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h3 className="text-sm font-bold uppercase tracking-widest text-white">Consultant Time & Hours</h3>
+          <p className="text-xs text-slate-400 mt-1">
+            Phone calls, app development, data entry and reporting time — plus on-site hours from site visits.
+          </p>
+        </div>
+        <button
+          type="button"
+          className={btnGhost}
+          onClick={() =>
+            downloadCsv(
+              "consultant-hours.csv",
+              entries.map((e) => ({
+                date: e.rec.occurred_on ?? "",
+                type: e.rec.data?.activityType ?? "",
+                work: e.rec.title,
+                hours: e.hours,
+                notes: e.rec.data?.notes ?? "",
+              })),
+            )
+          }
+        >
+          Export hours (CSV)
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+        <Stat label="Hours Today" value={todayHours.toFixed(2)} />
+        <Stat label="Total Work Hours (Off-Site)" value={workHours.toFixed(2)} />
+        <Stat label="On-Site Hours" value={onSiteHours.toFixed(2)} />
+        <Stat label="Total Consulting Hours" value={(workHours + onSiteHours).toFixed(2)} />
+      </div>
+
+      {byType.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {byType.map(([k, v]) => (
+            <span key={k} className="text-[11px] px-2 py-1 rounded border border-white/10 bg-white/5 text-slate-300">
+              {k}: <span className="font-mono text-white">{v.toFixed(2)}</span> hrs
+            </span>
+          ))}
+        </div>
+      )}
+
+      {canEdit && (
+        <div className="mt-5 border-t border-white/5 pt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <label className="block">
+            <span className={labelCls}>Date</span>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} />
+          </label>
+          <label className="block">
+            <span className={labelCls}>Type of Work</span>
+            <select value={type} onChange={(e) => setType(e.target.value)} className={inputCls}>
+              {TIME_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className={labelCls}>Hours</span>
+            <input
+              type="number"
+              step="0.25"
+              min="0"
+              value={hrs}
+              onChange={(e) => setHrs(e.target.value)}
+              className={inputCls}
+              placeholder="1.5"
+            />
+          </label>
+          <label className="block">
+            <span className={labelCls}>What was done</span>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputCls} placeholder="Call with leadership" />
+          </label>
+          <label className="block">
+            <span className={labelCls}>Notes</span>
+            <input value={notes} onChange={(e) => setNotes(e.target.value)} className={inputCls} />
+          </label>
+          <div className="lg:col-span-5">
+            <button type="button" onClick={add} disabled={saving || !(Number(hrs) > 0)} className={btnPrimary}>
+              {saving ? "Adding…" : "Add time entry"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-5 border-t border-white/5 pt-4 space-y-3">
+        {byDay.length === 0 && <p className="text-xs text-slate-500">No time logged yet.</p>}
+        {byDay.slice(0, 14).map(([day, info]) => (
+          <div key={day}>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white font-semibold">{fmtDay(day)}</span>
+              <span className="font-mono text-kairos-gold">{info.hours.toFixed(2)} hrs</span>
+            </div>
+            <ul className="mt-1 space-y-1">
+              {info.items.map((t, i) => (
+                <li key={i} className="text-[11px] text-slate-400">
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
