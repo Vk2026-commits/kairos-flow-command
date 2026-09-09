@@ -247,7 +247,7 @@ export function useParkingState(): [ParkingState, (next: ParkingState) => void] 
 
     const poll = window.setInterval(() => {
       if (document.visibilityState === "visible") void pull();
-    }, 30000);
+    }, 10000);
     const onVisible = () => {
       if (document.visibilityState === "visible") void pull();
     };
