@@ -244,6 +244,12 @@ function ParkingSummaryPage() {
               Tracked since {fmtDate(START_KEY)} · {weeks.length} week
               {weeks.length === 1 ? "" : "s"} recorded
             </p>
+            <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20">
+              <span className="size-1.5 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-green-400">
+                Live{updatedAt ? ` · updated ${updatedAt}` : ""}
+              </span>
+            </div>
           </div>
           <div className="flex items-end gap-3 flex-wrap">
             {weeks.length > 0 && (
