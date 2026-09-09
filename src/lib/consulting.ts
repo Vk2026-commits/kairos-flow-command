@@ -330,6 +330,15 @@ export function hoursBetween(start?: string, end?: string): number {
   return Math.round((mins / 60) * 100) / 100;
 }
 
+/** Hours for one logged activity: explicit hours field wins, else start/end times. */
+export function activityHours(rec: { data?: Record<string, any> | null }): number {
+  const d = rec?.data ?? {};
+  const explicit = Number(d.hours);
+  if (Number.isFinite(explicit) && explicit > 0) return Math.round(explicit * 100) / 100;
+  return hoursBetween(d.startTime, d.endTime);
+}
+
+
 export function fmtDay(key?: string | null): string {
   if (!key) return "—";
   const [y, m, d] = key.split("-").map(Number);
