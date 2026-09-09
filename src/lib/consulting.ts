@@ -43,6 +43,11 @@ export const PROJECT_STATUSES = [
 ] as const;
 
 export const ACTIVITY_TYPES = [
+  "Phone Call",
+  "App Development",
+  "App Data Entry",
+  "Report Writing",
+  "Virtual Meeting",
   "Site Visit",
   "Sunday Observation",
   "Leadership Meeting",
@@ -61,6 +66,16 @@ export const ACTIVITY_TYPES = [
   "Performance Review",
   "Other",
 ] as const;
+
+// Categories of consultant time that happen away from the property.
+export const REMOTE_TIME_TYPES = [
+  "Phone Call",
+  "App Development",
+  "App Data Entry",
+  "Report Writing",
+  "Virtual Meeting",
+] as const;
+
 
 export const MILESTONE_NAMES = [
   "Initial Walkthrough",
@@ -133,6 +148,13 @@ export const ENTITY_CONFIG: Record<EntityKey, EntityConfig> = {
       { key: "activityType", label: "Activity Type", type: "select", options: ACTIVITY_TYPES },
       { key: "startTime", label: "Start Time", type: "time" },
       { key: "endTime", label: "End Time", type: "time" },
+      {
+        key: "hours",
+        label: "Hours Spent",
+        type: "number",
+        hint: "Use this for calls or app work when there is no start/end time.",
+      },
+
       { key: "location", label: "Location", type: "text" },
       { key: "assignedTo", label: "Assigned To", type: "text" },
       { key: "relatedLot", label: "Related Parking Lot / Zone", type: "text" },
@@ -307,6 +329,15 @@ export function hoursBetween(start?: string, end?: string): number {
   if (mins < 0) mins += 24 * 60;
   return Math.round((mins / 60) * 100) / 100;
 }
+
+/** Hours for one logged activity: explicit hours field wins, else start/end times. */
+export function activityHours(rec: { data?: Record<string, any> | null }): number {
+  const d = rec?.data ?? {};
+  const explicit = Number(d.hours);
+  if (Number.isFinite(explicit) && explicit > 0) return Math.round(explicit * 100) / 100;
+  return hoursBetween(d.startTime, d.endTime);
+}
+
 
 export function fmtDay(key?: string | null): string {
   if (!key) return "—";
