@@ -128,6 +128,15 @@ function ParkingSummaryPage() {
   const totalSpaces = state.lots.reduce((a, l) => a + l.spaces, 0);
   const [busy, setBusy] = useState(false);
 
+  // Counts submitted from a phone arrive through the live sync in
+  // useParkingState; stamp the moment this page last took new numbers in.
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  useEffect(() => {
+    setUpdatedAt(
+      new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+    );
+  }, [state]);
+
   const lotDelta = (lotId: string, cars: number) => {
     if (!prior) return null;
     const p = prior.perLot.find((x) => x.lot.id === lotId);
