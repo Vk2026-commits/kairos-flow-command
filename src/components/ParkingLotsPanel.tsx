@@ -208,6 +208,12 @@ export function ParkingLotsPanel() {
           >
             Parking plan →
           </Link>
+          <Link
+            to="/lots-mobile"
+            className="inline-block mt-2 ml-2 text-[10px] font-bold uppercase tracking-widest text-kairos-blue border border-kairos-blue/50 rounded-lg px-3 py-1.5 hover:bg-kairos-blue/15"
+          >
+            📱 Phone count view →
+          </Link>
         </div>
 
         <div className="flex items-end gap-3 flex-wrap">
