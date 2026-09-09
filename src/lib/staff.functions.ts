@@ -107,6 +107,50 @@ export const listStaff = createServerFn({ method: "POST" })
     };
   });
 
+/** Admin only: create a staff account with a starting permission level. */
+export const createStaffAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: { email: string; password: string; fullName?: string; title?: string; role?: StaffRole }) => data,
+  )
+  .handler(async ({ context, data }) => {
+    const db = await adminDb();
+    const myRole = await resolveRole(db, context.userId as string);
+    if (myRole !== "admin") throw new Error("Only a full admin can create staff accounts");
+
+    const email = String(data?.email ?? "").trim().toLowerCase();
+    const password = String(data?.password ?? "");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid email address");
+    if (password.length < 8) throw new Error("Use a temporary password of at least 8 characters");
+
+    const role = (["admin", "contributor", "viewer"] as StaffRole[]).includes(data?.role as StaffRole)
+      ? (data!.role as StaffRole)
+      : "viewer";
+    const fullName = data?.fullName ? String(data.fullName).slice(0, 120) : null;
+    const title = data?.title ? String(data.title).slice(0, 120) : null;
+
+    const { data: created, error } = await db.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: fullName },
+    });
+    if (error || !created?.user) {
+      throw new Error(
+        /already/i.test(error?.message ?? "")
+          ? "That email already has an account"
+          : "Could not create that account",
+      );
+    }
+
+    const newId = created.user.id as string;
+    await db.from("profiles").upsert({ id: newId, email, full_name: fullName, title });
+    await db.from("user_roles").delete().eq("user_id", newId);
+    await db.from("user_roles").insert({ user_id: newId, role });
+
+    return { ok: true as const, id: newId, email, role };
+  });
+
 /** Admin only: change someone's permission level. */
 export const setStaffRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
