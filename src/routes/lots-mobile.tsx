@@ -137,7 +137,7 @@ type StateProps = {
 function MobileLive({ state, setState }: StateProps) {
   const [date, setDate] = useState(() => toDateKey(new Date().toISOString()));
   const [time, setTime] = useState(nowTime);
-  const [serviceId, setServiceId] = useState(SERVICES[0].id);
+  const [serviceId, setServiceId] = useState<string>(SERVICES[0].id);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [note, setNote] = useState("");
   const [flash, setFlash] = useState("");
