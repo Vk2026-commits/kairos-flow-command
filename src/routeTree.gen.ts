@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StatusRouteImport } from './routes/status'
+import { Route as StaffRouteImport } from './routes/staff'
 import { Route as PresentationRouteImport } from './routes/presentation'
 import { Route as ParkingSummaryRouteImport } from './routes/parking-summary'
 import { Route as ParkingPlanRouteImport } from './routes/parking-plan'
@@ -22,6 +23,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const StatusRoute = StatusRouteImport.update({
   id: '/status',
   path: '/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StaffRoute = StaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PresentationRoute = PresentationRouteImport.update({
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/parking-plan': typeof ParkingPlanRoute
   '/parking-summary': typeof ParkingSummaryRoute
   '/presentation': typeof PresentationRoute
+  '/staff': typeof StaffRoute
   '/status': typeof StatusRoute
 }
 export interface FileRoutesByTo {
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/parking-plan': typeof ParkingPlanRoute
   '/parking-summary': typeof ParkingSummaryRoute
   '/presentation': typeof PresentationRoute
+  '/staff': typeof StaffRoute
   '/status': typeof StatusRoute
 }
 export interface FileRoutesById {
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/parking-plan': typeof ParkingPlanRoute
   '/parking-summary': typeof ParkingSummaryRoute
   '/presentation': typeof PresentationRoute
+  '/staff': typeof StaffRoute
   '/status': typeof StatusRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/parking-plan'
     | '/parking-summary'
     | '/presentation'
+    | '/staff'
     | '/status'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/parking-plan'
     | '/parking-summary'
     | '/presentation'
+    | '/staff'
     | '/status'
   id:
     | '__root__'
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/parking-plan'
     | '/parking-summary'
     | '/presentation'
+    | '/staff'
     | '/status'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +156,7 @@ export interface RootRouteChildren {
   ParkingPlanRoute: typeof ParkingPlanRoute
   ParkingSummaryRoute: typeof ParkingSummaryRoute
   PresentationRoute: typeof PresentationRoute
+  StaffRoute: typeof StaffRoute
   StatusRoute: typeof StatusRoute
 }
 
@@ -154,6 +167,13 @@ declare module '@tanstack/react-router' {
       path: '/status'
       fullPath: '/status'
       preLoaderRoute: typeof StatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/staff': {
+      id: '/staff'
+      path: '/staff'
+      fullPath: '/staff'
+      preLoaderRoute: typeof StaffRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/presentation': {
@@ -224,6 +244,7 @@ const rootRouteChildren: RootRouteChildren = {
   ParkingPlanRoute: ParkingPlanRoute,
   ParkingSummaryRoute: ParkingSummaryRoute,
   PresentationRoute: PresentationRoute,
+  StaffRoute: StaffRoute,
   StatusRoute: StatusRoute,
 }
 export const routeTree = rootRouteImport
