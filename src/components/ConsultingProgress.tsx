@@ -1051,6 +1051,7 @@ function History({ records }: { records: Records }) {
     (v) => inRange(v) && (!loc || String(v.data?.location ?? "").toLowerCase().includes(loc.toLowerCase())),
   );
   const hours = visits.reduce((s, v) => s + hoursBetween(v.data?.arrival, v.data?.departure), 0);
+  const workHours = activities.reduce((s, a) => s + activityHours(a), 0);
   const meetings = activities.filter((a) => String(a.data?.activityType ?? "").includes("Meeting")).length;
   const assessments = activities.filter((a) => String(a.data?.activityType ?? "").includes("Assessment")).length;
   const recs = records.recommendations.filter(inRange);
@@ -1093,6 +1094,8 @@ function History({ records }: { records: Records }) {
         <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-5">
           <Stat label="Total Site Visits" value={String(visits.length)} />
           <Stat label="Total On-Site Hours" value={hours.toFixed(2)} />
+          <Stat label="Off-Site Work Hours" value={workHours.toFixed(2)} />
+          <Stat label="Total Consulting Hours" value={(hours + workHours).toFixed(2)} />
           <Stat label="Total Meetings" value={String(meetings)} />
           <Stat label="Total Assessments" value={String(assessments)} />
           <Stat label="Total Recommendations" value={String(recs.length)} />
