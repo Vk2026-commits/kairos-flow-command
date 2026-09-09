@@ -28,7 +28,7 @@ import {
 } from "@/lib/consulting";
 
 type Records = Record<EntityKey, ConsultingRecord[]>;
-type Role = "admin" | "executive";
+type Role = "admin" | "contributor" | "viewer";
 type DocRow = { id: string; title: string; url: string; contentType?: string | null };
 
 const EMPTY: Records = {
