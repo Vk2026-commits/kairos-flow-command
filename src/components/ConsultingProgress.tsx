@@ -1307,7 +1307,10 @@ function TimeLog({
   canEdit: boolean;
   onSaveRecord: (entity: EntityKey, id: string | null, record: Partial<ConsultingRecord>) => void;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
   const [date, setDate] = useState(today);
   const [type, setType] = useState<string>("Phone Call");
   const [hrs, setHrs] = useState("");
