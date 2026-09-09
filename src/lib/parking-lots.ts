@@ -229,6 +229,35 @@ export function useParkingState(): [ParkingState, (next: ParkingState) => void] 
       }
     })();
 
+    // Live updates: realtime pushes counts submitted from a phone straight to
+    // any open dashboard or weekly summary. Polling is the safety net when a
+    // realtime socket cannot connect (locked-down networks, sleeping tabs).
+    const pull = async () => {
+      try {
+        const res = await loadSharedState({ data: { key: CLOUD_KEY } });
+        if (cancelled || !res?.data || typeof res.data !== "object") return;
+        const cloud = normalize(res.data);
+        const local = readParkingState();
+        if (JSON.stringify(cloud) === JSON.stringify(local)) return;
+        setState(writeParkingState(cloud));
+      } catch {
+        /* offline: keep showing the last known counts */
+      }
+    };
+
+    const poll = window.setInterval(() => {
+      if (document.visibilityState === "visible") void pull();
+    }, 30000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void pull();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    const stopTimers = () => {
+      window.clearInterval(poll);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+
     try {
       channel = supabase
         .channel("kairos_parking_lots_changes")
@@ -252,8 +281,12 @@ export function useParkingState(): [ParkingState, (next: ParkingState) => void] 
       console.warn("Parking lot realtime sync is unavailable", e);
     }
 
-    return cleanup;
+    return () => {
+      stopTimers();
+      cleanup();
+    };
   }, []);
+
 
   const update = (next: ParkingState) => {
     const normalized = writeParkingState(next);
