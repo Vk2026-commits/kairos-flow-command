@@ -41,10 +41,10 @@ function AuthPage() {
   useEffect(() => {
     let done = false;
     void supabase.auth.getUser().then(({ data }) => {
-      if (!done && data.user) void navigate({ to: "/consulting", replace: true });
+      if (!done && data.user) void navigate({ to: "/staff", replace: true });
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") void navigate({ to: "/consulting", replace: true });
+      if (event === "SIGNED_IN") void navigate({ to: "/staff", replace: true });
     });
     return () => {
       done = true;
