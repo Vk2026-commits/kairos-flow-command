@@ -74,6 +74,36 @@ export default function StaffAccounts() {
     }
   };
 
+  const randomPass = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    let out = "";
+    const buf = new Uint32Array(12);
+    crypto.getRandomValues(buf);
+    buf.forEach((n) => (out += chars[n % chars.length]));
+    setNewPass(out);
+  };
+
+  const addStaff = async () => {
+    setBusy("new");
+    setError(null);
+    setCreated(null);
+    try {
+      const res: any = await createStaffAccount({
+        data: { email: newEmail, password: newPass, fullName: newName, title: newTitle, role: newRole },
+      });
+      setCreated(`${res.email} · temporary password: ${newPass}`);
+      setNewName("");
+      setNewEmail("");
+      setNewTitle("");
+      setNewPass("");
+      await load();
+    } catch (e) {
+      setError((e as Error).message || "Could not create that account");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setSignedIn(false);
