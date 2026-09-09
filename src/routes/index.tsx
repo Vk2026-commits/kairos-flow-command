@@ -141,6 +141,12 @@ function CommandDashboard() {
 
           <div className="flex items-center gap-4 lg:gap-6">
             <Link
+              to="/staff"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-kairos-gold/10 hover:bg-kairos-gold/20 border border-kairos-gold/40 text-xs font-semibold text-kairos-gold transition"
+            >
+              STAFF PORTAL
+            </Link>
+            <Link
               to="/admin"
               className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300 transition"
             >

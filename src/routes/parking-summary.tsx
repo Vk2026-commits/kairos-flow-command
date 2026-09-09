@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   SERVICES,
@@ -128,6 +128,15 @@ function ParkingSummaryPage() {
   const totalSpaces = state.lots.reduce((a, l) => a + l.spaces, 0);
   const [busy, setBusy] = useState(false);
 
+  // Counts submitted from a phone arrive through the live sync in
+  // useParkingState; stamp the moment this page last took new numbers in.
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  useEffect(() => {
+    setUpdatedAt(
+      new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+    );
+  }, [state]);
+
   const lotDelta = (lotId: string, cars: number) => {
     if (!prior) return null;
     const p = prior.perLot.find((x) => x.lot.id === lotId);
@@ -244,6 +253,12 @@ function ParkingSummaryPage() {
               Tracked since {fmtDate(START_KEY)} · {weeks.length} week
               {weeks.length === 1 ? "" : "s"} recorded
             </p>
+            <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20">
+              <span className="size-1.5 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-green-400">
+                Live{updatedAt ? ` · updated ${updatedAt}` : ""}
+              </span>
+            </div>
           </div>
           <div className="flex items-end gap-3 flex-wrap">
             {weeks.length > 0 && (
