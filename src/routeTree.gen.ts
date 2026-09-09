@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StatusRouteImport } from './routes/status'
 import { Route as StaffRouteImport } from './routes/staff'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PresentationRouteImport } from './routes/presentation'
 import { Route as ParkingSummaryRouteImport } from './routes/parking-summary'
 import { Route as ParkingPlanRouteImport } from './routes/parking-plan'
@@ -28,6 +29,11 @@ const StatusRoute = StatusRouteImport.update({
 const StaffRoute = StaffRouteImport.update({
   id: '/staff',
   path: '/staff',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PresentationRoute = PresentationRouteImport.update({
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/parking-plan': typeof ParkingPlanRoute
   '/parking-summary': typeof ParkingSummaryRoute
   '/presentation': typeof PresentationRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/staff': typeof StaffRoute
   '/status': typeof StatusRoute
 }
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/parking-plan': typeof ParkingPlanRoute
   '/parking-summary': typeof ParkingSummaryRoute
   '/presentation': typeof PresentationRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/staff': typeof StaffRoute
   '/status': typeof StatusRoute
 }
@@ -105,6 +113,7 @@ export interface FileRoutesById {
   '/parking-plan': typeof ParkingPlanRoute
   '/parking-summary': typeof ParkingSummaryRoute
   '/presentation': typeof PresentationRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/staff': typeof StaffRoute
   '/status': typeof StatusRoute
 }
@@ -119,6 +128,7 @@ export interface FileRouteTypes {
     | '/parking-plan'
     | '/parking-summary'
     | '/presentation'
+    | '/reset-password'
     | '/staff'
     | '/status'
   fileRoutesByTo: FileRoutesByTo
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/parking-plan'
     | '/parking-summary'
     | '/presentation'
+    | '/reset-password'
     | '/staff'
     | '/status'
   id:
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/parking-plan'
     | '/parking-summary'
     | '/presentation'
+    | '/reset-password'
     | '/staff'
     | '/status'
   fileRoutesById: FileRoutesById
@@ -156,6 +168,7 @@ export interface RootRouteChildren {
   ParkingPlanRoute: typeof ParkingPlanRoute
   ParkingSummaryRoute: typeof ParkingSummaryRoute
   PresentationRoute: typeof PresentationRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   StaffRoute: typeof StaffRoute
   StatusRoute: typeof StatusRoute
 }
@@ -174,6 +187,13 @@ declare module '@tanstack/react-router' {
       path: '/staff'
       fullPath: '/staff'
       preLoaderRoute: typeof StaffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/presentation': {
@@ -244,6 +264,7 @@ const rootRouteChildren: RootRouteChildren = {
   ParkingPlanRoute: ParkingPlanRoute,
   ParkingSummaryRoute: ParkingSummaryRoute,
   PresentationRoute: PresentationRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   StaffRoute: StaffRoute,
   StatusRoute: StatusRoute,
 }
