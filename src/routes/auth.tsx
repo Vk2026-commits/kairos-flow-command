@@ -176,21 +176,36 @@ function AuthPage() {
                 autoComplete="email"
               />
             </div>
-            <div>
-              <label className={labelCls} htmlFor="password">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                minLength={8}
-                className={inputCls}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-              />
-            </div>
+            {mode !== "forgot" && (
+              <div>
+                <label className={labelCls} htmlFor="password">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  minLength={8}
+                  className={inputCls}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                />
+                {mode === "signin" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("forgot");
+                      setError(null);
+                      setNotice(null);
+                    }}
+                    className="mt-1 text-[11px] text-slate-400 hover:text-white transition"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+            )}
 
             {error && <div className="text-[11px] text-red-400">{error}</div>}
             {notice && <div className="text-[11px] text-emerald-400">{notice}</div>}
@@ -200,7 +215,13 @@ function AuthPage() {
               disabled={busy}
               className="w-full h-10 rounded-lg bg-kairos-blue text-white text-sm font-bold disabled:opacity-40"
             >
-              {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
+              {busy
+                ? "Please wait…"
+                : mode === "signin"
+                  ? "Sign in"
+                  : mode === "signup"
+                    ? "Create account"
+                    : "Send reset link"}
             </button>
           </form>
 
@@ -213,7 +234,9 @@ function AuthPage() {
             }}
             className="mt-4 text-[11px] text-slate-400 hover:text-white transition"
           >
-            {mode === "signin" ? "Need an account? Create one" : "Already have an account? Sign in"}
+            {mode === "signin"
+              ? "Need an account? Create one"
+              : "Already have an account? Sign in"}
           </button>
 
           <p className="mt-4 text-[11px] text-slate-500">
