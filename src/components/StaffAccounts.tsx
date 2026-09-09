@@ -33,6 +33,12 @@ export default function StaffAccounts() {
   const [rows, setRows] = useState<StaffRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+  const [newRole, setNewRole] = useState<StaffRole>("viewer");
+  const [newPass, setNewPass] = useState("");
+  const [created, setCreated] = useState<string | null>(null);
 
   const load = async () => {
     try {
