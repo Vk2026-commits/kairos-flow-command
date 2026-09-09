@@ -147,6 +147,74 @@ export default function StaffAccounts() {
         </p>
       ) : (
         <>
+          <div className="mb-5 rounded-xl border border-white/10 bg-bg-deep p-4">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-white mb-1">Add a team member</h3>
+            <p className="text-[11px] text-slate-400 mb-3">
+              Creates their account right away. Give them the temporary password shown after you add them; they can
+              change it later.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Full name"
+                className="h-10 px-3 rounded-lg bg-surface border border-white/10 text-xs text-white placeholder:text-slate-500"
+              />
+              <input
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="Email address"
+                type="email"
+                className="h-10 px-3 rounded-lg bg-surface border border-white/10 text-xs text-white placeholder:text-slate-500"
+              />
+              <input
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Title (optional)"
+                className="h-10 px-3 rounded-lg bg-surface border border-white/10 text-xs text-white placeholder:text-slate-500"
+              />
+              <select
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value as StaffRole)}
+                className="h-10 px-2 rounded-lg bg-surface border border-white/10 text-xs text-white"
+              >
+                {LEVELS.map((l) => (
+                  <option key={l.value} value={l.value}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+              <div className="flex gap-2 sm:col-span-2">
+                <input
+                  value={newPass}
+                  onChange={(e) => setNewPass(e.target.value)}
+                  placeholder="Temporary password (8+ characters)"
+                  className="flex-1 h-10 px-3 rounded-lg bg-surface border border-white/10 text-xs text-white placeholder:text-slate-500"
+                />
+                <button
+                  type="button"
+                  onClick={randomPass}
+                  className="h-10 px-3 rounded-lg border border-white/10 text-[11px] text-slate-300 hover:bg-white/10 transition"
+                >
+                  Generate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void addStaff()}
+                  disabled={busy === "new" || !newEmail || newPass.length < 8}
+                  className="h-10 px-4 rounded-lg bg-kairos-gold text-bg-deep text-xs font-bold disabled:opacity-50"
+                >
+                  {busy === "new" ? "Adding…" : "Add account"}
+                </button>
+              </div>
+            </div>
+            {created && (
+              <div className="mt-3 rounded-lg border border-kairos-gold/40 bg-kairos-gold/10 px-3 py-2 text-[11px] text-white">
+                Account created — {created}
+              </div>
+            )}
+          </div>
+
           <div className="space-y-2">
             {rows.map((row) => (
               <div
