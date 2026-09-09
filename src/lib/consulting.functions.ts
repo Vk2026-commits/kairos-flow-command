@@ -1,11 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { resolveRole, type StaffRole } from "./staff.functions";
 import { lookupDeviceRow, normalizeCode } from "./device-codes.server";
 
-
-// Consulting Progress records live in their own tables and are locked to
-// invited devices, exactly like traffic plans and documents. The browser never
-// touches those tables: every call carries a device access code that the server
-// validates first, and only codes with the "admin" role may write.
+// Consulting Progress records are tied to staff accounts. Everyone signs in
+// with their own account; hours, progress notes and assessments are private to
+// the person who entered them. Full admins see everything.
 
 type Row = Record<string, any>;
 
@@ -22,27 +22,15 @@ const ENTITIES = {
 
 export type ConsultingEntity = keyof typeof ENTITIES;
 
+/** Record types that belong to the person who entered them. */
+const PRIVATE_ENTITIES: ConsultingEntity[] = ["activities", "notes", "briefings"];
+
+/** What a contributor (add notes / log own hours) may create or edit. */
+const CONTRIBUTOR_ENTITIES: ConsultingEntity[] = ["activities", "notes"];
+
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   return supabaseAdmin as any;
-}
-
-async function requireDevice(rawCode: unknown) {
-  const db = await admin();
-  const data = await lookupDeviceRow(db, rawCode, "code, revoked, role, label");
-  const code = String(data.code);
-  const role = (data.role ?? "admin") as string;
-  if (role !== "admin" && role !== "executive") {
-    throw new Error("This device does not have access to Consulting Progress");
-  }
-  return { code, db, role: role as "admin" | "executive", label: data.label ?? null };
-}
-
-
-async function requireAdmin(rawCode: unknown) {
-  const ctx = await requireDevice(rawCode);
-  if (ctx.role !== "admin") throw new Error("This device has view-only executive access");
-  return ctx;
 }
 
 function table(entity: unknown): string {
@@ -52,41 +40,67 @@ function table(entity: unknown): string {
   return name;
 }
 
-export const loadConsulting = createServerFn({ method: "POST" })
-  .inputValidator((data: { code: string }) => data)
-  .handler(async ({ data }) => {
-    const { db, role, label } = await requireDevice(data?.code);
+function assertCanWrite(role: StaffRole, entity: ConsultingEntity) {
+  if (role === "admin") return;
+  if (role === "contributor" && CONTRIBUTOR_ENTITIES.includes(entity)) return;
+  throw new Error("Your account has read-only access to this section");
+}
 
-    const [project, ...lists] = await Promise.all([
-      db.from("consulting_project").select("*").eq("id", "default").maybeSingle(),
-      ...Object.values(ENTITIES).map((t) =>
-        db.from(t).select("*").order("occurred_on", { ascending: false }).order("created_at", { ascending: false }),
-      ),
-    ]);
+export const loadConsulting = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { code?: string } | undefined) => data ?? {})
+  .handler(async ({ context }) => {
+    const db = await admin();
+    const userId = context.userId as string;
+    const role = await resolveRole(db, userId);
+
+    const { data: profile } = await db
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", userId)
+      .maybeSingle();
 
     const keys = Object.keys(ENTITIES) as ConsultingEntity[];
+    const [project, ...lists] = await Promise.all([
+      db.from("consulting_project").select("*").eq("id", "default").maybeSingle(),
+      ...keys.map((key) => {
+        let q = db.from(ENTITIES[key]).select("*");
+        // Private sections: everyone but a full admin sees only their own
+        // entries (plus shared historical records with no owner).
+        if (role !== "admin" && PRIVATE_ENTITIES.includes(key)) {
+          q = q.or(`owner_id.eq.${userId},owner_id.is.null`);
+        }
+        return q
+          .order("occurred_on", { ascending: false })
+          .order("created_at", { ascending: false });
+      }),
+    ]);
+
     const out: Record<string, Row[]> = {};
     keys.forEach((k, i) => {
       out[k] = ((lists[i] as any)?.data ?? []) as Row[];
     });
 
-    // Executives never see admin-only progress notes.
-    if (role !== "admin") {
+    if (role === "viewer") {
       out.notes = (out.notes ?? []).filter((n) => (n.status ?? "") !== "Admin Only");
     }
 
     return {
       role,
-      label,
+      label: (profile?.full_name as string) || (profile?.email as string) || "Staff account",
+      userId,
       project: (project as any)?.data ?? null,
       records: out,
     };
   });
 
 export const saveConsultingProject = createServerFn({ method: "POST" })
-  .inputValidator((data: { code: string; project: Row }) => data)
-  .handler(async ({ data }) => {
-    const { db } = await requireAdmin(data?.code);
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { code?: string; project: Row }) => data)
+  .handler(async ({ context, data }) => {
+    const db = await admin();
+    const role = await resolveRole(db, context.userId as string);
+    if (role !== "admin") throw new Error("Only a full admin can edit the project summary");
     const p = data?.project ?? {};
     const patch: Row = {
       id: "default",
@@ -103,10 +117,17 @@ export const saveConsultingProject = createServerFn({ method: "POST" })
   });
 
 export const saveConsultingRecord = createServerFn({ method: "POST" })
-  .inputValidator((data: { code: string; entity: ConsultingEntity; id?: string | null; record: Row }) => data)
-  .handler(async ({ data }) => {
-    const { db } = await requireAdmin(data?.code);
-    const t = table(data?.entity);
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: { code?: string; entity: ConsultingEntity; id?: string | null; record: Row }) => data,
+  )
+  .handler(async ({ context, data }) => {
+    const db = await admin();
+    const userId = context.userId as string;
+    const role = await resolveRole(db, userId);
+    const entity = String(data?.entity ?? "") as ConsultingEntity;
+    assertCanWrite(role, entity);
+    const t = table(entity);
     const r = data?.record ?? {};
     const patch: Row = {
       title: String(r.title ?? "").trim() || "Untitled",
@@ -114,31 +135,53 @@ export const saveConsultingRecord = createServerFn({ method: "POST" })
       occurred_on: r.occurred_on ? String(r.occurred_on) : null,
       data: typeof r.data === "object" && r.data ? r.data : {},
     };
-    const query = data?.id
-      ? db.from(t).update(patch).eq("id", data.id).select().single()
-      : db.from(t).insert(patch).select().single();
-    const { data: row, error } = await query;
+
+    if (data?.id) {
+      let q = db.from(t).update(patch).eq("id", data.id);
+      // Non-admins may only change their own entries.
+      if (role !== "admin") q = q.eq("owner_id", userId);
+      const { data: row, error } = await q.select().single();
+      if (error || !row) throw new Error("Could not save that record");
+      return { row: row as Row };
+    }
+
+    const { data: row, error } = await db
+      .from(t)
+      .insert({ ...patch, owner_id: userId })
+      .select()
+      .single();
     if (error) throw new Error("Could not save that record");
     return { row: row as Row };
   });
 
 export const deleteConsultingRecord = createServerFn({ method: "POST" })
-  .inputValidator((data: { code: string; entity: ConsultingEntity; id: string }) => data)
-  .handler(async ({ data }) => {
-    const { db } = await requireAdmin(data?.code);
-    const t = table(data?.entity);
-    const { error } = await db.from(t).delete().eq("id", data?.id);
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { code?: string; entity: ConsultingEntity; id: string }) => data)
+  .handler(async ({ context, data }) => {
+    const db = await admin();
+    const userId = context.userId as string;
+    const role = await resolveRole(db, userId);
+    const entity = String(data?.entity ?? "") as ConsultingEntity;
+    assertCanWrite(role, entity);
+    let q = db.from(table(entity)).delete().eq("id", data?.id);
+    if (role !== "admin") q = q.eq("owner_id", userId);
+    const { error } = await q;
     if (error) throw new Error("Could not delete that record");
     return { ok: true as const };
   });
 
+/** Legacy device-code roles (shared tablets) — still used by the Admin page. */
 export const setDeviceRole = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string; target: string; role: "admin" | "executive" | "security" | "parking" }) => data)
   .handler(async ({ data }) => {
-    const { code, db } = await requireAdmin(data?.code);
+    const db = await admin();
+    const row = await lookupDeviceRow(db, data?.code, "code, revoked, role, label");
+    if ((row.role ?? "admin") !== "admin") throw new Error("This device has view-only access");
     const target = normalizeCode(data?.target);
     const role = ["executive", "security", "parking"].includes(String(data?.role)) ? String(data?.role) : "admin";
-    if (target === code && role !== "admin") throw new Error("You cannot downgrade the device you are using");
+    if (target === String(row.code) && role !== "admin") {
+      throw new Error("You cannot downgrade the device you are using");
+    }
     const { error } = await db.from("device_access_codes").update({ role }).eq("code", target);
     if (error) throw new Error("Could not update that device");
     return { ok: true as const };
