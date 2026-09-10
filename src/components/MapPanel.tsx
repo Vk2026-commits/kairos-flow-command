@@ -3101,7 +3101,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
                 strokeDasharray="1.5 1.5"
                 opacity="0.9"
               />
-              {draft.map((p, i) => (
+              {draft.map(projectPt).map((p, i) => (
                 <circle key={i} cx={p.x} cy={p.y} r="0.8" fill={toolColor(tool)} />
               ))}
             </>
