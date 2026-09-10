@@ -351,6 +351,48 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
         markerInst.current?.setPosition(v.center);
         svInst.current?.setPosition(v.center);
       },
+      latLngToClient: (ll) => {
+        const m = mapInst.current;
+        const el = mapRef.current;
+        if (!m || !el) return null;
+        const b = m.getBounds();
+        if (!b) return null;
+        const ne = b.getNorthEast();
+        const sw = b.getSouthWest();
+        const r = el.getBoundingClientRect();
+        let lngSpan = ne.lng() - sw.lng();
+        if (lngSpan <= 0) lngSpan += 360;
+        let dLng = ll.lng - sw.lng();
+        if (dLng < 0) dLng += 360;
+        const yTop = mercY(ne.lat());
+        const yBottom = mercY(sw.lat());
+        return {
+          x: r.left + (dLng / lngSpan) * r.width,
+          y: r.top + ((yTop - mercY(ll.lat)) / (yTop - yBottom)) * r.height,
+        };
+      },
+      clientToLatLng: (x, y) => {
+        const m = mapInst.current;
+        const el = mapRef.current;
+        if (!m || !el) return null;
+        const b = m.getBounds();
+        if (!b) return null;
+        const ne = b.getNorthEast();
+        const sw = b.getSouthWest();
+        const r = el.getBoundingClientRect();
+        if (!r.width || !r.height) return null;
+        let lngSpan = ne.lng() - sw.lng();
+        if (lngSpan <= 0) lngSpan += 360;
+        const yTop = mercY(ne.lat());
+        const yBottom = mercY(sw.lat());
+        const lng = sw.lng() + ((x - r.left) / r.width) * lngSpan;
+        const lat = invMercY(yTop - ((y - r.top) / r.height) * (yTop - yBottom));
+        return { lat, lng: ((lng + 540) % 360) - 180 };
+      },
+      onViewChanged: (cb) => {
+        viewCbs.current.add(cb);
+        return () => viewCbs.current.delete(cb);
+      },
       setInteractive: (enabled: boolean) => {
         const opts: google.maps.MapOptions = {
           draggable: enabled,
