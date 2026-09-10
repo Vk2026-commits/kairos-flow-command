@@ -453,7 +453,14 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
           });
           mapInst.current.setStreetView(svInst.current);
         }
+        // Notify subscribers whenever the viewport moves so overlays drawn on
+        // top of the map can be re-projected and stay locked to the ground.
+        const notify = () => viewCbs.current.forEach((f) => f());
+        (["bounds_changed", "zoom_changed", "center_changed", "idle", "resize"] as const).forEach(
+          (ev) => mapInst.current!.addListener(ev, notify),
+        );
         setLoaded(true);
+        notify();
       })
       .catch((e: Error) => setError(e.message));
     return () => {
