@@ -65,7 +65,10 @@ const POINT_TOOLS: readonly Tool[] = ["closure", "hpd", "security", "ministry", 
 const isPointTool = (t: Tool): t is "closure" | PersonnelRole | SignKind =>
   t !== null && (POINT_TOOLS as readonly Tool[]).includes(t);
 
-type Pt = { x: number; y: number };
+// x/y are percentages of the map surface. On the Live map every point also
+// carries its real-world position, so drawings stay locked to the ground when
+// the map is zoomed, panned, or reopened at a different view.
+type Pt = { x: number; y: number; lat?: number; lng?: number };
 type Annotation =
   | { id: string; kind: "ingress" | "egress" | "shuttle"; base: BaseKey; points: Pt[]; label?: string }
   | { id: string; kind: "closure"; base: BaseKey; point: Pt; label: string }
