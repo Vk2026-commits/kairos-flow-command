@@ -273,7 +273,8 @@ type Props = {
 export function MapPanel({ service, onServiceChange }: Props) {
   const [base, setBase] = useState<BaseKey>("street");
   const [customUrl, setCustomUrl] = useState<string | null>(null);
-  const [layers, setLayers] = useState<Record<LayerKey, boolean>>({
+  const LAYERS_KEY = "kairos:map-layers:v1";
+  const DEFAULT_LAYERS: Record<LayerKey, boolean> = {
     ingress: true,
     egress: true,
     shuttle: true,
@@ -281,7 +282,38 @@ export function MapPanel({ service, onServiceChange }: Props) {
     loading: false,
     closures: true,
     parking: true,
-  });
+  };
+  const [layers, setLayers] = useState<Record<LayerKey, boolean>>(DEFAULT_LAYERS);
+  // Remember which layers the user switched off so they stay off after a
+  // sign-out / sign-in or a page reload on this device.
+  const [layersLoaded, setLayersLoaded] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LAYERS_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as Partial<Record<LayerKey, boolean>>;
+        setLayers((prev) => {
+          const next = { ...prev };
+          for (const k of Object.keys(prev) as LayerKey[]) {
+            if (typeof saved[k] === "boolean") next[k] = saved[k] as boolean;
+          }
+          return next;
+        });
+      }
+    } catch {
+      /* ignore */
+    }
+    setLayersLoaded(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!layersLoaded) return;
+    try {
+      localStorage.setItem(LAYERS_KEY, JSON.stringify(layers));
+    } catch {
+      /* ignore */
+    }
+  }, [layers, layersLoaded]);
 
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
 
