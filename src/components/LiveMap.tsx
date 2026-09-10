@@ -40,7 +40,19 @@ export type LiveMapHandle = {
   setInteractive: (enabled: boolean) => void;
   getView: () => LiveMapView | null;
   setView: (v: LiveMapView) => void;
+  /** Geo → viewport pixel coordinates (client px), or null when not ready. */
+  latLngToClient: (ll: { lat: number; lng: number }) => { x: number; y: number } | null;
+  /** Viewport pixel coordinates (client px) → geo, or null when not ready. */
+  clientToLatLng: (x: number, y: number) => { lat: number; lng: number } | null;
+  /** Subscribe to pan/zoom changes; returns an unsubscribe function. */
+  onViewChanged: (cb: () => void) => () => void;
 };
+
+// Web Mercator helpers: latitude is linear in this space, so a simple
+// interpolation between the map's north/south edges is exact.
+const mercY = (lat: number) =>
+  Math.log(Math.tan(Math.PI / 4 + (Math.max(-85, Math.min(85, lat)) * Math.PI) / 360));
+const invMercY = (y: number) => ((Math.atan(Math.exp(y)) - Math.PI / 4) * 360) / Math.PI;
 
 let mapsLoader: Promise<typeof google> | null = null;
 const FALLBACK_GOOGLE_MAPS_KEY = "AIzaSyBQ-BDvsL4yEcbL6kYhbmaLiuE7TuVGl9s";
