@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import aerialAsset from "@/assets/wheeler-aerial.jpg.asset.json";
 import streetAsset from "@/assets/wheeler-street.jpg.asset.json";
 import lotAsset from "@/assets/wheeler-lot.jpg.asset.json";
