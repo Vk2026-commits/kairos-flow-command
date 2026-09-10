@@ -2822,6 +2822,15 @@ export function MapPanel({ service, onServiceChange }: Props) {
                 )}
                 <button
                   type="button"
+                  onClick={undoLastEdit}
+                  disabled={!undoCount}
+                  title="Undo the last action"
+                  className="mt-2 w-full text-[10px] font-bold py-1.5 rounded border border-white/10 bg-white/5 text-slate-300 hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  ↶ Undo last action
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     const signCount = annotations.filter((a) => a.base === base && a.kind === "sign").length;
                     if (!signCount) return;
