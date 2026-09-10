@@ -992,7 +992,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     setBase(plan.base);
     setLayers(plan.layers);
     const incoming = plan.annotations.map((a) => ({ ...a, id: crypto.randomUUID() }));
-    setAnnotations((prev) => (replace ? incoming : [...prev, ...incoming]));
+    editAnnotations((prev) => (replace ? incoming : [...prev, ...incoming]));
     if (plan.liveMapType) setLiveMapType(plan.liveMapType);
     if (typeof plan.streetView === "boolean") setStreetView(plan.streetView);
     if (plan.service) onServiceChange(plan.service);
@@ -1462,7 +1462,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     if (tool === "closure") {
       const label = window.prompt("Closure label:", "Road Closed") ?? "";
       if (!label) return;
-      setAnnotations((a) => [
+      editAnnotations((a) => [
         ...a,
         { id: crypto.randomUUID(), kind: "closure", base, point: p, label },
       ]);
@@ -1471,7 +1471,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     if (tool === "hpd" || tool === "security" || tool === "ministry") {
       const meta = PERSONNEL_META[tool];
       const label = window.prompt(`${meta.label} label (optional):`, "") ?? "";
-      setAnnotations((a) => [
+      editAnnotations((a) => [
         ...a,
         {
           id: crypto.randomUUID(),
@@ -1487,7 +1487,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     if (isSignTool(tool)) {
       const meta = SIGN_META[tool];
       const label = window.prompt(`${meta.label} label (optional):`, "") ?? "";
-      setAnnotations((a) => [
+      editAnnotations((a) => [
         ...a,
         {
           id: crypto.randomUUID(),
@@ -1514,7 +1514,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
       return;
     }
     const label = window.prompt(`${tool.toUpperCase()} label (optional):`, "") ?? "";
-    setAnnotations((a) => [
+    editAnnotations((a) => [
       ...a,
       {
         id: crypto.randomUUID(),
@@ -1543,11 +1543,11 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
   function clearAll() {
     if (!window.confirm("Delete ALL annotations on every base layer?")) return;
-    setAnnotations([]);
+    editAnnotations([]);
   }
 
   function removeAnnotation(id: string) {
-    setAnnotations((a) => a.filter((x) => x.id !== id));
+    editAnnotations((a) => a.filter((x) => x.id !== id));
   }
 
   function exportAnnotations() {
@@ -1670,7 +1670,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     );
     if (!selected.length) return;
     const withIds = selected.map((a) => ({ ...a, id: crypto.randomUUID() }));
-    setAnnotations((prev) => {
+    editAnnotations((prev) => {
       if (pendingImport.mode === "replace") {
         const selectedBases = new Set(selected.map((a) => a.base));
         return [...prev.filter((a) => !selectedBases.has(a.base)), ...withIds];
@@ -2748,7 +2748,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
                     const roleCount = annotations.filter((a) => a.base === base && a.kind === "personnel").length;
                     if (!roleCount) return;
                     if (!window.confirm(`Delete all ${roleCount} personnel markers on ${base}?`)) return;
-                    setAnnotations((prev) => prev.filter((a) => !(a.base === base && a.kind === "personnel")));
+                    editAnnotations((prev) => prev.filter((a) => !(a.base === base && a.kind === "personnel")));
                   }}
                   className="mt-2 w-full text-[10px] font-bold py-1.5 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition"
                 >
@@ -2817,7 +2817,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
                     const signCount = annotations.filter((a) => a.base === base && a.kind === "sign").length;
                     if (!signCount) return;
                     if (!window.confirm(`Delete all ${signCount} signs on ${base}?`)) return;
-                    setAnnotations((prev) => prev.filter((a) => !(a.base === base && a.kind === "sign")));
+                    editAnnotations((prev) => prev.filter((a) => !(a.base === base && a.kind === "sign")));
                   }}
                   className="mt-2 w-full text-[10px] font-bold py-1.5 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition"
                 >
