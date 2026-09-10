@@ -40,7 +40,19 @@ export type LiveMapHandle = {
   setInteractive: (enabled: boolean) => void;
   getView: () => LiveMapView | null;
   setView: (v: LiveMapView) => void;
+  /** Geo → viewport pixel coordinates (client px), or null when not ready. */
+  latLngToClient: (ll: { lat: number; lng: number }) => { x: number; y: number } | null;
+  /** Viewport pixel coordinates (client px) → geo, or null when not ready. */
+  clientToLatLng: (x: number, y: number) => { lat: number; lng: number } | null;
+  /** Subscribe to pan/zoom changes; returns an unsubscribe function. */
+  onViewChanged: (cb: () => void) => () => void;
 };
+
+// Web Mercator helpers: latitude is linear in this space, so a simple
+// interpolation between the map's north/south edges is exact.
+const mercY = (lat: number) =>
+  Math.log(Math.tan(Math.PI / 4 + (Math.max(-85, Math.min(85, lat)) * Math.PI) / 360));
+const invMercY = (y: number) => ((Math.atan(Math.exp(y)) - Math.PI / 4) * 360) / Math.PI;
 
 let mapsLoader: Promise<typeof google> | null = null;
 const FALLBACK_GOOGLE_MAPS_KEY = "AIzaSyBQ-BDvsL4yEcbL6kYhbmaLiuE7TuVGl9s";
@@ -102,6 +114,7 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
   const svInst = useRef<google.maps.StreetViewPanorama | null>(null);
   const markerInst = useRef<google.maps.Marker | null>(null);
   const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
+  const viewCbs = useRef<Set<() => void>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -339,6 +352,48 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
         markerInst.current?.setPosition(v.center);
         svInst.current?.setPosition(v.center);
       },
+      latLngToClient: (ll) => {
+        const m = mapInst.current;
+        const el = mapRef.current;
+        if (!m || !el) return null;
+        const b = m.getBounds();
+        if (!b) return null;
+        const ne = b.getNorthEast();
+        const sw = b.getSouthWest();
+        const r = el.getBoundingClientRect();
+        let lngSpan = ne.lng() - sw.lng();
+        if (lngSpan <= 0) lngSpan += 360;
+        let dLng = ll.lng - sw.lng();
+        if (dLng < 0) dLng += 360;
+        const yTop = mercY(ne.lat());
+        const yBottom = mercY(sw.lat());
+        return {
+          x: r.left + (dLng / lngSpan) * r.width,
+          y: r.top + ((yTop - mercY(ll.lat)) / (yTop - yBottom)) * r.height,
+        };
+      },
+      clientToLatLng: (x, y) => {
+        const m = mapInst.current;
+        const el = mapRef.current;
+        if (!m || !el) return null;
+        const b = m.getBounds();
+        if (!b) return null;
+        const ne = b.getNorthEast();
+        const sw = b.getSouthWest();
+        const r = el.getBoundingClientRect();
+        if (!r.width || !r.height) return null;
+        let lngSpan = ne.lng() - sw.lng();
+        if (lngSpan <= 0) lngSpan += 360;
+        const yTop = mercY(ne.lat());
+        const yBottom = mercY(sw.lat());
+        const lng = sw.lng() + ((x - r.left) / r.width) * lngSpan;
+        const lat = invMercY(yTop - ((y - r.top) / r.height) * (yTop - yBottom));
+        return { lat, lng: ((lng + 540) % 360) - 180 };
+      },
+      onViewChanged: (cb) => {
+        viewCbs.current.add(cb);
+        return () => viewCbs.current.delete(cb);
+      },
       setInteractive: (enabled: boolean) => {
         const opts: google.maps.MapOptions = {
           draggable: enabled,
@@ -398,7 +453,14 @@ export const LiveMap = forwardRef<LiveMapHandle, Props>(function LiveMap(
           });
           mapInst.current.setStreetView(svInst.current);
         }
+        // Notify subscribers whenever the viewport moves so overlays drawn on
+        // top of the map can be re-projected and stay locked to the ground.
+        const notify = () => viewCbs.current.forEach((f) => f());
+        (["bounds_changed", "zoom_changed", "center_changed", "idle", "resize"] as const).forEach(
+          (ev) => mapInst.current!.addListener(ev, notify),
+        );
         setLoaded(true);
+        notify();
       })
       .catch((e: Error) => setError(e.message));
     return () => {

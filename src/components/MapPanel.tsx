@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import aerialAsset from "@/assets/wheeler-aerial.jpg.asset.json";
 import streetAsset from "@/assets/wheeler-street.jpg.asset.json";
 import lotAsset from "@/assets/wheeler-lot.jpg.asset.json";
@@ -65,7 +65,10 @@ const POINT_TOOLS: readonly Tool[] = ["closure", "hpd", "security", "ministry", 
 const isPointTool = (t: Tool): t is "closure" | PersonnelRole | SignKind =>
   t !== null && (POINT_TOOLS as readonly Tool[]).includes(t);
 
-type Pt = { x: number; y: number };
+// x/y are percentages of the map surface. On the Live map every point also
+// carries its real-world position, so drawings stay locked to the ground when
+// the map is zoomed, panned, or reopened at a different view.
+type Pt = { x: number; y: number; lat?: number; lng?: number };
 type Annotation =
   | { id: string; kind: "ingress" | "egress" | "shuttle"; base: BaseKey; points: Pt[]; label?: string }
   | { id: string; kind: "closure"; base: BaseKey; point: Pt; label: string }
@@ -1388,10 +1391,18 @@ export function MapPanel({ service, onServiceChange }: Props) {
     const el = contentRef.current ?? surfaceRef.current;
     if (!el) return null;
     const r = el.getBoundingClientRect();
-    return {
+    const pt: Pt = {
       x: ((e.clientX - r.left) / r.width) * 100,
       y: ((e.clientY - r.top) / r.height) * 100,
     };
+    if (base === "live") {
+      const ll = liveMapRef.current?.clientToLatLng(e.clientX, e.clientY);
+      if (ll) {
+        pt.lat = ll.lat;
+        pt.lng = ll.lng;
+      }
+    }
+    return pt;
   }
 
   // Pan-drag when zoomed and no drawing tool active.
@@ -1650,22 +1661,88 @@ export function MapPanel({ service, onServiceChange }: Props) {
   }
 
 
+  // Re-render overlays whenever the Live map is panned or zoomed so every
+  // drawing is re-projected from its real-world position.
+  const [liveEpoch, setLiveEpoch] = useState(0);
+  useEffect(() => {
+    if (base !== "live") return;
+    let unsub: (() => void) | undefined;
+    let raf = 0;
+    const bump = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => setLiveEpoch((n) => n + 1));
+    };
+    const attach = () => {
+      const handle = liveMapRef.current;
+      if (!handle) return false;
+      unsub = handle.onViewChanged(bump);
+      bump();
+      return true;
+    };
+    if (!attach()) {
+      const t = window.setInterval(() => {
+        if (attach()) window.clearInterval(t);
+      }, 250);
+      return () => {
+        window.clearInterval(t);
+        cancelAnimationFrame(raf);
+        unsub?.();
+      };
+    }
+    window.addEventListener("resize", bump);
+    return () => {
+      window.removeEventListener("resize", bump);
+      cancelAnimationFrame(raf);
+      unsub?.();
+    };
+  }, [base]);
+
+  // Convert a stored point into surface percentages for drawing. Geo-anchored
+  // points (Live map) are re-projected; image layers keep their percentages,
+  // which already scale with the image.
+  const projectPt = useCallback(
+    (p: Pt): Pt => {
+      if (base !== "live" || p.lat === undefined || p.lng === undefined) return p;
+      const el = contentRef.current ?? surfaceRef.current;
+      const px = liveMapRef.current?.latLngToClient({ lat: p.lat, lng: p.lng });
+      if (!el || !px) return p;
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return p;
+      return { ...p, x: ((px.x - r.left) / r.width) * 100, y: ((px.y - r.top) / r.height) * 100 };
+    },
+    // liveEpoch intentionally invalidates the projection on every map move.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [base, liveEpoch],
+  );
+
+  const projectAnnotation = useCallback(
+    <T extends Annotation>(a: T): T =>
+      "points" in a
+        ? ({ ...a, points: a.points.map(projectPt) } as T)
+        : ({ ...a, point: projectPt(a.point) } as T),
+    [projectPt],
+  );
+
   // Show annotations that belong to the currently selected base layer,
   // and only when the matching layer toggle is on.
-  const visibleAnnotations = annotations.filter((a) => {
-    if (a.base !== base) return false;
-    if (a.kind === "closure") return layers.closures;
-    if (a.kind === "personnel") return true;
-    if (a.kind === "sign") return true;
-    return layers[a.kind];
-  });
+  const visibleAnnotations = annotations
+    .filter((a) => {
+      if (a.base !== base) return false;
+      if (a.kind === "closure") return layers.closures;
+      if (a.kind === "personnel") return true;
+      if (a.kind === "sign") return true;
+      return layers[a.kind];
+    })
+    .map(projectAnnotation);
 
   // Playback sequence: only path-based arrows on the current base layer,
   // in the order they were saved (ingress → egress → shuttle by save order).
-  const playbackSeq = annotations.filter(
-    (a): a is Extract<Annotation, { kind: "ingress" | "egress" | "shuttle" }> =>
-      a.base === base && (a.kind === "ingress" || a.kind === "egress" || a.kind === "shuttle"),
-  );
+  const playbackSeq = annotations
+    .filter(
+      (a): a is Extract<Annotation, { kind: "ingress" | "egress" | "shuttle" }> =>
+        a.base === base && (a.kind === "ingress" || a.kind === "egress" || a.kind === "shuttle"),
+    )
+    .map(projectAnnotation);
 
   // Stop playing if the sequence becomes empty (e.g. layer switched).
   useEffect(() => {
@@ -3017,14 +3094,14 @@ export function MapPanel({ service, onServiceChange }: Props) {
           {tool && !isPointTool(tool) && draft.length > 0 && (
             <>
               <path
-                d={pathD(cursor ? [...draft, cursor] : draft)}
+                d={pathD((cursor ? [...draft, cursor] : draft).map(projectPt))}
                 stroke={toolColor(tool)}
                 strokeWidth={strokeW}
                 fill="none"
                 strokeDasharray="1.5 1.5"
                 opacity="0.9"
               />
-              {draft.map((p, i) => (
+              {draft.map(projectPt).map((p, i) => (
                 <circle key={i} cx={p.x} cy={p.y} r="0.8" fill={toolColor(tool)} />
               ))}
             </>
