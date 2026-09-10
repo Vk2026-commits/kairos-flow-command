@@ -1391,10 +1391,18 @@ export function MapPanel({ service, onServiceChange }: Props) {
     const el = contentRef.current ?? surfaceRef.current;
     if (!el) return null;
     const r = el.getBoundingClientRect();
-    return {
+    const pt: Pt = {
       x: ((e.clientX - r.left) / r.width) * 100,
       y: ((e.clientY - r.top) / r.height) * 100,
     };
+    if (base === "live") {
+      const ll = liveMapRef.current?.clientToLatLng(e.clientX, e.clientY);
+      if (ll) {
+        pt.lat = ll.lat;
+        pt.lng = ll.lng;
+      }
+    }
+    return pt;
   }
 
   // Pan-drag when zoomed and no drawing tool active.
