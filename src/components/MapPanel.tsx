@@ -320,6 +320,26 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
 
+  // Undo history — every edit made from Annotate, Personnel or Signs pushes a
+  // snapshot here first, so the last action can always be taken back.
+  const undoStack = useRef<Annotation[][]>([]);
+  const [undoCount, setUndoCount] = useState(0);
+  const annotationsRef = useRef<Annotation[]>([]);
+  annotationsRef.current = annotations;
+
+  function editAnnotations(updater: (prev: Annotation[]) => Annotation[]) {
+    undoStack.current = [...undoStack.current.slice(-49), annotationsRef.current];
+    setUndoCount((c) => Math.min(50, c + 1));
+    setAnnotations(updater);
+  }
+
+  function undoLastEdit() {
+    const previous = undoStack.current.pop();
+    if (!previous) return;
+    setUndoCount((c) => Math.max(0, c - 1));
+    setAnnotations(previous);
+  }
+
   // How saved arrow annotations are drawn on the map: as animated lines
   // (default) or as a stream of small car glyphs along the same path.
   const [renderStyle, setRenderStyle] = useState<RenderStyle>("lines");
@@ -972,7 +992,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     setBase(plan.base);
     setLayers(plan.layers);
     const incoming = plan.annotations.map((a) => ({ ...a, id: crypto.randomUUID() }));
-    setAnnotations((prev) => (replace ? incoming : [...prev, ...incoming]));
+    editAnnotations((prev) => (replace ? incoming : [...prev, ...incoming]));
     if (plan.liveMapType) setLiveMapType(plan.liveMapType);
     if (typeof plan.streetView === "boolean") setStreetView(plan.streetView);
     if (plan.service) onServiceChange(plan.service);
@@ -1442,7 +1462,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     if (tool === "closure") {
       const label = window.prompt("Closure label:", "Road Closed") ?? "";
       if (!label) return;
-      setAnnotations((a) => [
+      editAnnotations((a) => [
         ...a,
         { id: crypto.randomUUID(), kind: "closure", base, point: p, label },
       ]);
@@ -1451,7 +1471,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     if (tool === "hpd" || tool === "security" || tool === "ministry") {
       const meta = PERSONNEL_META[tool];
       const label = window.prompt(`${meta.label} label (optional):`, "") ?? "";
-      setAnnotations((a) => [
+      editAnnotations((a) => [
         ...a,
         {
           id: crypto.randomUUID(),
@@ -1467,7 +1487,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     if (isSignTool(tool)) {
       const meta = SIGN_META[tool];
       const label = window.prompt(`${meta.label} label (optional):`, "") ?? "";
-      setAnnotations((a) => [
+      editAnnotations((a) => [
         ...a,
         {
           id: crypto.randomUUID(),
@@ -1494,7 +1514,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
       return;
     }
     const label = window.prompt(`${tool.toUpperCase()} label (optional):`, "") ?? "";
-    setAnnotations((a) => [
+    editAnnotations((a) => [
       ...a,
       {
         id: crypto.randomUUID(),
@@ -1518,16 +1538,16 @@ export function MapPanel({ service, onServiceChange }: Props) {
       setDraft((d) => d.slice(0, -1));
       return;
     }
-    setAnnotations((a) => a.slice(0, -1));
+    undoLastEdit();
   }
 
   function clearAll() {
     if (!window.confirm("Delete ALL annotations on every base layer?")) return;
-    setAnnotations([]);
+    editAnnotations(() => []);
   }
 
   function removeAnnotation(id: string) {
-    setAnnotations((a) => a.filter((x) => x.id !== id));
+    editAnnotations((a) => a.filter((x) => x.id !== id));
   }
 
   function exportAnnotations() {
@@ -1650,7 +1670,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     );
     if (!selected.length) return;
     const withIds = selected.map((a) => ({ ...a, id: crypto.randomUUID() }));
-    setAnnotations((prev) => {
+    editAnnotations((prev) => {
       if (pendingImport.mode === "replace") {
         const selectedBases = new Set(selected.map((a) => a.base));
         return [...prev.filter((a) => !selectedBases.has(a.base)), ...withIds];
@@ -2323,7 +2343,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
                 )}
                 <div className="mt-2 flex gap-1.5">
                   <button type="button" onClick={finishPath} disabled={!tool || isPointTool(tool) || draft.length < 2} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-kairos-blue text-white disabled:opacity-30 disabled:cursor-not-allowed">Finish</button>
-                  <button type="button" onClick={undo} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-white/5 text-slate-300 hover:text-white border border-white/5">Undo</button>
+                  <button type="button" onClick={undo} disabled={!draft.length && !undoCount} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-white/5 text-slate-300 hover:text-white border border-white/5 disabled:opacity-30 disabled:cursor-not-allowed" title="Undo the last action">↶ Undo</button>
                   <button type="button" onClick={cancelDraft} className="flex-1 text-[10px] font-bold py-1.5 rounded bg-white/5 text-slate-300 hover:text-white border border-white/5">Cancel</button>
                 </div>
 
@@ -2724,11 +2744,20 @@ export function MapPanel({ service, onServiceChange }: Props) {
                 )}
                 <button
                   type="button"
+                  onClick={undoLastEdit}
+                  disabled={!undoCount}
+                  title="Undo the last action"
+                  className="mt-2 w-full text-[10px] font-bold py-1.5 rounded border border-white/10 bg-white/5 text-slate-300 hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  ↶ Undo last action
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     const roleCount = annotations.filter((a) => a.base === base && a.kind === "personnel").length;
                     if (!roleCount) return;
                     if (!window.confirm(`Delete all ${roleCount} personnel markers on ${base}?`)) return;
-                    setAnnotations((prev) => prev.filter((a) => !(a.base === base && a.kind === "personnel")));
+                    editAnnotations((prev) => prev.filter((a) => !(a.base === base && a.kind === "personnel")));
                   }}
                   className="mt-2 w-full text-[10px] font-bold py-1.5 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition"
                 >
@@ -2793,11 +2822,20 @@ export function MapPanel({ service, onServiceChange }: Props) {
                 )}
                 <button
                   type="button"
+                  onClick={undoLastEdit}
+                  disabled={!undoCount}
+                  title="Undo the last action"
+                  className="mt-2 w-full text-[10px] font-bold py-1.5 rounded border border-white/10 bg-white/5 text-slate-300 hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  ↶ Undo last action
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     const signCount = annotations.filter((a) => a.base === base && a.kind === "sign").length;
                     if (!signCount) return;
                     if (!window.confirm(`Delete all ${signCount} signs on ${base}?`)) return;
-                    setAnnotations((prev) => prev.filter((a) => !(a.base === base && a.kind === "sign")));
+                    editAnnotations((prev) => prev.filter((a) => !(a.base === base && a.kind === "sign")));
                   }}
                   className="mt-2 w-full text-[10px] font-bold py-1.5 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10 transition"
                 >
