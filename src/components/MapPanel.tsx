@@ -320,6 +320,26 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
 
+  // Undo history — every edit made from Annotate, Personnel or Signs pushes a
+  // snapshot here first, so the last action can always be taken back.
+  const undoStack = useRef<Annotation[][]>([]);
+  const [undoCount, setUndoCount] = useState(0);
+  const annotationsRef = useRef<Annotation[]>([]);
+  annotationsRef.current = annotations;
+
+  function editAnnotations(updater: (prev: Annotation[]) => Annotation[]) {
+    undoStack.current = [...undoStack.current.slice(-49), annotationsRef.current];
+    setUndoCount((c) => Math.min(50, c + 1));
+    setAnnotations(updater);
+  }
+
+  function undoLastEdit() {
+    const previous = undoStack.current.pop();
+    if (!previous) return;
+    setUndoCount((c) => Math.max(0, c - 1));
+    setAnnotations(previous);
+  }
+
   // How saved arrow annotations are drawn on the map: as animated lines
   // (default) or as a stream of small car glyphs along the same path.
   const [renderStyle, setRenderStyle] = useState<RenderStyle>("lines");
