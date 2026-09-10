@@ -3094,7 +3094,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
           {tool && !isPointTool(tool) && draft.length > 0 && (
             <>
               <path
-                d={pathD(cursor ? [...draft, cursor] : draft)}
+                d={pathD((cursor ? [...draft, cursor] : draft).map(projectPt))}
                 stroke={toolColor(tool)}
                 strokeWidth={strokeW}
                 fill="none"
