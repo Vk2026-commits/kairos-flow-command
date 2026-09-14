@@ -447,7 +447,13 @@ function Dashboard({
         </div>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <DecisionsPanel decisions={records.decisions} />
+        <VerificationPanel items={records.verification} />
+      </div>
+
       <TimeLog activities={records.activities} siteVisits={records.siteVisits} canEdit={canEdit} onSaveRecord={onSaveRecord} />
+
 
       <BriefingArchive
 
