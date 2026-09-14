@@ -18,7 +18,11 @@ const ENTITIES = {
   notes: "consulting_notes",
   beforeAfter: "consulting_before_after",
   briefings: "consulting_briefings",
+  parkingCounts: "consulting_parking_counts",
+  decisions: "consulting_decisions",
+  verification: "consulting_checklist",
 } as const;
+
 
 export type ConsultingEntity = keyof typeof ENTITIES;
 
