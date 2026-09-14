@@ -1341,7 +1341,81 @@ function ExecutiveReport({ project, records }: { project: ConsultingProject; rec
           </Section>
         )}
 
+        <Section title="Parking Utilization">
+          <List
+            items={records.parkingCounts.map((p) => {
+              const d = p.data ?? {};
+              const bits = [
+                d.observedAt ? String(d.observedAt) : null,
+                d.regular != null ? `${d.regular} regular` : null,
+                d.handicap != null ? `${d.handicap} handicap` : null,
+                d.totalVehicles != null ? `${d.totalVehicles} vehicles` : null,
+                d.available != null ? `${d.available} spaces available` : null,
+                d.capacity != null ? `capacity ${d.capacity}` : null,
+                d.full === "Yes" ? "FULL" : null,
+              ].filter(Boolean);
+              return `${fmtDay(p.occurred_on)} — ${p.title}${bits.length ? ` (${bits.join(", ")})` : ""}${
+                p.status !== "Observation" ? ` [${p.status}]` : ""
+              }`;
+            })}
+          />
+        </Section>
+
+        <Section title="Safety Concerns">
+          <List
+            items={records.recommendations
+              .filter((r) => r.status === "Safety Concern" || /safety hazard/i.test(r.title))
+              .map((r) => `${r.title} — ${r.data?.priority ?? ""}: ${r.data?.problem ?? ""}`)}
+          />
+        </Section>
+
+        <Section title="Traffic-Flow Findings">
+          <List
+            items={records.recommendations
+              .filter((r) => /traffic flow/i.test(r.title))
+              .map((r) => `${r.title} — ${r.data?.problem ?? ""} Recommended: ${r.data?.solution ?? ""}`)}
+          />
+        </Section>
+
+        <Section title="Police / Security Deployment">
+          <List
+            items={[
+              ...records.parkingCounts.filter((p) => p.data?.personnel).map((p) => `${p.title}: ${p.data.personnel}`),
+              ...records.notes
+                .filter((n) => /police|security staffing/i.test(n.title))
+                .map((n) => String(n.data?.content ?? n.title)),
+            ]}
+          />
+        </Section>
+
+        <Section title="Leadership Decisions Required">
+          <List
+            items={records.decisions.map(
+              (d) =>
+                `${d.data?.question || d.title} — ${d.status}${
+                  d.data?.decisionMaker ? ` (${d.data.decisionMaker})` : ""
+                }`,
+            )}
+          />
+        </Section>
+
+        <Section title="Next Sunday Verification">
+          <List items={records.verification.map((v) => `${v.status === "Verified" ? "☑" : "☐"} ${v.data?.item || v.title}`)} />
+        </Section>
+
+        <Section title="Action Items">
+          <List
+            items={records.actionItems.map(
+              (a) =>
+                `${a.title} — ${a.data?.priority ?? ""} · ${a.status}${
+                  a.data?.owner ? ` · owner ${a.data.owner}` : ""
+                }`,
+            )}
+          />
+        </Section>
+
         <Section title="Work Completed">
+
           <List items={records.activities.filter((a) => a.status === "Completed").map((a) => `${fmtDay(a.occurred_on)} — ${a.title}`)} />
         </Section>
 
