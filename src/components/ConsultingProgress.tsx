@@ -40,7 +40,11 @@ const EMPTY: Records = {
   notes: [],
   beforeAfter: [],
   briefings: [],
+  parkingCounts: [],
+  decisions: [],
+  verification: [],
 };
+
 
 type Tab = "dashboard" | EntityKey | "history" | "report";
 
