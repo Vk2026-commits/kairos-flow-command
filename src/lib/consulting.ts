@@ -147,7 +147,11 @@ export type EntityKey =
   | "recommendations"
   | "notes"
   | "beforeAfter"
-  | "briefings";
+  | "briefings"
+  | "parkingCounts"
+  | "decisions"
+  | "verification";
+
 
 export const BRIEFING_STATUSES = ["Published", "Draft"] as const;
 
