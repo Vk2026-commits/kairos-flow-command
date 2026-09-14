@@ -146,6 +146,72 @@ export type Database = {
         }
         Relationships: []
       }
+      consulting_checklist: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          occurred_on: string | null
+          owner_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          owner_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          owner_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      consulting_decisions: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          occurred_on: string | null
+          owner_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          owner_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          owner_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       consulting_milestones: {
         Row: {
           created_at: string
@@ -180,6 +246,39 @@ export type Database = {
         Relationships: []
       }
       consulting_notes: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          occurred_on: string | null
+          owner_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          owner_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          owner_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      consulting_parking_counts: {
         Row: {
           created_at: string
           data: Json
