@@ -96,12 +96,40 @@ export const MILESTONE_NAMES = [
   "Final Recommendations",
 ] as const;
 
-export const ACTION_STATUSES = ["Not Started", "In Progress", "Waiting", "Completed", "On Hold"] as const;
+// Field-observation status labels used from the September 13, 2026 assessment
+// forward. Older records keep whatever status they were saved with.
+export const OBSERVATION_STATUSES = [
+  "Observation",
+  "Safety Concern",
+  "Recommendation",
+  "Action Required",
+  "Pending Approval",
+  "Needs Verification",
+] as const;
+
+export const ACTION_STATUSES = [
+  "Not Started",
+  "In Progress",
+  "Waiting",
+  "Completed",
+  "On Hold",
+  ...OBSERVATION_STATUSES,
+] as const;
 export const PRIORITIES = ["Low", "Medium", "High", "Critical"] as const;
 export const MILESTONE_STATUSES = ["Not Started", "In Progress", "Completed", "Delayed", "Skipped"] as const;
-export const REC_STAGES = ["Identified", "Recommended", "Approved", "Implemented", "Verified"] as const;
+export const REC_STAGES = [
+  "Identified",
+  "Recommended",
+  "Approved",
+  "Implemented",
+  "Verified",
+  ...OBSERVATION_STATUSES,
+] as const;
 export const REC_DECISIONS = ["Under Review", "Approved", "Not Approved"] as const;
+export const DECISION_STATUSES = ["Under Review", "Approved", "Declined"] as const;
+export const VERIFY_STATUSES = ["Needs Verification", "Verified", "Not Applicable"] as const;
 export const NOTE_VISIBILITY = ["Admin Only", "Executive Leadership", "Project Team"] as const;
+
 export const NOTE_CATEGORIES = [
   "Daily Note",
   "Weekly Note",
@@ -119,7 +147,11 @@ export type EntityKey =
   | "recommendations"
   | "notes"
   | "beforeAfter"
-  | "briefings";
+  | "briefings"
+  | "parkingCounts"
+  | "decisions"
+  | "verification";
+
 
 export const BRIEFING_STATUSES = ["Published", "Draft"] as const;
 
@@ -219,15 +251,21 @@ export const ENTITY_CONFIG: Record<EntityKey, EntityConfig> = {
     dateLabel: "Due Date",
     fields: [
       { key: "priority", label: "Priority", type: "select", options: PRIORITIES },
+      { key: "owner", label: "Owner", type: "text" },
       { key: "assignedTo", label: "Assigned To", type: "text" },
       { key: "relatedArea", label: "Related Area", type: "text" },
       { key: "relatedVisit", label: "Related Site Visit", type: "text" },
       { key: "relatedRecommendation", label: "Related Recommendation", type: "text" },
+      { key: "completed", label: "Completed?", type: "select", options: ["", "Yes", "No"] },
       { key: "completedOn", label: "Completion Date", type: "date" },
       { key: "description", label: "Description", type: "textarea", wide: true },
+      { key: "comments", label: "Comments", type: "textarea", wide: true },
+      { key: "leadershipResponse", label: "Leadership Response", type: "textarea", wide: true },
+      { key: "completionEvidence", label: "Completion Evidence", type: "textarea", wide: true },
       { key: "notes", label: "Notes", type: "textarea", wide: true },
-      { key: "attachments", label: "Attachments", type: "docs", wide: true },
+      { key: "attachments", label: "Attachments / Photos / Videos", type: "docs", wide: true },
     ],
+
   },
   recommendations: {
     key: "recommendations",
@@ -307,18 +345,80 @@ export const ENTITY_CONFIG: Record<EntityKey, EntityConfig> = {
       { key: "attachments", label: "Attachments / Maps / Photos", type: "docs", wide: true },
     ],
   },
+  parkingCounts: {
+    key: "parkingCounts",
+    label: "Parking Counts & Observations",
+    singular: "Parking Count",
+    titleLabel: "Lot / Area",
+    statusLabel: "Status",
+    statusOptions: OBSERVATION_STATUSES,
+    dateLabel: "Observation Date",
+    fields: [
+      { key: "lot", label: "Lot / Area", type: "text" },
+      { key: "observedAt", label: "Time Observed", type: "time" },
+      { key: "regular", label: "Regular Vehicles", type: "number" },
+      { key: "handicap", label: "Handicap Vehicles / Spaces", type: "number" },
+      { key: "totalVehicles", label: "Total Vehicles", type: "number" },
+      { key: "available", label: "Spaces Available", type: "number" },
+      { key: "capacity", label: "Working Capacity", type: "number" },
+      { key: "full", label: "Lot Full?", type: "select", options: ["", "Yes", "No"] },
+      { key: "personnel", label: "Police / Personnel Observed", type: "text" },
+      { key: "reservedSpaces", label: "Reserved Spaces", type: "textarea", wide: true },
+      { key: "notes", label: "Notes", type: "textarea", wide: true },
+      { key: "attachments", label: "Photos / Videos / Documents", type: "docs", wide: true },
+    ],
+  },
+  decisions: {
+    key: "decisions",
+    label: "Client Decisions Needed",
+    singular: "Decision",
+    titleLabel: "Decision Needed",
+    statusLabel: "Decision",
+    statusOptions: DECISION_STATUSES,
+    dateLabel: "Date Raised",
+    fields: [
+      { key: "priority", label: "Priority", type: "select", options: PRIORITIES },
+      { key: "question", label: "Question for Leadership", type: "textarea", wide: true },
+      { key: "decision", label: "Decision", type: "textarea", wide: true },
+      { key: "comments", label: "Comments", type: "textarea", wide: true },
+      { key: "decisionMaker", label: "Decision Maker", type: "text" },
+      { key: "decisionDate", label: "Decision Date", type: "date" },
+      { key: "attachments", label: "Attachments", type: "docs", wide: true },
+    ],
+  },
+  verification: {
+    key: "verification",
+    label: "Next Sunday Verification",
+    singular: "Verification Item",
+    titleLabel: "Verification Item",
+    statusLabel: "Status",
+    statusOptions: VERIFY_STATUSES,
+    dateLabel: "Date Raised",
+    fields: [
+      { key: "item", label: "What to Verify", type: "textarea", wide: true },
+      { key: "assignedTo", label: "Who Verifies", type: "text" },
+      { key: "verifiedOn", label: "Verified On", type: "date" },
+      { key: "findings", label: "Findings", type: "textarea", wide: true },
+      { key: "attachments", label: "Photos / Documents", type: "docs", wide: true },
+    ],
+  },
 };
+
 
 export const ENTITY_ORDER: readonly EntityKey[] = [
   "briefings",
   "activities",
   "siteVisits",
+  "parkingCounts",
   "milestones",
   "actionItems",
   "recommendations",
+  "decisions",
+  "verification",
   "notes",
   "beforeAfter",
 ];
+
 
 export function hoursBetween(start?: string, end?: string): number {
   if (!start || !end) return 0;

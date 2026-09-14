@@ -40,7 +40,11 @@ const EMPTY: Records = {
   notes: [],
   beforeAfter: [],
   briefings: [],
+  parkingCounts: [],
+  decisions: [],
+  verification: [],
 };
+
 
 type Tab = "dashboard" | EntityKey | "history" | "report";
 
@@ -49,14 +53,18 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "briefings", label: "Assessments by Date" },
   { key: "activities", label: "Work Activity" },
   { key: "siteVisits", label: "Site Visits" },
+  { key: "parkingCounts", label: "Parking Counts" },
   { key: "milestones", label: "Timeline" },
   { key: "actionItems", label: "Action Items" },
   { key: "recommendations", label: "Recommendations" },
+  { key: "decisions", label: "Client Decisions" },
+  { key: "verification", label: "Next Sunday Verification" },
   { key: "notes", label: "Progress Notes" },
   { key: "beforeAfter", label: "Before / After" },
   { key: "history", label: "Hours & History" },
   { key: "report", label: "Executive Report" },
 ];
+
 
 const DEFAULT_PROJECT: ConsultingProject = {
   status: "Assessment",
@@ -395,7 +403,10 @@ function Dashboard({
         )}
       </div>
 
+      <PriorityBoard records={records} />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
         <div className={card}>
           <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Recent Activity</h3>
           <ul className="space-y-2">
@@ -436,7 +447,13 @@ function Dashboard({
         </div>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <DecisionsPanel decisions={records.decisions} />
+        <VerificationPanel items={records.verification} />
+      </div>
+
       <TimeLog activities={records.activities} siteVisits={records.siteVisits} canEdit={canEdit} onSaveRecord={onSaveRecord} />
+
 
       <BriefingArchive
 
@@ -450,7 +467,117 @@ function Dashboard({
   );
 }
 
+/* ============ Critical & high priority / decisions / verification ============ */
+
+const PRIORITY_RANK: Record<string, number> = { Critical: 0, High: 1 };
+
+function PriorityBoard({ records }: { records: Records }) {
+  const rows = useMemo(() => {
+    const pick = (list: ConsultingRecord[], kind: string) =>
+      list
+        .filter((r) => PRIORITY_RANK[String(r.data?.priority ?? "")] !== undefined)
+        .filter((r) => r.status !== "Completed" && r.status !== "Verified")
+        .map((r) => ({ rec: r, kind }));
+    return [...pick(records.actionItems, "Action Item"), ...pick(records.recommendations, "Recommendation")].sort(
+      (a, b) =>
+        (PRIORITY_RANK[String(a.rec.data?.priority)] ?? 9) - (PRIORITY_RANK[String(b.rec.data?.priority)] ?? 9) ||
+        String(b.rec.occurred_on ?? "").localeCompare(String(a.rec.occurred_on ?? "")),
+    );
+  }, [records]);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div className={card}>
+      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">
+        Critical &amp; High Priority — Top of List
+      </h3>
+      <ul className="space-y-2">
+        {rows.map(({ rec, kind }) => (
+          <li
+            key={`${kind}-${rec.id}`}
+            className="flex items-start justify-between gap-3 flex-wrap rounded-xl border border-white/5 bg-white/5 px-3 py-2"
+          >
+            <div className="min-w-0">
+              <div className="text-sm text-white">{rec.title}</div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mt-0.5">
+                {kind}
+                {rec.data?.relatedArea ? ` · ${rec.data.relatedArea}` : rec.data?.location ? ` · ${rec.data.location}` : ""}
+                {rec.occurred_on ? ` · ${fmtDay(rec.occurred_on)}` : ""}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] font-bold px-2 py-1 rounded border ${priorityTone(rec.data?.priority)}`}>
+                {rec.data?.priority}
+              </span>
+              <span className={`text-[10px] font-bold px-2 py-1 rounded border ${statusTone(rec.status)}`}>
+                {rec.status}
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DecisionsPanel({ decisions }: { decisions: ConsultingRecord[] }) {
+  const open = decisions.filter((d) => d.status !== "Approved" && d.status !== "Declined");
+  return (
+    <div className={card}>
+      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Client Decisions Needed</h3>
+      <ul className="space-y-2">
+        {decisions.length === 0 && <li className="text-xs text-slate-500">No leadership decisions recorded.</li>}
+        {decisions.map((d) => (
+          <li key={d.id} className="text-xs text-slate-300 flex items-start gap-2">
+            <span className="text-slate-500">{d.status === "Approved" ? "☑" : "☐"}</span>
+            <span className="min-w-0">
+              {d.data?.question || d.title}
+              <span className={`ml-2 text-[10px] font-bold px-2 py-0.5 rounded border ${statusTone(d.status)}`}>
+                {d.status}
+              </span>
+              {d.data?.decisionMaker && (
+                <span className="ml-2 text-[10px] text-slate-500">{String(d.data.decisionMaker)}</span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {decisions.length > 0 && (
+        <p className="mt-3 text-[10px] font-mono uppercase tracking-widest text-slate-500">
+          {open.length} awaiting a decision
+        </p>
+      )}
+    </div>
+  );
+}
+
+function VerificationPanel({ items }: { items: ConsultingRecord[] }) {
+  return (
+    <div className={card}>
+      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Next Sunday Verification</h3>
+      <ul className="space-y-2">
+        {items.length === 0 && <li className="text-xs text-slate-500">No verification items recorded.</li>}
+        {items.map((v) => (
+          <li key={v.id} className="text-xs text-slate-300 flex items-start gap-2">
+            <span className="text-slate-500">{v.status === "Verified" ? "☑" : "☐"}</span>
+            <span className="min-w-0">
+              {v.data?.item || v.title}
+              {v.status !== "Verified" && (
+                <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-500/40 text-amber-300 bg-amber-500/10">
+                  {v.status}
+                </span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /* ===================== Saved assessments (by date) ===================== */
+
 
 function BriefingArchive({
   project,
@@ -618,20 +745,28 @@ function RecordSection({
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
-  const filtered = useMemo(
-    () =>
-      rows.filter((r) => {
-        if (status && r.status !== status) return false;
-        if (from && (r.occurred_on ?? "") < from) return false;
-        if (to && (r.occurred_on ?? "") > to) return false;
-        if (q) {
-          const hay = `${r.title} ${r.status} ${r.occurred_on ?? ""} ${JSON.stringify(r.data)}`.toLowerCase();
-          if (!hay.includes(q.toLowerCase())) return false;
-        }
-        return true;
-      }),
-    [rows, q, status, from, to],
-  );
+  const filtered = useMemo(() => {
+    const list = rows.filter((r) => {
+      if (status && r.status !== status) return false;
+      if (from && (r.occurred_on ?? "") < from) return false;
+      if (to && (r.occurred_on ?? "") > to) return false;
+      if (q) {
+        const hay = `${r.title} ${r.status} ${r.occurred_on ?? ""} ${JSON.stringify(r.data)}`.toLowerCase();
+        if (!hay.includes(q.toLowerCase())) return false;
+      }
+      return true;
+    });
+    // Timed observations read best newest date first, earliest time first.
+    if (entity === "parkingCounts") {
+      return [...list].sort(
+        (a, b) =>
+          String(b.occurred_on ?? "").localeCompare(String(a.occurred_on ?? "")) ||
+          String(a.data?.observedAt ?? "zz").localeCompare(String(b.data?.observedAt ?? "zz")),
+      );
+    }
+    return list;
+  }, [rows, q, status, from, to, entity]);
+
 
   return (
     <div className="space-y-4">
@@ -1206,7 +1341,81 @@ function ExecutiveReport({ project, records }: { project: ConsultingProject; rec
           </Section>
         )}
 
+        <Section title="Parking Utilization">
+          <List
+            items={records.parkingCounts.map((p) => {
+              const d = p.data ?? {};
+              const bits = [
+                d.observedAt ? String(d.observedAt) : null,
+                d.regular != null ? `${d.regular} regular` : null,
+                d.handicap != null ? `${d.handicap} handicap` : null,
+                d.totalVehicles != null ? `${d.totalVehicles} vehicles` : null,
+                d.available != null ? `${d.available} spaces available` : null,
+                d.capacity != null ? `capacity ${d.capacity}` : null,
+                d.full === "Yes" ? "FULL" : null,
+              ].filter(Boolean);
+              return `${fmtDay(p.occurred_on)} — ${p.title}${bits.length ? ` (${bits.join(", ")})` : ""}${
+                p.status !== "Observation" ? ` [${p.status}]` : ""
+              }`;
+            })}
+          />
+        </Section>
+
+        <Section title="Safety Concerns">
+          <List
+            items={records.recommendations
+              .filter((r) => r.status === "Safety Concern" || /safety hazard/i.test(r.title))
+              .map((r) => `${r.title} — ${r.data?.priority ?? ""}: ${r.data?.problem ?? ""}`)}
+          />
+        </Section>
+
+        <Section title="Traffic-Flow Findings">
+          <List
+            items={records.recommendations
+              .filter((r) => /traffic flow/i.test(r.title))
+              .map((r) => `${r.title} — ${r.data?.problem ?? ""} Recommended: ${r.data?.solution ?? ""}`)}
+          />
+        </Section>
+
+        <Section title="Police / Security Deployment">
+          <List
+            items={[
+              ...records.parkingCounts.filter((p) => p.data?.personnel).map((p) => `${p.title}: ${p.data.personnel}`),
+              ...records.notes
+                .filter((n) => /police|security staffing/i.test(n.title))
+                .map((n) => String(n.data?.content ?? n.title)),
+            ]}
+          />
+        </Section>
+
+        <Section title="Leadership Decisions Required">
+          <List
+            items={records.decisions.map(
+              (d) =>
+                `${d.data?.question || d.title} — ${d.status}${
+                  d.data?.decisionMaker ? ` (${d.data.decisionMaker})` : ""
+                }`,
+            )}
+          />
+        </Section>
+
+        <Section title="Next Sunday Verification">
+          <List items={records.verification.map((v) => `${v.status === "Verified" ? "☑" : "☐"} ${v.data?.item || v.title}`)} />
+        </Section>
+
+        <Section title="Action Items">
+          <List
+            items={records.actionItems.map(
+              (a) =>
+                `${a.title} — ${a.data?.priority ?? ""} · ${a.status}${
+                  a.data?.owner ? ` · owner ${a.data.owner}` : ""
+                }`,
+            )}
+          />
+        </Section>
+
         <Section title="Work Completed">
+
           <List items={records.activities.filter((a) => a.status === "Completed").map((a) => `${fmtDay(a.occurred_on)} — ${a.title}`)} />
         </Section>
 
