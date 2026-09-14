@@ -53,14 +53,18 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "briefings", label: "Assessments by Date" },
   { key: "activities", label: "Work Activity" },
   { key: "siteVisits", label: "Site Visits" },
+  { key: "parkingCounts", label: "Parking Counts" },
   { key: "milestones", label: "Timeline" },
   { key: "actionItems", label: "Action Items" },
   { key: "recommendations", label: "Recommendations" },
+  { key: "decisions", label: "Client Decisions" },
+  { key: "verification", label: "Next Sunday Verification" },
   { key: "notes", label: "Progress Notes" },
   { key: "beforeAfter", label: "Before / After" },
   { key: "history", label: "Hours & History" },
   { key: "report", label: "Executive Report" },
 ];
+
 
 const DEFAULT_PROJECT: ConsultingProject = {
   status: "Assessment",
