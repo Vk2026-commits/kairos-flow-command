@@ -403,7 +403,10 @@ function Dashboard({
         )}
       </div>
 
+      <PriorityBoard records={records} />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
         <div className={card}>
           <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Recent Activity</h3>
           <ul className="space-y-2">
