@@ -96,12 +96,40 @@ export const MILESTONE_NAMES = [
   "Final Recommendations",
 ] as const;
 
-export const ACTION_STATUSES = ["Not Started", "In Progress", "Waiting", "Completed", "On Hold"] as const;
+// Field-observation status labels used from the September 13, 2026 assessment
+// forward. Older records keep whatever status they were saved with.
+export const OBSERVATION_STATUSES = [
+  "Observation",
+  "Safety Concern",
+  "Recommendation",
+  "Action Required",
+  "Pending Approval",
+  "Needs Verification",
+] as const;
+
+export const ACTION_STATUSES = [
+  "Not Started",
+  "In Progress",
+  "Waiting",
+  "Completed",
+  "On Hold",
+  ...OBSERVATION_STATUSES,
+] as const;
 export const PRIORITIES = ["Low", "Medium", "High", "Critical"] as const;
 export const MILESTONE_STATUSES = ["Not Started", "In Progress", "Completed", "Delayed", "Skipped"] as const;
-export const REC_STAGES = ["Identified", "Recommended", "Approved", "Implemented", "Verified"] as const;
+export const REC_STAGES = [
+  "Identified",
+  "Recommended",
+  "Approved",
+  "Implemented",
+  "Verified",
+  ...OBSERVATION_STATUSES,
+] as const;
 export const REC_DECISIONS = ["Under Review", "Approved", "Not Approved"] as const;
+export const DECISION_STATUSES = ["Under Review", "Approved", "Declined"] as const;
+export const VERIFY_STATUSES = ["Needs Verification", "Verified", "Not Applicable"] as const;
 export const NOTE_VISIBILITY = ["Admin Only", "Executive Leadership", "Project Team"] as const;
+
 export const NOTE_CATEGORIES = [
   "Daily Note",
   "Weekly Note",
