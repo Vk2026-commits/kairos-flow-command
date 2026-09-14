@@ -467,7 +467,117 @@ function Dashboard({
   );
 }
 
+/* ============ Critical & high priority / decisions / verification ============ */
+
+const PRIORITY_RANK: Record<string, number> = { Critical: 0, High: 1 };
+
+function PriorityBoard({ records }: { records: Records }) {
+  const rows = useMemo(() => {
+    const pick = (list: ConsultingRecord[], kind: string) =>
+      list
+        .filter((r) => PRIORITY_RANK[String(r.data?.priority ?? "")] !== undefined)
+        .filter((r) => r.status !== "Completed" && r.status !== "Verified")
+        .map((r) => ({ rec: r, kind }));
+    return [...pick(records.actionItems, "Action Item"), ...pick(records.recommendations, "Recommendation")].sort(
+      (a, b) =>
+        (PRIORITY_RANK[String(a.rec.data?.priority)] ?? 9) - (PRIORITY_RANK[String(b.rec.data?.priority)] ?? 9) ||
+        String(b.rec.occurred_on ?? "").localeCompare(String(a.rec.occurred_on ?? "")),
+    );
+  }, [records]);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div className={card}>
+      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">
+        Critical &amp; High Priority — Top of List
+      </h3>
+      <ul className="space-y-2">
+        {rows.map(({ rec, kind }) => (
+          <li
+            key={`${kind}-${rec.id}`}
+            className="flex items-start justify-between gap-3 flex-wrap rounded-xl border border-white/5 bg-white/5 px-3 py-2"
+          >
+            <div className="min-w-0">
+              <div className="text-sm text-white">{rec.title}</div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mt-0.5">
+                {kind}
+                {rec.data?.relatedArea ? ` · ${rec.data.relatedArea}` : rec.data?.location ? ` · ${rec.data.location}` : ""}
+                {rec.occurred_on ? ` · ${fmtDay(rec.occurred_on)}` : ""}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] font-bold px-2 py-1 rounded border ${priorityTone(rec.data?.priority)}`}>
+                {rec.data?.priority}
+              </span>
+              <span className={`text-[10px] font-bold px-2 py-1 rounded border ${statusTone(rec.status)}`}>
+                {rec.status}
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DecisionsPanel({ decisions }: { decisions: ConsultingRecord[] }) {
+  const open = decisions.filter((d) => d.status !== "Approved" && d.status !== "Declined");
+  return (
+    <div className={card}>
+      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Client Decisions Needed</h3>
+      <ul className="space-y-2">
+        {decisions.length === 0 && <li className="text-xs text-slate-500">No leadership decisions recorded.</li>}
+        {decisions.map((d) => (
+          <li key={d.id} className="text-xs text-slate-300 flex items-start gap-2">
+            <span className="text-slate-500">{d.status === "Approved" ? "☑" : "☐"}</span>
+            <span className="min-w-0">
+              {d.data?.question || d.title}
+              <span className={`ml-2 text-[10px] font-bold px-2 py-0.5 rounded border ${statusTone(d.status)}`}>
+                {d.status}
+              </span>
+              {d.data?.decisionMaker && (
+                <span className="ml-2 text-[10px] text-slate-500">{String(d.data.decisionMaker)}</span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {decisions.length > 0 && (
+        <p className="mt-3 text-[10px] font-mono uppercase tracking-widest text-slate-500">
+          {open.length} awaiting a decision
+        </p>
+      )}
+    </div>
+  );
+}
+
+function VerificationPanel({ items }: { items: ConsultingRecord[] }) {
+  return (
+    <div className={card}>
+      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Next Sunday Verification</h3>
+      <ul className="space-y-2">
+        {items.length === 0 && <li className="text-xs text-slate-500">No verification items recorded.</li>}
+        {items.map((v) => (
+          <li key={v.id} className="text-xs text-slate-300 flex items-start gap-2">
+            <span className="text-slate-500">{v.status === "Verified" ? "☑" : "☐"}</span>
+            <span className="min-w-0">
+              {v.data?.item || v.title}
+              {v.status !== "Verified" && (
+                <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-500/40 text-amber-300 bg-amber-500/10">
+                  {v.status}
+                </span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /* ===================== Saved assessments (by date) ===================== */
+
 
 function BriefingArchive({
   project,
