@@ -247,15 +247,21 @@ export const ENTITY_CONFIG: Record<EntityKey, EntityConfig> = {
     dateLabel: "Due Date",
     fields: [
       { key: "priority", label: "Priority", type: "select", options: PRIORITIES },
+      { key: "owner", label: "Owner", type: "text" },
       { key: "assignedTo", label: "Assigned To", type: "text" },
       { key: "relatedArea", label: "Related Area", type: "text" },
       { key: "relatedVisit", label: "Related Site Visit", type: "text" },
       { key: "relatedRecommendation", label: "Related Recommendation", type: "text" },
+      { key: "completed", label: "Completed?", type: "select", options: ["", "Yes", "No"] },
       { key: "completedOn", label: "Completion Date", type: "date" },
       { key: "description", label: "Description", type: "textarea", wide: true },
+      { key: "comments", label: "Comments", type: "textarea", wide: true },
+      { key: "leadershipResponse", label: "Leadership Response", type: "textarea", wide: true },
+      { key: "completionEvidence", label: "Completion Evidence", type: "textarea", wide: true },
       { key: "notes", label: "Notes", type: "textarea", wide: true },
-      { key: "attachments", label: "Attachments", type: "docs", wide: true },
+      { key: "attachments", label: "Attachments / Photos / Videos", type: "docs", wide: true },
     ],
+
   },
   recommendations: {
     key: "recommendations",
