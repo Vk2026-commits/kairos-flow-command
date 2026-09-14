@@ -341,12 +341,16 @@ export const ENTITY_ORDER: readonly EntityKey[] = [
   "briefings",
   "activities",
   "siteVisits",
+  "parkingCounts",
   "milestones",
   "actionItems",
   "recommendations",
+  "decisions",
+  "verification",
   "notes",
   "beforeAfter",
 ];
+
 
 export function hoursBetween(start?: string, end?: string): number {
   if (!start || !end) return 0;
