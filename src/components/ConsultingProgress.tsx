@@ -745,20 +745,28 @@ function RecordSection({
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
-  const filtered = useMemo(
-    () =>
-      rows.filter((r) => {
-        if (status && r.status !== status) return false;
-        if (from && (r.occurred_on ?? "") < from) return false;
-        if (to && (r.occurred_on ?? "") > to) return false;
-        if (q) {
-          const hay = `${r.title} ${r.status} ${r.occurred_on ?? ""} ${JSON.stringify(r.data)}`.toLowerCase();
-          if (!hay.includes(q.toLowerCase())) return false;
-        }
-        return true;
-      }),
-    [rows, q, status, from, to],
-  );
+  const filtered = useMemo(() => {
+    const list = rows.filter((r) => {
+      if (status && r.status !== status) return false;
+      if (from && (r.occurred_on ?? "") < from) return false;
+      if (to && (r.occurred_on ?? "") > to) return false;
+      if (q) {
+        const hay = `${r.title} ${r.status} ${r.occurred_on ?? ""} ${JSON.stringify(r.data)}`.toLowerCase();
+        if (!hay.includes(q.toLowerCase())) return false;
+      }
+      return true;
+    });
+    // Timed observations read best newest date first, earliest time first.
+    if (entity === "parkingCounts") {
+      return [...list].sort(
+        (a, b) =>
+          String(b.occurred_on ?? "").localeCompare(String(a.occurred_on ?? "")) ||
+          String(a.data?.observedAt ?? "zz").localeCompare(String(b.data?.observedAt ?? "zz")),
+      );
+    }
+    return list;
+  }, [rows, q, status, from, to, entity]);
+
 
   return (
     <div className="space-y-4">
