@@ -36,6 +36,20 @@ export async function listAccessibleOrgIds(db: any, userId: string): Promise<str
   return (data ?? []).map((r: any) => String(r.organization_id));
 }
 
+/**
+ * Links invitations that were created before the person had an account. An
+ * invitation is matched on email only, so it can never grant access to a client
+ * other than the one it was raised for.
+ */
+export async function claimPendingMemberships(db: any, userId: string, email: string | null) {
+  if (!email) return;
+  await db
+    .from("organization_members")
+    .update({ user_id: userId, invitation_status: "accepted" })
+    .is("user_id", null)
+    .ilike("email", email);
+}
+
 export async function resolveOrgContext(
   db: any,
   userId: string,
