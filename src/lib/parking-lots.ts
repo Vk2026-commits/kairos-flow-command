@@ -111,7 +111,7 @@ function num(n: unknown, max = 100000) {
 
 function normalize(raw: unknown): ParkingState {
   const obj = (raw ?? {}) as Partial<ParkingState>;
-  const lots = Array.isArray(obj.lots) && obj.lots.length > 0
+  const lots = Array.isArray(obj.lots)
     ? obj.lots.map((l, i) => ({
         id: String(l?.id ?? `lot-${i}`),
         name: String(l?.name ?? `Lot ${i + 1}`),
