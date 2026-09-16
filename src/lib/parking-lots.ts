@@ -97,17 +97,11 @@ export type ParkingState = {
 };
 
 
-export const DEFAULT_PARKING_STATE: ParkingState = {
-  lots: [
-    { id: "yellow", name: "Yellow Lot", color: "#eab308", spaces: 0 },
-    { id: "green", name: "Green Lot", color: "#22c55e", spaces: 0 },
-    { id: "red", name: "Red Lot", color: "#ef4444", spaces: 0 },
-    { id: "purple", name: "Purple Lot", color: "#a855f7", spaces: 0 },
-    { id: "handicap", name: "Handicap Lot", color: "#38bdf8", spaces: 0 },
-    { id: "matthew25", name: "Matthew 25 Lot", color: "#f97316", spaces: 0 },
-  ],
-  counts: [],
-};
+/**
+ * A new client starts with no lots at all: they name their own lots and enter
+ * the space counts. Nothing is ever inherited from another client.
+ */
+export const DEFAULT_PARKING_STATE: ParkingState = { lots: [], counts: [] };
 
 function num(n: unknown, max = 100000) {
   const v = Math.floor(Number(n));
