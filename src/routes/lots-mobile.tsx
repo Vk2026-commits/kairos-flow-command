@@ -1,4 +1,5 @@
 import ClientSwitcher from "@/components/ClientSwitcher";
+import { ServiceTimesEditor } from "@/components/ServiceTimesEditor";
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
@@ -207,6 +208,7 @@ function MobileLive({ state, setState }: StateProps) {
             <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={field} />
           </label>
         </div>
+        <ServiceTimesEditor state={state} setState={setState} />
         <div>
           <span className={label}>Service</span>
           <div className="mt-2 grid grid-cols-3 gap-2">
