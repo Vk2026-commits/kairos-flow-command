@@ -137,7 +137,61 @@ export const NOTE_CATEGORIES = [
   "Field Observation",
   "Private Admin Note",
 ] as const;
-export const ACTIVITY_STATUSES = ["Completed", "In Progress", "Follow-Up Required"] as const;
+export const ACTIVITY_STATUSES = [
+  "Completed",
+  "In Progress",
+  "Follow-Up Required",
+  "Ongoing",
+  "Developed",
+  "Recommendations Developed",
+  "Implemented",
+  "Implemented / Monitoring",
+  "Completed / Follow-Up",
+  "Mitigation Required",
+  "Scheduled",
+] as const;
+
+/**
+ * Work categories for a Director of Security activity & accountability
+ * workspace. Used alongside the consulting activity types, never instead of
+ * them, so existing records keep the type they were saved with.
+ */
+export const DIRECTOR_CATEGORIES = [
+  "Security Operations",
+  "Security Assessment",
+  "Incident Management",
+  "Investigation",
+  "Executive Protection",
+  "HPD Coordination",
+  "Private Security Coordination",
+  "SRT Operations",
+  "ERT Operations",
+  "Emergency Response",
+  "Emergency Preparedness",
+  "Weather Monitoring",
+  "Training",
+  "Team Management",
+  "Security Technology",
+  "CCTV / Surveillance",
+  "Access Control",
+  "Key Control",
+  "Visitor Management",
+  "Emergency Communications",
+  "Policy / SOP",
+  "Site Visit",
+  "Administration / Meeting",
+  "Event Security Planning",
+  "Follow-Up",
+  "Director Project",
+  "Other",
+] as const;
+
+/**
+ * How the time on an activity should be read. "Recorded" (or a legacy entry
+ * with no status at all) is verified time; "Estimated" time is always reported
+ * separately and never presented as verified.
+ */
+export const TIME_STATUSES = ["Recorded", "Estimated", "Not Recorded", "Pending Verification"] as const;
 
 export type EntityKey =
   | "activities"
@@ -178,6 +232,18 @@ export const ENTITY_CONFIG: Record<EntityKey, EntityConfig> = {
     dateLabel: "Date",
     fields: [
       { key: "activityType", label: "Activity Type", type: "select", options: ACTIVITY_TYPES },
+      { key: "category", label: "Category", type: "select", options: DIRECTOR_CATEGORIES },
+      {
+        key: "timeStatus",
+        label: "Time Status",
+        type: "select",
+        options: TIME_STATUSES,
+        hint: "Estimated time is always reported separately from recorded time.",
+      },
+      { key: "estimatedHours", label: "Estimated Hours", type: "number" },
+      { key: "coordinatedWith", label: "People / Departments Coordinated With", type: "text" },
+      { key: "outcome", label: "Outcome / What Was Accomplished", type: "textarea", wide: true },
+      { key: "followUpDate", label: "Follow-Up Date", type: "date" },
       { key: "startTime", label: "Start Time", type: "time" },
       { key: "endTime", label: "End Time", type: "time" },
       {
@@ -436,6 +502,33 @@ export function activityHours(rec: { data?: Record<string, any> | null }): numbe
   const explicit = Number(d.hours);
   if (Number.isFinite(explicit) && explicit > 0) return Math.round(explicit * 100) / 100;
   return hoursBetween(d.startTime, d.endTime);
+}
+
+/**
+ * Verified time only. Entries marked Estimated, Not Recorded or Pending
+ * Verification contribute nothing here. Older entries with no time status are
+ * treated as recorded, so existing totals never change.
+ */
+export function recordedHours(rec: { data?: Record<string, any> | null }): number {
+  const status = String(rec?.data?.timeStatus ?? "");
+  if (status === "Estimated" || status === "Not Recorded" || status === "Pending Verification") return 0;
+  return activityHours(rec);
+}
+
+/** Estimated time, reported separately and never counted as verified. */
+export function estimatedHours(rec: { data?: Record<string, any> | null }): number {
+  const d = rec?.data ?? {};
+  if (String(d.timeStatus ?? "") !== "Estimated") return 0;
+  const explicit = Number(d.estimatedHours);
+  if (Number.isFinite(explicit) && explicit > 0) return Math.round(explicit * 100) / 100;
+  return activityHours(rec);
+}
+
+/** Label to show for an entry's time status, defaulting older rows sensibly. */
+export function timeStatusLabel(rec: { data?: Record<string, any> | null }): string {
+  const status = String(rec?.data?.timeStatus ?? "");
+  if (status) return status;
+  return activityHours(rec) > 0 ? "Recorded" : "Not Recorded";
 }
 
 

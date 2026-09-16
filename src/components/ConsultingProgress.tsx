@@ -27,6 +27,13 @@ import {
   type EntityKey,
   type Field,
 } from "@/lib/consulting";
+import {
+  DirectorLedger,
+  DirectorMetrics,
+  DirectorReportSections,
+  MasterTimeline,
+  QuickLogActivity,
+} from "./DirectorActivity";
 
 type Records = Record<EntityKey, ConsultingRecord[]>;
 type Role = "admin" | "contributor" | "viewer";
@@ -276,6 +283,8 @@ export default function ConsultingProgress() {
         />
       )}
 
+      {tab === "milestones" && <MasterTimeline records={records} />}
+
       {ENTITY_ORDER.includes(tab as EntityKey) && (
         <RecordSection
           entity={tab as EntityKey}
@@ -288,7 +297,7 @@ export default function ConsultingProgress() {
         />
       )}
 
-      {tab === "history" && <History records={records} />}
+      {tab === "history" && <History records={records} canEdit={canEdit} onSaveRecord={saveRecord} />}
       {tab === "report" && <ExecutiveReport project={project} records={records} />}
     </div>
   );
@@ -335,6 +344,8 @@ function Dashboard({
 
   return (
     <div className="space-y-5">
+      {canEdit && <QuickLogActivity onSave={onSaveRecord} />}
+      <DirectorMetrics records={records} />
       <div className={card}>
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
@@ -1208,7 +1219,15 @@ function DocPicker({
 
 /* ============================ History & Report ============================ */
 
-function History({ records }: { records: Records }) {
+function History({
+  records,
+  canEdit,
+  onSaveRecord,
+}: {
+  records: Records;
+  canEdit: boolean;
+  onSaveRecord: (entity: EntityKey, id: string | null, record: Partial<ConsultingRecord>) => void;
+}) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [type, setType] = useState("");
@@ -1241,6 +1260,7 @@ function History({ records }: { records: Records }) {
 
   return (
     <div className="space-y-5">
+      <DirectorLedger activities={records.activities} canEdit={canEdit} onSave={onSaveRecord} />
       <div className={card}>
         <h2 className="text-sm font-bold uppercase tracking-widest text-white mb-4">Hours & Consulting History</h2>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -1481,6 +1501,8 @@ function ExecutiveReport({ project, records }: { project: ConsultingProject; rec
             )}
           />
         </Section>
+
+        <DirectorReportSections records={records} />
       </div>
     </div>
   );
