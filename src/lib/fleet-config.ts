@@ -38,10 +38,17 @@ function normalize(raw: Partial<FleetConfig> | null | undefined): FleetConfig {
   };
 }
 
+// Cached per client so one client's vehicle counts never show for another.
+let activeClientId: string | null = null;
+
+function cacheKey(): string {
+  return activeClientId ? `${STORAGE_KEY}:${activeClientId}` : STORAGE_KEY;
+}
+
 export function readFleetConfig(): FleetConfig {
   if (typeof window === "undefined") return DEFAULT_FLEET_CONFIG;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(cacheKey());
     if (!raw) return DEFAULT_FLEET_CONFIG;
     return normalize(JSON.parse(raw));
   } catch {
@@ -52,7 +59,7 @@ export function readFleetConfig(): FleetConfig {
 export function writeFleetConfig(next: FleetConfig) {
   const normalized = normalize(next);
   if (typeof window !== "undefined") {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    window.localStorage.setItem(cacheKey(), JSON.stringify(normalized));
     window.dispatchEvent(new CustomEvent(EVENT, { detail: normalized }));
   }
   return normalized;
