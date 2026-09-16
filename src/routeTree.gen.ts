@@ -13,6 +13,7 @@ import { Route as StatusRouteImport } from './routes/status'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PresentationRouteImport } from './routes/presentation'
+import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as ParkingSummaryRouteImport } from './routes/parking-summary'
 import { Route as ParkingPlanRouteImport } from './routes/parking-plan'
 import { Route as LotsMobileRouteImport } from './routes/lots-mobile'
@@ -39,6 +40,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const PresentationRoute = PresentationRouteImport.update({
   id: '/presentation',
   path: '/presentation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortfolioRoute = PortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ParkingSummaryRoute = ParkingSummaryRouteImport.update({
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/lots-mobile': typeof LotsMobileRoute
   '/parking-plan': typeof ParkingPlanRoute
   '/parking-summary': typeof ParkingSummaryRoute
+  '/portfolio': typeof PortfolioRoute
   '/presentation': typeof PresentationRoute
   '/reset-password': typeof ResetPasswordRoute
   '/staff': typeof StaffRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByTo {
   '/lots-mobile': typeof LotsMobileRoute
   '/parking-plan': typeof ParkingPlanRoute
   '/parking-summary': typeof ParkingSummaryRoute
+  '/portfolio': typeof PortfolioRoute
   '/presentation': typeof PresentationRoute
   '/reset-password': typeof ResetPasswordRoute
   '/staff': typeof StaffRoute
@@ -112,6 +120,7 @@ export interface FileRoutesById {
   '/lots-mobile': typeof LotsMobileRoute
   '/parking-plan': typeof ParkingPlanRoute
   '/parking-summary': typeof ParkingSummaryRoute
+  '/portfolio': typeof PortfolioRoute
   '/presentation': typeof PresentationRoute
   '/reset-password': typeof ResetPasswordRoute
   '/staff': typeof StaffRoute
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/lots-mobile'
     | '/parking-plan'
     | '/parking-summary'
+    | '/portfolio'
     | '/presentation'
     | '/reset-password'
     | '/staff'
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
     | '/lots-mobile'
     | '/parking-plan'
     | '/parking-summary'
+    | '/portfolio'
     | '/presentation'
     | '/reset-password'
     | '/staff'
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
     | '/lots-mobile'
     | '/parking-plan'
     | '/parking-summary'
+    | '/portfolio'
     | '/presentation'
     | '/reset-password'
     | '/staff'
@@ -167,6 +179,7 @@ export interface RootRouteChildren {
   LotsMobileRoute: typeof LotsMobileRoute
   ParkingPlanRoute: typeof ParkingPlanRoute
   ParkingSummaryRoute: typeof ParkingSummaryRoute
+  PortfolioRoute: typeof PortfolioRoute
   PresentationRoute: typeof PresentationRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   StaffRoute: typeof StaffRoute
@@ -201,6 +214,13 @@ declare module '@tanstack/react-router' {
       path: '/presentation'
       fullPath: '/presentation'
       preLoaderRoute: typeof PresentationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portfolio': {
+      id: '/portfolio'
+      path: '/portfolio'
+      fullPath: '/portfolio'
+      preLoaderRoute: typeof PortfolioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/parking-summary': {
@@ -263,6 +283,7 @@ const rootRouteChildren: RootRouteChildren = {
   LotsMobileRoute: LotsMobileRoute,
   ParkingPlanRoute: ParkingPlanRoute,
   ParkingSummaryRoute: ParkingSummaryRoute,
+  PortfolioRoute: PortfolioRoute,
   PresentationRoute: PresentationRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   StaffRoute: StaffRoute,
