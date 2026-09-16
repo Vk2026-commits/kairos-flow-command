@@ -345,7 +345,7 @@ export const saveVipVisit = createServerFn({ method: "POST" })
 export const setVipStatus = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string; id: string; status: string; note?: string }) => data)
   .handler(async ({ data }) => {
-    const { db, role, actor } = await requireDevice(data?.code);
+    const { db, role, actor, orgId } = await requireDevice(data?.code);
     const status = str(data?.status).toUpperCase() === "ESCORTED / RECEIVED" ? "ESCORTED / RECEIVED" : str(data?.status);
     if (!(STATUSES as readonly string[]).includes(status)) throw new Error("Unknown status");
     if (!STATUS_RIGHTS[role].includes(status)) throw new Error("This device cannot set that status");
@@ -354,6 +354,7 @@ export const setVipStatus = createServerFn({ method: "POST" })
       .from("vip_visits")
       .select("id, guest_id, status")
       .eq("id", data?.id)
+      .eq("organization_id", orgId)
       .maybeSingle();
     if (vErr || !visit) throw new Error("Could not find that guest visit");
     const { data: guest } = await db.from("vip_guests").select("full_name").eq("id", visit.guest_id).maybeSingle();
@@ -379,7 +380,11 @@ export const setVipStatus = createServerFn({ method: "POST" })
     }
     if (str(data?.note)) patch.departure_notes = str(data?.note);
 
-    const { error } = await db.from("vip_visits").update(patch).eq("id", data?.id);
+    const { error } = await db
+      .from("vip_visits")
+      .update(patch)
+      .eq("id", data?.id)
+      .eq("organization_id", orgId);
     if (error) throw new Error("Could not update that guest");
 
     await db.from("vip_status_history").insert({
@@ -396,10 +401,15 @@ export const setVipStatus = createServerFn({ method: "POST" })
 export const addVipNote = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string; id: string; category?: string; note: string }) => data)
   .handler(async ({ data }) => {
-    const { db, actor } = await requireDevice(data?.code);
+    const { db, actor, orgId } = await requireDevice(data?.code);
     const note = str(data?.note);
     if (!note) throw new Error("Write the note first");
-    const { data: visit } = await db.from("vip_visits").select("guest_id").eq("id", data?.id).maybeSingle();
+    const { data: visit } = await db
+      .from("vip_visits")
+      .select("guest_id")
+      .eq("id", data?.id)
+      .eq("organization_id", orgId)
+      .maybeSingle();
     const { data: guest } = visit
       ? await db.from("vip_guests").select("full_name").eq("id", visit.guest_id).maybeSingle()
       : { data: null as Row | null };
@@ -418,7 +428,7 @@ export const addVipNote = createServerFn({ method: "POST" })
 export const uploadVipPhoto = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string; guestId: string; contentType: string; base64: string }) => data)
   .handler(async ({ data }) => {
-    const { db, actor } = await requireEditor(data?.code);
+    const { db, actor, orgId } = await requireEditor(data?.code);
     const type = str(data?.contentType) || "image/jpeg";
     if (!type.startsWith("image/")) throw new Error("Please choose an image file");
     const base64 = str(data?.base64);
@@ -443,13 +453,22 @@ export const uploadVipPhoto = createServerFn({ method: "POST" })
 export const deleteVipVisit = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string; id: string }) => data)
   .handler(async ({ data }) => {
-    const { db, role, actor } = await requireDevice(data?.code);
+    const { db, role, actor, orgId } = await requireDevice(data?.code);
     if (role !== "admin") throw new Error("Only an admin device can delete a guest record");
-    const { data: visit } = await db.from("vip_visits").select("guest_id").eq("id", data?.id).maybeSingle();
+    const { data: visit } = await db
+      .from("vip_visits")
+      .select("guest_id")
+      .eq("id", data?.id)
+      .eq("organization_id", orgId)
+      .maybeSingle();
     const { data: guest } = visit
       ? await db.from("vip_guests").select("full_name").eq("id", visit.guest_id).maybeSingle()
       : { data: null as Row | null };
-    const { error } = await db.from("vip_visits").delete().eq("id", data?.id);
+    const { error } = await db
+      .from("vip_visits")
+      .delete()
+      .eq("id", data?.id)
+      .eq("organization_id", orgId);
     if (error) throw new Error("Could not delete that guest record");
     await log(db, null, guest?.full_name ?? "Guest", "Guest record deleted", actor);
     return { ok: true as const };
