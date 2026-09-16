@@ -15,8 +15,10 @@ async function admin() {
 
 async function requireDevice(rawCode: unknown) {
   const db = await admin();
-  const row = await lookupDeviceRow(db, rawCode, "code, revoked");
-  return { code: String(row.code), db };
+  const row = await lookupDeviceRow(db, rawCode, "code, revoked, organization_id");
+  const { deviceOrgId } = await import("./org.server");
+  // Plans and invites are always scoped to the client this device belongs to.
+  return { code: String(row.code), db, orgId: deviceOrgId(row) };
 }
 
 
