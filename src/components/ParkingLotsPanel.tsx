@@ -193,8 +193,10 @@ export function ParkingLotsPanel() {
         <div>
           <h2 className="text-lg font-semibold text-white tracking-tight">Parking Lots</h2>
           <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">
-            {fmtDate(date)} · {service.name} · {recordedLots}/{state.lots.length} lots recorded ·{" "}
-            {totalCars}/{totalSpaces || "?"} cars
+            {fmtDate(date)} · {service.name} ·{" "}
+            {state.lots.length === 0
+              ? "no lots yet — add your first lot"
+              : `${recordedLots}/${state.lots.length} lots recorded · ${totalCars}/${totalSpaces || "?"} cars`}
           </p>
           <Link
             to="/parking-summary"

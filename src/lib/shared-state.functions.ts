@@ -70,5 +70,7 @@ export const loadSharedState = createServerFn({ method: "POST" })
       .eq("key", key)
       .maybeSingle();
     if (error) throw new Error("Could not load shared state");
-    return { data: (row?.data ?? null) as Record<string, any> | null };
+    // orgId lets the browser cache each client's board separately, so one
+    // client's numbers can never appear in another client's workspace.
+    return { data: (row?.data ?? null) as Record<string, any> | null, orgId };
   });

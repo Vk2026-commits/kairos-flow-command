@@ -38,10 +38,17 @@ function normalize(raw: Partial<FleetConfig> | null | undefined): FleetConfig {
   };
 }
 
+// Cached per client so one client's vehicle counts never show for another.
+let activeClientId: string | null = null;
+
+function cacheKey(): string {
+  return activeClientId ? `${STORAGE_KEY}:${activeClientId}` : STORAGE_KEY;
+}
+
 export function readFleetConfig(): FleetConfig {
   if (typeof window === "undefined") return DEFAULT_FLEET_CONFIG;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(cacheKey());
     if (!raw) return DEFAULT_FLEET_CONFIG;
     return normalize(JSON.parse(raw));
   } catch {
@@ -52,7 +59,7 @@ export function readFleetConfig(): FleetConfig {
 export function writeFleetConfig(next: FleetConfig) {
   const normalized = normalize(next);
   if (typeof window !== "undefined") {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    window.localStorage.setItem(cacheKey(), JSON.stringify(normalized));
     window.dispatchEvent(new CustomEvent(EVENT, { detail: normalized }));
   }
   return normalized;
@@ -78,17 +85,18 @@ export function useFleetConfig(): [FleetConfig, (next: FleetConfig) => void] {
 
     (async () => {
       try {
-        const local = readFleetConfig();
         const res = await loadSharedState({ data: { key: CLOUD_KEY } });
-        const data = { data: res?.data ?? null };
         if (cancelled) return;
+        if (res?.orgId) activeClientId = String(res.orgId);
 
-        if (data?.data && typeof data.data === "object" && !Array.isArray(data.data)) {
-          const cloud = normalize(data.data as Partial<FleetConfig>);
+        if (res?.data && typeof res.data === "object" && !Array.isArray(res.data)) {
+          const cloud = normalize(res.data as Partial<FleetConfig>);
           writeFleetConfig(cloud);
           setConfig(cloud);
         } else {
-          await pushSharedState(CLOUD_KEY, local, { prompt: false });
+          // No saved fleet for this client yet: start from the standard defaults
+          // instead of copying whichever client was open before.
+          setConfig(writeFleetConfig(DEFAULT_FLEET_CONFIG));
         }
       } catch (e) {
         console.warn("Fleet config cloud sync is unavailable", e);

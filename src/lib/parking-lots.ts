@@ -97,17 +97,11 @@ export type ParkingState = {
 };
 
 
-export const DEFAULT_PARKING_STATE: ParkingState = {
-  lots: [
-    { id: "yellow", name: "Yellow Lot", color: "#eab308", spaces: 0 },
-    { id: "green", name: "Green Lot", color: "#22c55e", spaces: 0 },
-    { id: "red", name: "Red Lot", color: "#ef4444", spaces: 0 },
-    { id: "purple", name: "Purple Lot", color: "#a855f7", spaces: 0 },
-    { id: "handicap", name: "Handicap Lot", color: "#38bdf8", spaces: 0 },
-    { id: "matthew25", name: "Matthew 25 Lot", color: "#f97316", spaces: 0 },
-  ],
-  counts: [],
-};
+/**
+ * A new client starts with no lots at all: they name their own lots and enter
+ * the space counts. Nothing is ever inherited from another client.
+ */
+export const DEFAULT_PARKING_STATE: ParkingState = { lots: [], counts: [] };
 
 function num(n: unknown, max = 100000) {
   const v = Math.floor(Number(n));
@@ -117,7 +111,7 @@ function num(n: unknown, max = 100000) {
 
 function normalize(raw: unknown): ParkingState {
   const obj = (raw ?? {}) as Partial<ParkingState>;
-  const lots = Array.isArray(obj.lots) && obj.lots.length > 0
+  const lots = Array.isArray(obj.lots)
     ? obj.lots.map((l, i) => ({
         id: String(l?.id ?? `lot-${i}`),
         name: String(l?.name ?? `Lot ${i + 1}`),
@@ -160,10 +154,18 @@ function normalize(raw: unknown): ParkingState {
   return { lots, counts };
 }
 
+// Each client's board is cached separately in the browser, so switching client
+// never shows the previous client's lots or counts.
+let activeClientId: string | null = null;
+
+function cacheKey(): string {
+  return activeClientId ? `${STORAGE_KEY}:${activeClientId}` : STORAGE_KEY;
+}
+
 export function readParkingState(): ParkingState {
   if (typeof window === "undefined") return DEFAULT_PARKING_STATE;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(cacheKey());
     if (!raw) return DEFAULT_PARKING_STATE;
     return normalize(JSON.parse(raw));
   } catch {
@@ -175,7 +177,7 @@ export function writeParkingState(next: ParkingState): ParkingState {
   const normalized = normalize(next);
   if (typeof window !== "undefined") {
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+      window.localStorage.setItem(cacheKey(), JSON.stringify(normalized));
       window.dispatchEvent(new CustomEvent(EVENT, { detail: normalized }));
     } catch {
       /* ignore */
@@ -213,21 +215,23 @@ export function useParkingState(): [ParkingState, (next: ParkingState) => void] 
 
     (async () => {
       try {
-        const local = readParkingState();
         const res = await loadSharedState({ data: { key: CLOUD_KEY } });
-        const data = { data: res?.data ?? null };
         if (cancelled) return;
-        if (data?.data && typeof data.data === "object") {
-          const cloud = normalize(data.data);
+        if (res?.orgId) activeClientId = String(res.orgId);
+        if (res?.data && typeof res.data === "object") {
+          const cloud = normalize(res.data);
           writeParkingState(cloud);
           setState(cloud);
         } else {
-          await pushSharedState(CLOUD_KEY, local, { prompt: false });
+          // A client with no saved board starts blank; nothing is copied over
+          // from whichever client was open before.
+          setState(writeParkingState(DEFAULT_PARKING_STATE));
         }
       } catch (e) {
         console.warn("Parking lot cloud sync is unavailable", e);
       }
     })();
+
 
     // Live updates: realtime pushes counts submitted from a phone straight to
     // any open dashboard or weekly summary. Polling is the safety net when a
