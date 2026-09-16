@@ -120,3 +120,11 @@ export default function Dictate({
     </span>
   );
 }
+
+/** Adds a spoken phrase to whatever is already in the box. */
+export function appendSpoken(current: unknown, spoken: string): string {
+  const base = String(current ?? "").replace(/\s+$/, "");
+  if (!base) return spoken.charAt(0).toUpperCase() + spoken.slice(1);
+  const glue = /[.!?]$/.test(base) ? " " : /[,;:]$/.test(base) ? " " : ". ";
+  return base + glue + spoken.charAt(0).toUpperCase() + spoken.slice(1);
+}
