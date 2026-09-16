@@ -50,13 +50,20 @@ function assertCanWrite(role: StaffRole, entity: ConsultingEntity) {
   throw new Error("Your account has read-only access to this section");
 }
 
+/** Resolves which client workspace this request belongs to. */
+async function orgFor(db: any, userId: string, orgId?: unknown) {
+  const { resolveOrgContext } = await import("./org.server");
+  return resolveOrgContext(db, userId, orgId);
+}
+
 export const loadConsulting = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { code?: string } | undefined) => data ?? {})
-  .handler(async ({ context }) => {
+  .inputValidator((data: { code?: string; orgId?: string } | undefined) => data ?? {})
+  .handler(async ({ context, data }) => {
     const db = await admin();
     const userId = context.userId as string;
     const role = await resolveRole(db, userId);
+    const org = await orgFor(db, userId, data?.orgId);
 
     const { data: profile } = await db
       .from("profiles")
@@ -66,9 +73,14 @@ export const loadConsulting = createServerFn({ method: "POST" })
 
     const keys = Object.keys(ENTITIES) as ConsultingEntity[];
     const [project, ...lists] = await Promise.all([
-      db.from("consulting_project").select("*").eq("id", "default").maybeSingle(),
+      db
+        .from("consulting_project")
+        .select("*")
+        .eq("organization_id", org.orgId)
+        .eq("id", "default")
+        .maybeSingle(),
       ...keys.map((key) => {
-        let q = db.from(ENTITIES[key]).select("*");
+        let q = db.from(ENTITIES[key]).select("*").eq("organization_id", org.orgId);
         // Private sections: everyone but a full admin sees only their own
         // entries (plus shared historical records with no owner).
         if (role !== "admin" && PRIVATE_ENTITIES.includes(key)) {
@@ -93,6 +105,8 @@ export const loadConsulting = createServerFn({ method: "POST" })
       role,
       label: (profile?.full_name as string) || (profile?.email as string) || "Staff account",
       userId,
+      orgId: org.orgId,
+      orgName: (org.org?.name as string) ?? "",
       project: (project as any)?.data ?? null,
       records: out,
     };
