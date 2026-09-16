@@ -559,7 +559,7 @@ export const kairosPortfolio = createServerFn({ method: "POST" })
           (b) => String(b.occurred_on ?? "") >= monthISO,
         ).length,
       };
-    });
+    }));
 
     const active = clients.filter((c) => c.accountStatus === "Active");
     return {
