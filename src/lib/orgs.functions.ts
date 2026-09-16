@@ -26,13 +26,13 @@ async function ctx(userId: string, orgId?: unknown) {
   return { db, ...context };
 }
 
-function logoUrl(db: any, path: string | null): string | null {
+async function logoUrl(db: any, path: string | null): Promise<string | null> {
   if (!path) return null;
-  const { data } = db.storage.from(LOGO_BUCKET).getPublicUrl(path);
-  return (data?.publicUrl as string) ?? null;
+  const { data } = await db.storage.from(LOGO_BUCKET).createSignedUrl(path, 60 * 60 * 8);
+  return (data?.signedUrl as string) ?? null;
 }
 
-function toSummary(db: any, row: Row): ClientSummary {
+async function toSummary(db: any, row: Row): Promise<ClientSummary> {
   return {
     id: String(row.id),
     name: String(row.name ?? ""),
