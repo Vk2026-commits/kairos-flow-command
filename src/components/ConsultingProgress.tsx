@@ -1090,42 +1090,50 @@ function RecordEditor({
             </select>
           </label>
 
-          {cfg.fields.map((f) => (
-            <label key={f.key} className={`block ${f.wide ? "sm:col-span-2" : ""}`}>
-              <span className={labelCls}>{f.label}</span>
-              {f.type === "textarea" ? (
+          {cfg.fields.map((f) =>
+            f.type === "textarea" ? (
+              <div key={f.key} className={`block ${f.wide ? "sm:col-span-2" : ""}`}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className={labelCls}>{f.label}</span>
+                  <Dictate onText={(t) => setField(f, appendSpoken(data[f.key], t))} />
+                </div>
                 <textarea
                   rows={3}
                   value={data[f.key] ?? ""}
                   onChange={(e) => setField(f, e.target.value)}
                   className={`${inputCls} h-auto py-2`}
                 />
-              ) : f.type === "select" ? (
-                <select value={data[f.key] ?? ""} onChange={(e) => setField(f, e.target.value)} className={inputCls}>
-                  <option value="">—</option>
-                  {(f.options ?? []).map((o) => (
-                    <option key={o} value={o}>
-                      {o}
-                    </option>
-                  ))}
-                </select>
-              ) : f.type === "docs" ? (
-                <DocPicker
-                  docs={docs}
-                  selected={(data[f.key] as string[]) ?? []}
-                  onChange={(ids) => setField(f, ids)}
-                  onUpload={onUpload}
-                />
-              ) : (
-                <input
-                  type={f.type === "number" ? "number" : f.type === "date" ? "date" : f.type === "time" ? "time" : "text"}
-                  value={data[f.key] ?? ""}
-                  onChange={(e) => setField(f, e.target.value)}
-                  className={inputCls}
-                />
-              )}
-            </label>
-          ))}
+              </div>
+            ) : (
+              <label key={f.key} className={`block ${f.wide ? "sm:col-span-2" : ""}`}>
+                <span className={labelCls}>{f.label}</span>
+                {f.type === "select" ? (
+                  <select value={data[f.key] ?? ""} onChange={(e) => setField(f, e.target.value)} className={inputCls}>
+                    <option value="">—</option>
+                    {(f.options ?? []).map((o) => (
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
+                    ))}
+                  </select>
+                ) : f.type === "docs" ? (
+                  <DocPicker
+                    docs={docs}
+                    selected={(data[f.key] as string[]) ?? []}
+                    onChange={(ids) => setField(f, ids)}
+                    onUpload={onUpload}
+                  />
+                ) : (
+                  <input
+                    type={f.type === "number" ? "number" : f.type === "date" ? "date" : f.type === "time" ? "time" : "text"}
+                    value={data[f.key] ?? ""}
+                    onChange={(e) => setField(f, e.target.value)}
+                    className={inputCls}
+                  />
+                )}
+              </label>
+            ),
+          )}
 
           {entity === "siteVisits" && (
             <div className="sm:col-span-2 text-[11px] font-mono text-emerald-300">
