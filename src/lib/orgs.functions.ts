@@ -348,7 +348,7 @@ export const listClientUsers = createServerFn({ method: "POST" })
     const profiles = ids.length
       ? ((await db.from("profiles").select("id, email, full_name, title").in("id", ids)).data ?? [])
       : [];
-    const byId = new Map(profiles.map((p: any) => [String(p.id), p]));
+    const byId = new Map<string, any>((profiles as any[]).map((p: any) => [String(p.id), p]));
 
     return {
       orgId,
@@ -591,7 +591,7 @@ export const listClientAudit = createServerFn({ method: "POST" })
     const profiles = ids.length
       ? ((await db.from("profiles").select("id, full_name, email").in("id", ids)).data ?? [])
       : [];
-    const byId = new Map(profiles.map((p: any) => [String(p.id), p]));
+    const byId = new Map<string, any>((profiles as any[]).map((p: any) => [String(p.id), p]));
     return {
       entries: ((rows ?? []) as Row[]).map((r) => {
         const p = r.user_id ? byId.get(String(r.user_id)) : null;
