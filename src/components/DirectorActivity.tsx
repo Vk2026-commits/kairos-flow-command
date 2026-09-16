@@ -822,3 +822,155 @@ function downloadCsv(name: string, rows: Record<string, any>[]) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+/* ===================== Director report sections ===================== */
+
+const PERIODS = ["Weekly", "Monthly", "Quarterly", "Custom Date Range"] as const;
+
+function periodStart(period: string): string {
+  const d = new Date();
+  if (period === "Weekly") d.setDate(d.getDate() - 7);
+  else if (period === "Monthly") d.setMonth(d.getMonth() - 1);
+  else if (period === "Quarterly") d.setMonth(d.getMonth() - 3);
+  else return "";
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function ReportSection({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="mt-6 border-t border-white/5 pt-4">
+      <h3 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">{title}</h3>
+      {items.length === 0 ? (
+        <p className="text-xs text-slate-500">Nothing recorded for this period.</p>
+      ) : (
+        <ul className="space-y-1">
+          {items.map((t, i) => (
+            <li key={i} className="text-sm text-slate-300">
+              • {t}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** Director of Security report block, appended to the Executive Report page. */
+export function DirectorReportSections({ records }: { records: Records }) {
+  const [period, setPeriod] = useState<(typeof PERIODS)[number]>("Monthly");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+
+  const start = period === "Custom Date Range" ? from : periodStart(period);
+  const end = period === "Custom Date Range" ? to : "";
+
+  const inPeriod = (r: ConsultingRecord) => {
+    const d = String(r.occurred_on ?? "");
+    if (start && d < start) return false;
+    if (end && d > end) return false;
+    return true;
+  };
+
+  const acts = records.activities.filter(inPeriod);
+  const byCat = (needle: RegExp) =>
+    acts.filter((a) => needle.test(catOf(a))).map((a) => `${fmtDay(a.occurred_on)} — ${a.title} (${a.status})`);
+  const rec = acts.reduce((s, a) => s + recordedHours(a), 0);
+  const est = acts.reduce((s, a) => s + estimatedHours(a), 0);
+
+  return (
+    <div className="mt-8 border-t-2 border-kairos-gold/30 pt-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h2 className="text-lg font-semibold text-white">Director of Security — Executive Summary</h2>
+        <div className="flex flex-wrap items-end gap-2 print:hidden">
+          <label className="block">
+            <span className={labelCls}>Report Period</span>
+            <select value={period} onChange={(e) => setPeriod(e.target.value as any)} className={inputCls}>
+              {PERIODS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </label>
+          {period === "Custom Date Range" && (
+            <>
+              <label className="block">
+                <span className={labelCls}>From</span>
+                <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inputCls} />
+              </label>
+              <label className="block">
+                <span className={labelCls}>To</span>
+                <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inputCls} />
+              </label>
+            </>
+          )}
+        </div>
+      </div>
+
+      <p className="mt-1 text-xs text-slate-400">
+        {period}
+        {start ? ` · from ${fmtDay(start)}` : " · all dates"}
+        {end ? ` to ${fmtDay(end)}` : ""} · {acts.length} activities
+      </p>
+
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat label="Recorded Hours" value={rec.toFixed(2)} tone="text-kairos-gold" />
+        <Stat label="Estimated Hours" value={est.toFixed(2)} tone="text-sky-300" />
+        <Stat label="Activities" value={String(acts.length)} />
+        <Stat label="Time Not Recorded" value={String(acts.filter((a) => timeStatusLabel(a) === "Not Recorded").length)} />
+      </div>
+
+      <ReportSection title="Security Operations" items={byCat(/security operations|private security/i)} />
+      <ReportSection title="Incidents & Investigations" items={byCat(/incident|investigation/i)} />
+      <ReportSection title="Executive / VIP Protection" items={byCat(/executive protection/i)} />
+      <ReportSection title="HPD / Officer Coordination" items={byCat(/hpd/i)} />
+      <ReportSection title="Emergency Preparedness" items={byCat(/preparedness|emergency response|weather/i)} />
+      <ReportSection title="Security Technology" items={byCat(/technology|cctv|access control|visitor management|communications/i)} />
+      <ReportSection title="Policies & SOPs" items={byCat(/policy|sop|key control/i)} />
+      <ReportSection title="Training & Team Development" items={byCat(/training|srt|ert|team management/i)} />
+      <ReportSection
+        title="Assessments"
+        items={[
+          ...records.briefings.filter(inPeriod).map((b) => `${fmtDay(b.occurred_on)} — ${b.title} (${b.status})`),
+          ...byCat(/assessment/i),
+        ]}
+      />
+      <ReportSection
+        title="Recommendations"
+        items={records.recommendations
+          .filter(inPeriod)
+          .map((r) => `${r.title} — ${r.status}${r.data?.decision ? ` (${r.data.decision})` : ""}`)}
+      />
+      <ReportSection
+        title="Completed Improvements"
+        items={records.beforeAfter
+          .filter(inPeriod)
+          .map((b) => `${b.title} — ${b.status}${b.data?.afterResult ? `: ${b.data.afterResult}` : ""}`)}
+      />
+      <ReportSection
+        title="Outstanding Action Items"
+        items={records.actionItems
+          .filter((a) => a.status !== "Completed")
+          .map((a) => `${a.title} — ${a.data?.priority ?? ""} ${a.status}${a.data?.owner ? ` · ${a.data.owner}` : ""}`)}
+      />
+      <ReportSection
+        title="Leadership Decisions Needed"
+        items={records.decisions
+          .filter((d) => d.status === "Under Review")
+          .map((d) => `${d.data?.question || d.title}`)}
+      />
+      <ReportSection
+        title="Upcoming Priorities"
+        items={[
+          ...records.actionItems
+            .filter((a) => a.status !== "Completed" && a.occurred_on)
+            .slice(0, 10)
+            .map((a) => `Due ${fmtDay(a.occurred_on)} — ${a.title}`),
+          ...records.milestones
+            .filter((m) => m.status !== "Completed")
+            .map((m) => `${m.title} — target ${fmtDay(m.data?.targetDate)}`),
+        ]}
+      />
+    </div>
+  );
+}
