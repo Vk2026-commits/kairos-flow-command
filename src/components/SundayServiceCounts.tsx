@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import {
-  SERVICES,
+  servicesOf,
   countDate,
   fmtDate,
   type LotCount,
@@ -41,6 +41,7 @@ type Props = {
 };
 
 export function SundayServiceCounts({ state, setState }: Props) {
+  const SERVICES = servicesOf(state);
   const [sunday, setSunday] = useState<string>(lastSunday);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);

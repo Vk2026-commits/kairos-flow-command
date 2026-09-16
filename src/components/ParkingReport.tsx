@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import {
-  SERVICES,
+  servicesOf,
   countDate,
   fmtDate,
   serviceName,
@@ -35,6 +35,7 @@ function latestPerLot(counts: LotCount[]) {
 }
 
 export function ParkingReport({ state }: { state: ParkingState }) {
+  const SERVICES = servicesOf(state);
   const months = useMemo(() => {
     const set = new Set(state.counts.map((c) => monthKey(countDate(c))).filter(Boolean));
     const now = new Date();
@@ -77,7 +78,7 @@ export function ParkingReport({ state }: { state: ParkingState }) {
         const peak = rows.reduce<{ cars: number; label: string }>(
           (best, r) =>
             r.rec.cars > best.cars
-              ? { cars: r.rec.cars, label: `${fmtDate(r.session.date)} · ${serviceName(r.session.sid)}` }
+              ? { cars: r.rec.cars, label: `${fmtDate(r.session.date)} · ${serviceName(r.session.sid, SERVICES)}` }
               : best,
           { cars: 0, label: "—" },
         );
@@ -151,7 +152,7 @@ export function ParkingReport({ state }: { state: ParkingState }) {
                 {
                   label: "Busiest service",
                   value: busiest ? `${busiest.cars} cars` : "—",
-                  sub: busiest ? `${fmtDate(busiest.date)} · ${serviceName(busiest.sid)}` : "",
+                  sub: busiest ? `${fmtDate(busiest.date)} · ${serviceName(busiest.sid, SERVICES)}` : "",
                 },
                 {
                   label: "Lot-fulls logged",
@@ -241,7 +242,7 @@ export function ParkingReport({ state }: { state: ParkingState }) {
                       <p key={`${p.lot.id}-${f.rec.id}`} className="text-[11px] font-mono text-slate-400">
                         <span className="text-white font-bold">{p.lot.name}</span> filled at{" "}
                         {fmtTime(f.rec.at)} · {fmtDate(f.session.date)} ·{" "}
-                        {serviceName(f.session.sid)}
+                        {serviceName(f.session.sid, SERVICES)}
                       </p>
                     )),
                   )}
@@ -264,7 +265,7 @@ export function ParkingReport({ state }: { state: ParkingState }) {
               <div key={s.key} className="bg-white/[0.03] rounded-xl p-3">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <p className="text-xs font-bold text-white">
-                    {fmtDate(s.date)} · {serviceName(s.sid)}
+                    {fmtDate(s.date)} · {serviceName(s.sid, SERVICES)}
                   </p>
                   <p className="text-[11px] font-mono text-slate-400">
                     {s.cars}

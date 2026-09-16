@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   useParkingState,
-  SERVICES,
+  servicesOf,
   toDateKey,
   type LotCount,
 } from "@/lib/parking-lots";
@@ -15,6 +15,7 @@ function nowTime() {
 /** Quick live count entry: any lot, any date/time, submitted immediately. */
 export function LiveCountForm() {
   const [state, setState] = useParkingState();
+  const SERVICES = servicesOf(state);
   const [lotId, setLotId] = useState<string>("");
   const [cars, setCars] = useState("");
   const [full, setFull] = useState(false);
@@ -23,6 +24,11 @@ export function LiveCountForm() {
   const [date, setDate] = useState(() => toDateKey(new Date().toISOString()));
   const [time, setTime] = useState(nowTime);
   const [flash, setFlash] = useState("");
+
+  // Snap to a valid service if this client's times changed.
+  useEffect(() => {
+    if (!SERVICES.some((s) => s.id === serviceId)) setServiceId(SERVICES[0].id);
+  }, [SERVICES, serviceId]);
 
   const activeLotId = lotId || state.lots[0]?.id || "";
   const lot = state.lots.find((l) => l.id === activeLotId);

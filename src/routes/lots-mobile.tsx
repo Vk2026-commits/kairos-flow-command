@@ -1,10 +1,11 @@
 import ClientSwitcher from "@/components/ClientSwitcher";
-import { useMemo, useState } from "react";
+import { ServiceTimesEditor } from "@/components/ServiceTimesEditor";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import {
   useParkingState,
-  SERVICES,
+  servicesOf,
   countDate,
   fmtDate,
   toDateKey,
@@ -139,12 +140,18 @@ type StateProps = {
 };
 
 function MobileLive({ state, setState }: StateProps) {
+  const SERVICES = servicesOf(state);
   const [date, setDate] = useState(() => toDateKey(new Date().toISOString()));
   const [time, setTime] = useState(nowTime);
   const [serviceId, setServiceId] = useState<string>(SERVICES[0].id);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [note, setNote] = useState("");
   const [flash, setFlash] = useState("");
+
+  // Snap to a valid service if this client's times changed.
+  useEffect(() => {
+    if (!SERVICES.some((s) => s.id === serviceId)) setServiceId(SERVICES[0].id);
+  }, [SERVICES, serviceId]);
 
   const latest = useMemo(() => {
     const map: Record<string, LotCount | undefined> = {};
@@ -201,6 +208,7 @@ function MobileLive({ state, setState }: StateProps) {
             <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={field} />
           </label>
         </div>
+        <ServiceTimesEditor state={state} setState={setState} />
         <div>
           <span className={label}>Service</span>
           <div className="mt-2 grid grid-cols-3 gap-2">
@@ -336,6 +344,7 @@ function MobileLive({ state, setState }: StateProps) {
 }
 
 function MobileSunday({ state, setState }: StateProps) {
+  const SERVICES = servicesOf(state);
   const [sunday, setSunday] = useState<string>(lastSunday);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);

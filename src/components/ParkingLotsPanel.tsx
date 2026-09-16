@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 
 import {
   useParkingState,
-  SERVICES,
+  servicesOf,
   countDate,
   fmtDate,
   toDateKey,
@@ -12,6 +12,7 @@ import {
 import { ParkingReport } from "@/components/ParkingReport";
 import { SundayServiceCounts } from "@/components/SundayServiceCounts";
 import { LiveCountForm } from "@/components/LiveCountForm";
+import { ServiceTimesEditor } from "@/components/ServiceTimesEditor";
 
 
 function fmt(at: string) {
@@ -38,6 +39,7 @@ const NEW_LOT_COLORS = [
 
 export function ParkingLotsPanel() {
   const [state, setState] = useParkingState();
+  const SERVICES = servicesOf(state);
   const [serviceId, setServiceId] = useState<string>(SERVICES[0].id);
   const [time, setTime] = useState<string>(SERVICES[0].time);
   const [date, setDate] = useState<string>(() => toDateKey(new Date().toISOString()));
@@ -49,6 +51,14 @@ export function ParkingLotsPanel() {
   const [newSpaces, setNewSpaces] = useState("");
 
   const service = SERVICES.find((s) => s.id === serviceId) ?? SERVICES[0];
+
+  // If the client changes their service times, snap to a valid one.
+  useEffect(() => {
+    if (!SERVICES.some((s) => s.id === serviceId)) {
+      setServiceId(SERVICES[0].id);
+      setTime(SERVICES[0].time);
+    }
+  }, [SERVICES, serviceId]);
 
   const pickService = (id: string) => {
     const s = SERVICES.find((x) => x.id === id);
@@ -274,6 +284,8 @@ export function ParkingLotsPanel() {
           ))}
         </div>
       </div>
+
+      <ServiceTimesEditor state={state} setState={setState} />
 
       <div className="mb-4 -mt-2">
         <LiveCountForm />

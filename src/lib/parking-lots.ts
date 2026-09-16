@@ -39,13 +39,40 @@ export type LotPlan = {
   notes?: string;
 };
 
-export const SERVICES = [
+export type ChurchService = {
+  id: string;
+  /** display name, e.g. "9:00 AM Service" */
+  name: string;
+  /** 24h start time, e.g. "09:00" */
+  time: string;
+};
+
+/** Starting point for a brand-new client; every client can edit their own times. */
+export const DEFAULT_SERVICES: ChurchService[] = [
   { id: "s7", name: "7:00 AM Service", time: "07:00" },
   { id: "s10", name: "10:00 AM Service", time: "10:00" },
   { id: "s13", name: "1:00 PM Service", time: "13:00" },
-] as const;
+];
 
-export type ServiceId = (typeof SERVICES)[number]["id"];
+/** Legacy alias kept for anything still importing a static list. */
+export const SERVICES = DEFAULT_SERVICES;
+
+export type ServiceId = string;
+
+/** Format "09:00" as "9:00 AM Service" */
+export function serviceLabelFromTime(time: string): string {
+  const [h, m] = time.split(":").map(Number);
+  if (!Number.isFinite(h)) return "Service";
+  const hour = ((h % 24) + 24) % 24;
+  const ampm = hour < 12 ? "AM" : "PM";
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${h12}:${String(Number.isFinite(m) ? m : 0).padStart(2, "0")} ${ampm} Service`;
+}
+
+/** The service times for this client, never empty. */
+export function servicesOf(state: { services?: ChurchService[] }): ChurchService[] {
+  return state.services && state.services.length ? state.services : DEFAULT_SERVICES;
+}
 
 export type LotCount = {
   id: string;
@@ -75,8 +102,13 @@ export function countDate(c: LotCount): string {
   return c.date || toDateKey(c.at);
 }
 
-export function serviceName(id?: string): string {
-  return SERVICES.find((s) => s.id === (id ?? SERVICES[0].id))?.name ?? "Service";
+export function serviceName(id?: string, services: ChurchService[] = DEFAULT_SERVICES): string {
+  const list = services.length ? services : DEFAULT_SERVICES;
+  const match = list.find((s) => s.id === (id ?? list[0]?.id));
+  if (match) return match.name;
+  // A count saved under a service time that has since been removed still needs a label.
+  const legacy = DEFAULT_SERVICES.find((s) => s.id === id);
+  return legacy?.name ?? "Service";
 }
 
 export function fmtDate(key: string): string {
@@ -94,6 +126,8 @@ export function fmtDate(key: string): string {
 export type ParkingState = {
   lots: ParkingLot[];
   counts: LotCount[];
+  /** this client's service times */
+  services?: ChurchService[];
 };
 
 
@@ -101,7 +135,11 @@ export type ParkingState = {
  * A new client starts with no lots at all: they name their own lots and enter
  * the space counts. Nothing is ever inherited from another client.
  */
-export const DEFAULT_PARKING_STATE: ParkingState = { lots: [], counts: [] };
+export const DEFAULT_PARKING_STATE: ParkingState = {
+  lots: [],
+  counts: [],
+  services: DEFAULT_SERVICES,
+};
 
 function num(n: unknown, max = 100000) {
   const v = Math.floor(Number(n));
@@ -151,7 +189,20 @@ function normalize(raw: unknown): ParkingState {
         }))
         .filter((c) => c.lotId)
     : [];
-  return { lots, counts };
+  const services = Array.isArray(obj.services)
+    ? obj.services
+        .map((s, i) => {
+          const time = String(s?.time ?? "").slice(0, 5);
+          return {
+            id: String(s?.id ?? `svc-${i}`),
+            time,
+            name: String(s?.name ?? "").trim() || serviceLabelFromTime(time),
+          };
+        })
+        .filter((s) => /^\d{1,2}:\d{2}$/.test(s.time))
+        .sort((a, b) => a.time.localeCompare(b.time))
+    : [];
+  return { lots, counts, services: services.length ? services : DEFAULT_SERVICES };
 }
 
 // Each client's board is cached separately in the browser, so switching client
