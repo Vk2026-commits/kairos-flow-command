@@ -1308,13 +1308,10 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
         const cloudData = data?.data as { annotations?: Annotation[] } | null;
         const cloud = Array.isArray(cloudData?.annotations) ? cloudData.annotations : [];
-        if (cloud.length > 0) {
-          annotationsLastSaved.current = JSON.stringify(cloud);
-          setAnnotations(cloud);
-        } else if (local.length > 0) {
-          annotationsLastSaved.current = JSON.stringify(local);
-          await pushSharedState(ANNOTATIONS_CLOUD_KEY, { annotations: local }, { prompt: false });
-        }
+        // Each client's drawings stand alone: an empty result means this client
+        // has none saved yet, not that another client's plan should appear.
+        annotationsLastSaved.current = JSON.stringify(cloud);
+        setAnnotations(cloud);
         annotationsCloudReady.current = true;
       } catch (e) {
         annotationsCloudReady.current = true;
