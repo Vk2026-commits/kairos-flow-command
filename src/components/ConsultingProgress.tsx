@@ -421,15 +421,18 @@ function Dashboard({
                 className={inputCls}
               />
             </label>
-            <label className="block sm:col-span-2">
-              <span className={labelCls}>Project Summary</span>
+            <div className="block sm:col-span-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className={labelCls}>Project Summary</span>
+                <Dictate onText={(t) => setDraft({ ...draft, summary: appendSpoken(draft.summary, t) })} />
+              </div>
               <textarea
                 rows={3}
                 value={draft.summary ?? ""}
                 onChange={(e) => setDraft({ ...draft, summary: e.target.value })}
                 className={`${inputCls} h-auto py-2`}
               />
-            </label>
+            </div>
             <div>
               <button type="button" onClick={() => onSaveProject(draft)} className={btnPrimary}>
                 Save summary
