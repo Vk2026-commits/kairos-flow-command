@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  SERVICES,
+  servicesOf,
   countDate,
   fmtDate,
   serviceName,
@@ -64,6 +64,7 @@ function weekLabel(start: string) {
 type Session = { date: string; sid: string; last: Record<string, LotCount> };
 
 function buildWeeks(state: ParkingState) {
+  const SERVICES = servicesOf(state);
   const sessions: Record<string, Session> = {};
   for (const c of state.counts) {
     const date = countDate(c);
@@ -98,7 +99,7 @@ function buildWeeks(state: ParkingState) {
         (best, s) => {
           const cars = Object.values(s.last).reduce((a, r) => a + r.cars, 0);
           return cars > best.cars
-            ? { cars, label: `${fmtDate(s.date)} · ${serviceName(s.sid)}` }
+            ? { cars, label: `${fmtDate(s.date)} · ${serviceName(s.sid, SERVICES)}` }
             : best;
         },
         { label: "—", cars: 0 },
@@ -121,6 +122,7 @@ function Delta({ value }: { value: number | null }) {
 
 function ParkingSummaryPage() {
   const [state] = useParkingState();
+  const SERVICES = servicesOf(state);
   const weeks = useMemo(() => buildWeeks(state), [state]);
   const [idx, setIdx] = useState(0);
   const week = weeks[idx];
@@ -220,7 +222,7 @@ function ParkingSummaryPage() {
         const cars = Object.values(s.last).reduce((a, r) => a + r.cars, 0);
         const full = Object.values(s.last).filter((r) => r.full).length;
         doc.text(
-          `${fmtDate(s.date)} · ${serviceName(s.sid)} — ${cars} cars${full ? `, ${full} lot(s) full` : ""}`,
+          `${fmtDate(s.date)} · ${serviceName(s.sid, SERVICES)} — ${cars} cars${full ? `, ${full} lot(s) full` : ""}`,
           M,
           y,
         );
@@ -432,7 +434,7 @@ function ParkingSummaryPage() {
                   return (
                     <p key={`${s.date}-${s.sid}`} className="text-[11px] font-mono text-slate-400">
                       <span className="text-white font-bold">{fmtDate(s.date)}</span> ·{" "}
-                      {serviceName(s.sid)} — {cars} cars
+                      {serviceName(s.sid, SERVICES)} — {cars} cars
                       {full ? ` · ${full} lot(s) full` : ""}
                     </p>
                   );

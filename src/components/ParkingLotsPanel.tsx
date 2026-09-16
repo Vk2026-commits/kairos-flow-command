@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 
 import {
   useParkingState,
-  SERVICES,
+  servicesOf,
   countDate,
   fmtDate,
   toDateKey,
@@ -38,6 +38,7 @@ const NEW_LOT_COLORS = [
 
 export function ParkingLotsPanel() {
   const [state, setState] = useParkingState();
+  const SERVICES = servicesOf(state);
   const [serviceId, setServiceId] = useState<string>(SERVICES[0].id);
   const [time, setTime] = useState<string>(SERVICES[0].time);
   const [date, setDate] = useState<string>(() => toDateKey(new Date().toISOString()));

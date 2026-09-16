@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 
 import {
   useParkingState,
-  SERVICES,
+  servicesOf,
   toDateKey,
   type LotCount,
 } from "@/lib/parking-lots";
@@ -15,6 +15,7 @@ function nowTime() {
 /** Quick live count entry: any lot, any date/time, submitted immediately. */
 export function LiveCountForm() {
   const [state, setState] = useParkingState();
+  const SERVICES = servicesOf(state);
   const [lotId, setLotId] = useState<string>("");
   const [cars, setCars] = useState("");
   const [full, setFull] = useState(false);

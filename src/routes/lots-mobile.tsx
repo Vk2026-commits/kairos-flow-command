@@ -4,7 +4,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 
 import {
   useParkingState,
-  SERVICES,
+  servicesOf,
   countDate,
   fmtDate,
   toDateKey,
@@ -139,6 +139,7 @@ type StateProps = {
 };
 
 function MobileLive({ state, setState }: StateProps) {
+  const SERVICES = servicesOf(state);
   const [date, setDate] = useState(() => toDateKey(new Date().toISOString()));
   const [time, setTime] = useState(nowTime);
   const [serviceId, setServiceId] = useState<string>(SERVICES[0].id);
@@ -336,6 +337,7 @@ function MobileLive({ state, setState }: StateProps) {
 }
 
 function MobileSunday({ state, setState }: StateProps) {
+  const SERVICES = servicesOf(state);
   const [sunday, setSunday] = useState<string>(lastSunday);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
