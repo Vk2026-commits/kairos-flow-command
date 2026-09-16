@@ -388,12 +388,13 @@ export const setVipStatus = createServerFn({ method: "POST" })
     if (error) throw new Error("Could not update that guest");
 
     await db.from("vip_status_history").insert({
+      organization_id: orgId,
       visit_id: data?.id,
       status,
       actor,
       note: nullable(data?.note),
     });
-    await log(db, data?.id ?? null, guestName, `Guest marked ${status}`, actor, nullable(data?.note) ?? undefined);
+    await log(db, data?.id ?? null, guestName, `Guest marked ${status}`, actor, nullable(data?.note) ?? undefined, orgId);
 
     return { ok: true as const, status, at: now, actor };
   });
@@ -415,13 +416,14 @@ export const addVipNote = createServerFn({ method: "POST" })
       : { data: null as Row | null };
 
     const { error } = await db.from("vip_notes").insert({
+      organization_id: orgId,
       visit_id: data?.id,
       category: nullable(data?.category),
       note,
       actor,
     });
     if (error) throw new Error("Could not save that note");
-    await log(db, data?.id ?? null, guest?.full_name ?? "Guest", "Note added", actor, note.slice(0, 180));
+    await log(db, data?.id ?? null, guest?.full_name ?? "Guest", "Note added", actor, note.slice(0, 180), orgId);
     return { ok: true as const };
   });
 
@@ -436,15 +438,24 @@ export const uploadVipPhoto = createServerFn({ method: "POST" })
     if (bytes.byteLength > MAX_PHOTO_BYTES) throw new Error("That photo is larger than 6 MB");
 
     const ext = type.split("/")[1]?.replace(/[^a-z0-9]/gi, "") || "jpg";
-    const path = `vip/${data?.guestId}-${Date.now()}.${ext}`;
+    const path = `vip/${orgId}/${data?.guestId}-${Date.now()}.${ext}`;
     const { error: upErr } = await db.storage.from(BUCKET).upload(path, bytes, { contentType: type });
     if (upErr) throw new Error("Could not upload that photo");
 
-    const { data: prev } = await db.from("vip_guests").select("photo_path, full_name").eq("id", data?.guestId).maybeSingle();
-    const { error } = await db.from("vip_guests").update({ photo_path: path }).eq("id", data?.guestId);
+    const { data: prev } = await db
+      .from("vip_guests")
+      .select("photo_path, full_name")
+      .eq("id", data?.guestId)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    const { error } = await db
+      .from("vip_guests")
+      .update({ photo_path: path })
+      .eq("id", data?.guestId)
+      .eq("organization_id", orgId);
     if (error) throw new Error("Could not attach that photo");
     if (prev?.photo_path) await db.storage.from(BUCKET).remove([prev.photo_path]);
-    await log(db, null, prev?.full_name ?? "Guest", "Guest photo updated", actor);
+    await log(db, null, prev?.full_name ?? "Guest", "Guest photo updated", actor, undefined, orgId);
 
     const { data: signed } = await db.storage.from(BUCKET).createSignedUrl(path, 60 * 60 * 8);
     return { photoUrl: signed?.signedUrl ?? "" };
