@@ -511,7 +511,7 @@ export const kairosPortfolio = createServerFn({ method: "POST" })
     const openish = (s: string) => !/complete|done|verified|closed/i.test(s);
     const today = new Date().toISOString().slice(0, 10);
 
-    const clients = ((orgs ?? []) as Row[]).map((o) => {
+    const clients = await Promise.all(((orgs ?? []) as Row[]).map(async (o) => {
       const id = String(o.id);
       const acts = byOrg(actions.data, id);
       const open = acts.filter((a) => openish(String(a.status ?? "")));
@@ -542,7 +542,7 @@ export const kairosPortfolio = createServerFn({ method: "POST" })
       const project = byOrg(projects.data, id)[0] ?? null;
 
       return {
-        ...toSummary(db, o),
+        ...(await toSummary(db, o)),
         openActions: open.length,
         criticalActions: critical.length,
         pendingDecisions: pend.length,
