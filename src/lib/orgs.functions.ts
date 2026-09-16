@@ -39,7 +39,7 @@ async function toSummary(db: any, row: Row): Promise<ClientSummary> {
     clientType: String(row.client_type ?? ""),
     projectName: row.project_name ?? null,
     accountStatus: String(row.account_status ?? "Setup"),
-    logoUrl: logoUrl(db, row.logo_path ?? null),
+    logoUrl: await logoUrl(db, row.logo_path ?? null),
     modules: (row.modules as Record<string, boolean>) ?? {},
     primaryContact: row.primary_contact ?? null,
     contactTitle: row.contact_title ?? null,
@@ -79,7 +79,7 @@ export const listMyClients = createServerFn({ method: "POST" })
     const { data: rows } = await query;
 
     return {
-      clients: ((rows ?? []) as Row[]).map((r) => toSummary(db, r)),
+      clients: await Promise.all(((rows ?? []) as Row[]).map((r) => toSummary(db, r))),
       activeOrgId: orgId,
       memberRole,
       isSuperAdmin,
@@ -252,7 +252,7 @@ export const saveClient = createServerFn({ method: "POST" })
       newStatus: String(row.account_status),
     });
 
-    return { client: toSummary(db, row) };
+    return { client: await toSummary(db, row) };
   });
 
 async function inviteMember(
