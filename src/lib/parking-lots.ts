@@ -39,13 +39,40 @@ export type LotPlan = {
   notes?: string;
 };
 
-export const SERVICES = [
+export type ChurchService = {
+  id: string;
+  /** display name, e.g. "9:00 AM Service" */
+  name: string;
+  /** 24h start time, e.g. "09:00" */
+  time: string;
+};
+
+/** Starting point for a brand-new client; every client can edit their own times. */
+export const DEFAULT_SERVICES: ChurchService[] = [
   { id: "s7", name: "7:00 AM Service", time: "07:00" },
   { id: "s10", name: "10:00 AM Service", time: "10:00" },
   { id: "s13", name: "1:00 PM Service", time: "13:00" },
-] as const;
+];
 
-export type ServiceId = (typeof SERVICES)[number]["id"];
+/** Legacy alias kept for anything still importing a static list. */
+export const SERVICES = DEFAULT_SERVICES;
+
+export type ServiceId = string;
+
+/** Format "09:00" as "9:00 AM Service" */
+export function serviceLabelFromTime(time: string): string {
+  const [h, m] = time.split(":").map(Number);
+  if (!Number.isFinite(h)) return "Service";
+  const hour = ((h % 24) + 24) % 24;
+  const ampm = hour < 12 ? "AM" : "PM";
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${h12}:${String(Number.isFinite(m) ? m : 0).padStart(2, "0")} ${ampm} Service`;
+}
+
+/** The service times for this client, never empty. */
+export function servicesOf(state: { services?: ChurchService[] }): ChurchService[] {
+  return state.services && state.services.length ? state.services : DEFAULT_SERVICES;
+}
 
 export type LotCount = {
   id: string;
