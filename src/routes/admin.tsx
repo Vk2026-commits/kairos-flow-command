@@ -5,6 +5,8 @@ import { setDeviceRole } from "@/lib/consulting.functions";
 import { getDeviceCode, setDeviceCode } from "@/lib/device-access";
 import CodeGate from "@/components/CodeGate";
 import StaffAccounts from "@/components/StaffAccounts";
+import ClientSwitcher from "@/components/ClientSwitcher";
+import ClientUsers from "@/components/ClientUsers";
 
 
 import { useFleetConfig, DEFAULT_FLEET_CONFIG, type FleetConfig } from "@/lib/fleet-config";
@@ -40,6 +42,8 @@ function AdminSettings() {
           </h1>
         </div>
         <div className="flex items-center gap-3">
+          <ClientSwitcher />
+          <Link to="/portfolio" className="text-xs font-semibold text-kairos-gold hover:text-white transition">Kairos Portfolio</Link>
           <Link to="/consulting" className="text-xs font-semibold text-kairos-gold hover:text-white transition">Consulting Progress</Link>
           <Link to="/status" className="text-xs font-semibold text-slate-400 hover:text-white transition">Code Status</Link>
           <Link to="/presentation" className="text-xs font-semibold text-slate-400 hover:text-white transition">Presentation</Link>
@@ -121,6 +125,8 @@ function AdminSettings() {
         </div>
 
         <StaffAccounts />
+
+        <ClientUsers />
 
         <DeviceInvites />
 

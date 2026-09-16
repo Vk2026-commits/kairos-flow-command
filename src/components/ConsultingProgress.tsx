@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useClients } from "@/lib/use-clients";
 import {
   loadConsulting,
   saveConsultingProject,
@@ -83,6 +84,12 @@ const btnPrimary =
 const btnGhost =
   "px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-200 transition";
 
+/** Name of the client currently being worked in. */
+function ClientName() {
+  const { activeClient } = useClients();
+  return <>{activeClient?.name ?? "Client"}</>;
+}
+
 export default function ConsultingProgress() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [role, setRole] = useState<Role>("viewer");
@@ -93,6 +100,7 @@ export default function ConsultingProgress() {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { activeOrgId } = useClients();
 
   // Attachments still use the shared board code; consulting records use the
   // signed-in staff account.
@@ -148,6 +156,21 @@ export default function ConsultingProgress() {
     return () => sub.subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Reload whenever the person switches to a different client.
+  const firstOrg = useRef<string | null>(null);
+  useEffect(() => {
+    if (!activeOrgId) return;
+    if (firstOrg.current === null) {
+      firstOrg.current = activeOrgId;
+      return;
+    }
+    if (firstOrg.current === activeOrgId) return;
+    firstOrg.current = activeOrgId;
+    setRecords(EMPTY);
+    void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeOrgId]);
 
   const canEdit = role === "admin" || role === "contributor";
 
@@ -316,7 +339,9 @@ function Dashboard({
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h2 className="text-sm font-bold uppercase tracking-widest text-white">Current Project Status</h2>
-            <p className="text-xs text-slate-400 mt-1">Wheeler Avenue Baptist Church · Parking & Traffic Consulting</p>
+            <p className="text-xs text-slate-400 mt-1">
+              <ClientName /> · Parking &amp; Traffic Consulting
+            </p>
           </div>
           <span className={`text-[11px] font-bold px-2 py-1 rounded border ${statusTone(project.status)}`}>
             {project.status}
@@ -1324,7 +1349,7 @@ function ExecutiveReport({ project, records }: { project: ConsultingProject; rec
       <div className={card}>
         <h2 className="text-lg font-semibold text-white">Executive Report</h2>
         <p className="text-xs text-slate-400 mt-1">
-          Wheeler Avenue Baptist Church · Kairos Parking & Traffic Consulting ·{" "}
+          <ClientName /> · Kairos Parking &amp; Traffic Consulting ·{" "}
           {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
         </p>
 

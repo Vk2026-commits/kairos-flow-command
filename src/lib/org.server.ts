@@ -13,6 +13,35 @@ export type OrgContext = {
   isKairos: boolean;
 };
 
+/**
+ * The signed-in person's active client, when the call carried a session token.
+ * Returns null for shared campus devices that sign in with a code instead.
+ */
+export async function signedInOrgId(db: any): Promise<string | null> {
+  try {
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const request = getRequest();
+    const header = request?.headers?.get("authorization") ?? "";
+    if (!header.startsWith("Bearer ")) return null;
+    const token = header.slice(7);
+    if (token.split(".").length !== 3) return null;
+    const { createClient } = await import("@supabase/supabase-js");
+    const url = process.env["SUPABASE_URL"];
+    const key = process.env["SUPABASE_PUBLISHABLE_KEY"];
+    if (!url || !key) return null;
+    const auth = createClient(url, key, {
+      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await auth.auth.getClaims(token);
+    const userId = data?.claims?.sub;
+    if (error || !userId) return null;
+    const ctx = await resolveOrgContext(db, String(userId));
+    return ctx.orgId;
+  } catch {
+    return null;
+  }
+}
+
 export async function isSuperAdmin(db: any, userId: string): Promise<boolean> {
   const { data: roles } = await db.from("user_roles").select("role").eq("user_id", userId);
   if ((roles ?? []).some((r: any) => String(r.role) === "admin")) return true;

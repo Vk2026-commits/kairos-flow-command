@@ -16,16 +16,21 @@ async function admin() {
 
 async function requireAdminDevice(rawCode: unknown) {
   const db = await admin();
+  const { deviceOrgId, signedInOrgId } = await import("./org.server");
   const row = await lookupDeviceRow(db, rawCode, "code, revoked, role, organization_id");
   if ((row.role ?? "admin") !== "admin") throw new Error("This device has view-only executive access");
-  const { deviceOrgId } = await import("./org.server");
-  return { db, orgId: deviceOrgId(row) };
+  // A signed-in staff account works in the client they selected; shared campus
+  // devices stay with the client their code belongs to.
+  const signed = await signedInOrgId(db);
+  return { db, orgId: signed ?? deviceOrgId(row) };
 }
 
 /** Board state is stored per client, so each client sees only its own board. */
 async function orgForCode(rawCode: unknown): Promise<{ db: any; orgId: string }> {
   const db = await admin();
-  const { deviceOrgId } = await import("./org.server");
+  const { deviceOrgId, signedInOrgId } = await import("./org.server");
+  const signed = await signedInOrgId(db);
+  if (signed) return { db, orgId: signed };
   if (typeof rawCode !== "string" || !rawCode) return { db, orgId: deviceOrgId(null) };
   try {
     const row = await lookupDeviceRow(db, rawCode, "code, revoked, organization_id");

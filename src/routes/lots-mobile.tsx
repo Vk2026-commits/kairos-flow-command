@@ -1,3 +1,4 @@
+import ClientSwitcher from "@/components/ClientSwitcher";
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
@@ -89,12 +90,15 @@ function LotsMobile() {
               {state.lots.length} lots · phone entry
             </p>
           </div>
-          <Link
-            to="/"
-            className="shrink-0 rounded-lg border border-white/15 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-300"
-          >
-            Home
-          </Link>
+          <div className="flex shrink-0 items-center gap-2">
+            <ClientSwitcher compact />
+            <Link
+              to="/"
+              className="shrink-0 rounded-lg border border-white/15 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-300"
+            >
+              Home
+            </Link>
+          </div>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
           {(
