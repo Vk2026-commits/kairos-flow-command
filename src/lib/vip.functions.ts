@@ -41,11 +41,13 @@ async function admin() {
 
 async function requireDevice(rawCode: unknown) {
   const db = await admin();
-  const data = await lookupDeviceRow(db, rawCode, "code, revoked, role, label");
+  const data = await lookupDeviceRow(db, rawCode, "code, revoked, role, label, organization_id");
   const code = String(data.code);
   const role = (data.role ?? "admin") as VipRole;
   const actor = (data.label ?? code) as string;
-  return { code, db, role, actor };
+  const { deviceOrgId } = await import("./org.server");
+  // Guest records belong to one client only.
+  return { code, db, role, actor, orgId: deviceOrgId(data) };
 }
 
 
@@ -57,8 +59,9 @@ async function requireEditor(rawCode: unknown) {
   return ctx;
 }
 
-async function log(db: any, visitId: string | null, guestName: string, action: string, actor: string, details?: string) {
+async function log(db: any, visitId: string | null, guestName: string, action: string, actor: string, details?: string, orgId?: string) {
   await db.from("vip_activity_log").insert({
+    ...(orgId ? { organization_id: orgId } : {}),
     visit_id: visitId,
     guest_name: guestName,
     action,
@@ -155,16 +158,17 @@ function shape(visit: Row, role: VipRole): Row {
 export const loadVipBoard = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string }) => data)
   .handler(async ({ data }) => {
-    const { db, role, actor } = await requireDevice(data?.code);
+    const { db, role, actor, orgId } = await requireDevice(data?.code);
+    const scoped = (t: string) => db.from(t).select("*").eq("organization_id", orgId);
 
     const [visitsRes, guestsRes, vehiclesRes, parkingRes, notesRes, historyRes, activityRes] = await Promise.all([
-      db.from("vip_visits").select("*").order("visit_date", { ascending: false }).order("expected_arrival"),
-      db.from("vip_guests").select("*"),
-      db.from("vip_vehicles").select("*"),
-      db.from("vip_parking_assignments").select("*"),
-      db.from("vip_notes").select("*").order("created_at", { ascending: false }),
-      db.from("vip_status_history").select("*").order("created_at", { ascending: false }),
-      db.from("vip_activity_log").select("*").order("created_at", { ascending: false }).limit(300),
+      scoped("vip_visits").order("visit_date", { ascending: false }).order("expected_arrival"),
+      scoped("vip_guests"),
+      scoped("vip_vehicles"),
+      scoped("vip_parking_assignments"),
+      scoped("vip_notes").order("created_at", { ascending: false }),
+      scoped("vip_status_history").order("created_at", { ascending: false }),
+      scoped("vip_activity_log").order("created_at", { ascending: false }).limit(300),
     ]);
 
     const guests = new Map<string, Row>(((guestsRes?.data ?? []) as Row[]).map((g) => [g.id, g]));
@@ -230,7 +234,7 @@ export const saveVipVisit = createServerFn({ method: "POST" })
       data,
   )
   .handler(async ({ data }) => {
-    const { db, actor } = await requireEditor(data?.code);
+    const { db, actor, orgId } = await requireEditor(data?.code);
     const g = data?.guest ?? {};
     const v = data?.visit ?? {};
     const veh = data?.vehicle ?? {};
@@ -243,11 +247,16 @@ export const saveVipVisit = createServerFn({ method: "POST" })
       phone: nullable(g.phone),
       email: nullable(g.email),
       guest_type: str(g.guestType) || "VIP",
+      organization_id: orgId,
     };
 
     let guestId = data?.guestId ?? null;
     if (guestId) {
-      const { error } = await db.from("vip_guests").update(guestPatch).eq("id", guestId);
+      const { error } = await db
+        .from("vip_guests")
+        .update(guestPatch)
+        .eq("id", guestId)
+        .eq("organization_id", orgId);
       if (error) throw new Error("Could not save the guest");
     } else {
       const { data: row, error } = await db.from("vip_guests").insert(guestPatch).select("id").single();
@@ -267,12 +276,17 @@ export const saveVipVisit = createServerFn({ method: "POST" })
       special_instructions: nullable(v.specialInstructions),
       internal_notes: nullable(v.internalNotes),
       arrival_method: str(v.arrivalMethod) || "Self-Driving",
+      organization_id: orgId,
     };
     if (!data?.id) visitPatch.status = "SCHEDULED";
 
     let visitId = data?.id ?? null;
     if (visitId) {
-      const { error } = await db.from("vip_visits").update(visitPatch).eq("id", visitId);
+      const { error } = await db
+        .from("vip_visits")
+        .update(visitPatch)
+        .eq("id", visitId)
+        .eq("organization_id", orgId);
       if (error) throw new Error("Could not save the visit");
     } else {
       const { data: row, error } = await db.from("vip_visits").insert(visitPatch).select("id").single();
@@ -293,6 +307,7 @@ export const saveVipVisit = createServerFn({ method: "POST" })
       driver_company: nullable(veh.driverCompany),
       driver_vehicle: nullable(veh.driverVehicle),
       driver_on_site: bool(veh.driverOnSite),
+      organization_id: orgId,
     };
     await db.from("vip_vehicles").upsert(vehiclePatch, { onConflict: "visit_id" });
 
@@ -310,6 +325,7 @@ export const saveVipVisit = createServerFn({ method: "POST" })
       golf_cart_required: bool(pk.golfCartRequired),
       ada_required: bool(pk.adaRequired),
       instructions: nullable(pk.instructions),
+      organization_id: orgId,
     };
     await db.from("vip_parking_assignments").upsert(parkingPatch, { onConflict: "visit_id" });
 
@@ -320,6 +336,7 @@ export const saveVipVisit = createServerFn({ method: "POST" })
       data?.id ? "Guest record updated" : "Guest record created",
       actor,
       data?.id ? undefined : `Expected ${visitPatch.visit_date} ${visitPatch.expected_arrival ?? ""}`.trim(),
+      orgId,
     );
 
     return { id: visitId, guestId };
