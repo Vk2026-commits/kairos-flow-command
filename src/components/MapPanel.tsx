@@ -654,13 +654,10 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
         const cloudData = data?.data as { landmarks?: Landmark[] } | null;
         const cloud = Array.isArray(cloudData?.landmarks) ? cloudData.landmarks : [];
-        if (cloud.length > 0) {
-          landmarksLastSaved.current = JSON.stringify(cloud);
-          setLandmarks(cloud);
-        } else if (local.length > 0) {
-          landmarksLastSaved.current = JSON.stringify(local);
-          await pushSharedState(LANDMARKS_CLOUD_KEY, { landmarks: local }, { prompt: false });
-        }
+        // Always follow the client's own saved landmarks — an empty result means
+        // this client has none yet, never a reason to copy another client's.
+        landmarksLastSaved.current = JSON.stringify(cloud);
+        setLandmarks(cloud);
         landmarksCloudReady.current = true;
       } catch (e) {
         landmarksCloudReady.current = true;
