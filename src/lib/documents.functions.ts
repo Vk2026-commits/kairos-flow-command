@@ -18,18 +18,21 @@ async function admin() {
 
 async function requireDevice(rawCode: unknown) {
   const db = await admin();
-  const row = await lookupDeviceRow(db, rawCode, "code, revoked");
-  return { code: String(row.code), db };
+  const row = await lookupDeviceRow(db, rawCode, "code, revoked, organization_id");
+  const { deviceOrgId } = await import("./org.server");
+  // Documents are always scoped to the client this device belongs to.
+  return { code: String(row.code), db, orgId: deviceOrgId(row) };
 }
 
 
 export const listDocuments = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string }) => data)
   .handler(async ({ data }) => {
-    const { db } = await requireDevice(data?.code);
+    const { db, orgId } = await requireDevice(data?.code);
     const { data: rows, error } = await db
       .from("documents")
       .select("*")
+      .eq("organization_id", orgId)
       .order("created_at", { ascending: false });
     if (error) throw new Error("Could not load documents");
     const out: DocRow[] = [];
@@ -55,7 +58,7 @@ export const uploadDocument = createServerFn({ method: "POST" })
     (data: { code: string; name: string; contentType: string; size: number; base64: string }) => data,
   )
   .handler(async ({ data }) => {
-    const { db } = await requireDevice(data?.code);
+    const { db, orgId } = await requireDevice(data?.code);
     const name = String(data?.name ?? "").trim();
     if (!name) throw new Error("File name is required");
     const base64 = String(data?.base64 ?? "");
@@ -65,7 +68,7 @@ export const uploadDocument = createServerFn({ method: "POST" })
     if (bytes.byteLength > MAX_BYTES) throw new Error("File is larger than 12 MB");
 
     const contentType = String(data?.contentType || "application/octet-stream");
-    const path = `${Date.now()}-${name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const path = `${orgId}/${Date.now()}-${name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
     const { error: upErr } = await db.storage.from(BUCKET).upload(path, bytes, { contentType });
     if (upErr) throw new Error("Could not upload that file");
 
@@ -76,6 +79,7 @@ export const uploadDocument = createServerFn({ method: "POST" })
       storage_path: path,
       content_type: contentType,
       file_size: bytes.byteLength,
+      organization_id: orgId,
     });
     if (insErr) {
       await db.storage.from(BUCKET).remove([path]);
@@ -87,15 +91,20 @@ export const uploadDocument = createServerFn({ method: "POST" })
 export const deleteDocument = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string; id: string }) => data)
   .handler(async ({ data }) => {
-    const { db } = await requireDevice(data?.code);
+    const { db, orgId } = await requireDevice(data?.code);
     const { data: row, error } = await db
       .from("documents")
       .select("storage_path")
       .eq("id", data?.id)
+      .eq("organization_id", orgId)
       .maybeSingle();
     if (error || !row) throw new Error("Could not find that document");
     await db.storage.from(BUCKET).remove([row.storage_path]);
-    const { error: delErr } = await db.from("documents").delete().eq("id", data?.id);
+    const { error: delErr } = await db
+      .from("documents")
+      .delete()
+      .eq("id", data?.id)
+      .eq("organization_id", orgId);
     if (delErr) throw new Error("Could not delete that document");
     return { ok: true as const };
   });

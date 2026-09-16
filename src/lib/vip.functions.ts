@@ -41,11 +41,13 @@ async function admin() {
 
 async function requireDevice(rawCode: unknown) {
   const db = await admin();
-  const data = await lookupDeviceRow(db, rawCode, "code, revoked, role, label");
+  const data = await lookupDeviceRow(db, rawCode, "code, revoked, role, label, organization_id");
   const code = String(data.code);
   const role = (data.role ?? "admin") as VipRole;
   const actor = (data.label ?? code) as string;
-  return { code, db, role, actor };
+  const { deviceOrgId } = await import("./org.server");
+  // Guest records belong to one client only.
+  return { code, db, role, actor, orgId: deviceOrgId(data) };
 }
 
 
@@ -57,8 +59,9 @@ async function requireEditor(rawCode: unknown) {
   return ctx;
 }
 
-async function log(db: any, visitId: string | null, guestName: string, action: string, actor: string, details?: string) {
+async function log(db: any, visitId: string | null, guestName: string, action: string, actor: string, details?: string, orgId?: string) {
   await db.from("vip_activity_log").insert({
+    ...(orgId ? { organization_id: orgId } : {}),
     visit_id: visitId,
     guest_name: guestName,
     action,
@@ -155,16 +158,17 @@ function shape(visit: Row, role: VipRole): Row {
 export const loadVipBoard = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string }) => data)
   .handler(async ({ data }) => {
-    const { db, role, actor } = await requireDevice(data?.code);
+    const { db, role, actor, orgId } = await requireDevice(data?.code);
+    const scoped = (t: string) => db.from(t).select("*").eq("organization_id", orgId);
 
     const [visitsRes, guestsRes, vehiclesRes, parkingRes, notesRes, historyRes, activityRes] = await Promise.all([
-      db.from("vip_visits").select("*").order("visit_date", { ascending: false }).order("expected_arrival"),
-      db.from("vip_guests").select("*"),
-      db.from("vip_vehicles").select("*"),
-      db.from("vip_parking_assignments").select("*"),
-      db.from("vip_notes").select("*").order("created_at", { ascending: false }),
-      db.from("vip_status_history").select("*").order("created_at", { ascending: false }),
-      db.from("vip_activity_log").select("*").order("created_at", { ascending: false }).limit(300),
+      scoped("vip_visits").order("visit_date", { ascending: false }).order("expected_arrival"),
+      scoped("vip_guests"),
+      scoped("vip_vehicles"),
+      scoped("vip_parking_assignments"),
+      scoped("vip_notes").order("created_at", { ascending: false }),
+      scoped("vip_status_history").order("created_at", { ascending: false }),
+      scoped("vip_activity_log").order("created_at", { ascending: false }).limit(300),
     ]);
 
     const guests = new Map<string, Row>(((guestsRes?.data ?? []) as Row[]).map((g) => [g.id, g]));
@@ -230,7 +234,7 @@ export const saveVipVisit = createServerFn({ method: "POST" })
       data,
   )
   .handler(async ({ data }) => {
-    const { db, actor } = await requireEditor(data?.code);
+    const { db, actor, orgId } = await requireEditor(data?.code);
     const g = data?.guest ?? {};
     const v = data?.visit ?? {};
     const veh = data?.vehicle ?? {};
@@ -243,11 +247,16 @@ export const saveVipVisit = createServerFn({ method: "POST" })
       phone: nullable(g.phone),
       email: nullable(g.email),
       guest_type: str(g.guestType) || "VIP",
+      organization_id: orgId,
     };
 
     let guestId = data?.guestId ?? null;
     if (guestId) {
-      const { error } = await db.from("vip_guests").update(guestPatch).eq("id", guestId);
+      const { error } = await db
+        .from("vip_guests")
+        .update(guestPatch)
+        .eq("id", guestId)
+        .eq("organization_id", orgId);
       if (error) throw new Error("Could not save the guest");
     } else {
       const { data: row, error } = await db.from("vip_guests").insert(guestPatch).select("id").single();
@@ -267,12 +276,17 @@ export const saveVipVisit = createServerFn({ method: "POST" })
       special_instructions: nullable(v.specialInstructions),
       internal_notes: nullable(v.internalNotes),
       arrival_method: str(v.arrivalMethod) || "Self-Driving",
+      organization_id: orgId,
     };
     if (!data?.id) visitPatch.status = "SCHEDULED";
 
     let visitId = data?.id ?? null;
     if (visitId) {
-      const { error } = await db.from("vip_visits").update(visitPatch).eq("id", visitId);
+      const { error } = await db
+        .from("vip_visits")
+        .update(visitPatch)
+        .eq("id", visitId)
+        .eq("organization_id", orgId);
       if (error) throw new Error("Could not save the visit");
     } else {
       const { data: row, error } = await db.from("vip_visits").insert(visitPatch).select("id").single();
@@ -293,6 +307,7 @@ export const saveVipVisit = createServerFn({ method: "POST" })
       driver_company: nullable(veh.driverCompany),
       driver_vehicle: nullable(veh.driverVehicle),
       driver_on_site: bool(veh.driverOnSite),
+      organization_id: orgId,
     };
     await db.from("vip_vehicles").upsert(vehiclePatch, { onConflict: "visit_id" });
 
@@ -310,6 +325,7 @@ export const saveVipVisit = createServerFn({ method: "POST" })
       golf_cart_required: bool(pk.golfCartRequired),
       ada_required: bool(pk.adaRequired),
       instructions: nullable(pk.instructions),
+      organization_id: orgId,
     };
     await db.from("vip_parking_assignments").upsert(parkingPatch, { onConflict: "visit_id" });
 
@@ -320,6 +336,7 @@ export const saveVipVisit = createServerFn({ method: "POST" })
       data?.id ? "Guest record updated" : "Guest record created",
       actor,
       data?.id ? undefined : `Expected ${visitPatch.visit_date} ${visitPatch.expected_arrival ?? ""}`.trim(),
+      orgId,
     );
 
     return { id: visitId, guestId };
@@ -328,7 +345,7 @@ export const saveVipVisit = createServerFn({ method: "POST" })
 export const setVipStatus = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string; id: string; status: string; note?: string }) => data)
   .handler(async ({ data }) => {
-    const { db, role, actor } = await requireDevice(data?.code);
+    const { db, role, actor, orgId } = await requireDevice(data?.code);
     const status = str(data?.status).toUpperCase() === "ESCORTED / RECEIVED" ? "ESCORTED / RECEIVED" : str(data?.status);
     if (!(STATUSES as readonly string[]).includes(status)) throw new Error("Unknown status");
     if (!STATUS_RIGHTS[role].includes(status)) throw new Error("This device cannot set that status");
@@ -337,6 +354,7 @@ export const setVipStatus = createServerFn({ method: "POST" })
       .from("vip_visits")
       .select("id, guest_id, status")
       .eq("id", data?.id)
+      .eq("organization_id", orgId)
       .maybeSingle();
     if (vErr || !visit) throw new Error("Could not find that guest visit");
     const { data: guest } = await db.from("vip_guests").select("full_name").eq("id", visit.guest_id).maybeSingle();
@@ -362,16 +380,21 @@ export const setVipStatus = createServerFn({ method: "POST" })
     }
     if (str(data?.note)) patch.departure_notes = str(data?.note);
 
-    const { error } = await db.from("vip_visits").update(patch).eq("id", data?.id);
+    const { error } = await db
+      .from("vip_visits")
+      .update(patch)
+      .eq("id", data?.id)
+      .eq("organization_id", orgId);
     if (error) throw new Error("Could not update that guest");
 
     await db.from("vip_status_history").insert({
+      organization_id: orgId,
       visit_id: data?.id,
       status,
       actor,
       note: nullable(data?.note),
     });
-    await log(db, data?.id ?? null, guestName, `Guest marked ${status}`, actor, nullable(data?.note) ?? undefined);
+    await log(db, data?.id ?? null, guestName, `Guest marked ${status}`, actor, nullable(data?.note) ?? undefined, orgId);
 
     return { ok: true as const, status, at: now, actor };
   });
@@ -379,29 +402,35 @@ export const setVipStatus = createServerFn({ method: "POST" })
 export const addVipNote = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string; id: string; category?: string; note: string }) => data)
   .handler(async ({ data }) => {
-    const { db, actor } = await requireDevice(data?.code);
+    const { db, actor, orgId } = await requireDevice(data?.code);
     const note = str(data?.note);
     if (!note) throw new Error("Write the note first");
-    const { data: visit } = await db.from("vip_visits").select("guest_id").eq("id", data?.id).maybeSingle();
+    const { data: visit } = await db
+      .from("vip_visits")
+      .select("guest_id")
+      .eq("id", data?.id)
+      .eq("organization_id", orgId)
+      .maybeSingle();
     const { data: guest } = visit
       ? await db.from("vip_guests").select("full_name").eq("id", visit.guest_id).maybeSingle()
       : { data: null as Row | null };
 
     const { error } = await db.from("vip_notes").insert({
+      organization_id: orgId,
       visit_id: data?.id,
       category: nullable(data?.category),
       note,
       actor,
     });
     if (error) throw new Error("Could not save that note");
-    await log(db, data?.id ?? null, guest?.full_name ?? "Guest", "Note added", actor, note.slice(0, 180));
+    await log(db, data?.id ?? null, guest?.full_name ?? "Guest", "Note added", actor, note.slice(0, 180), orgId);
     return { ok: true as const };
   });
 
 export const uploadVipPhoto = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string; guestId: string; contentType: string; base64: string }) => data)
   .handler(async ({ data }) => {
-    const { db, actor } = await requireEditor(data?.code);
+    const { db, actor, orgId } = await requireEditor(data?.code);
     const type = str(data?.contentType) || "image/jpeg";
     if (!type.startsWith("image/")) throw new Error("Please choose an image file");
     const base64 = str(data?.base64);
@@ -409,15 +438,24 @@ export const uploadVipPhoto = createServerFn({ method: "POST" })
     if (bytes.byteLength > MAX_PHOTO_BYTES) throw new Error("That photo is larger than 6 MB");
 
     const ext = type.split("/")[1]?.replace(/[^a-z0-9]/gi, "") || "jpg";
-    const path = `vip/${data?.guestId}-${Date.now()}.${ext}`;
+    const path = `vip/${orgId}/${data?.guestId}-${Date.now()}.${ext}`;
     const { error: upErr } = await db.storage.from(BUCKET).upload(path, bytes, { contentType: type });
     if (upErr) throw new Error("Could not upload that photo");
 
-    const { data: prev } = await db.from("vip_guests").select("photo_path, full_name").eq("id", data?.guestId).maybeSingle();
-    const { error } = await db.from("vip_guests").update({ photo_path: path }).eq("id", data?.guestId);
+    const { data: prev } = await db
+      .from("vip_guests")
+      .select("photo_path, full_name")
+      .eq("id", data?.guestId)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    const { error } = await db
+      .from("vip_guests")
+      .update({ photo_path: path })
+      .eq("id", data?.guestId)
+      .eq("organization_id", orgId);
     if (error) throw new Error("Could not attach that photo");
     if (prev?.photo_path) await db.storage.from(BUCKET).remove([prev.photo_path]);
-    await log(db, null, prev?.full_name ?? "Guest", "Guest photo updated", actor);
+    await log(db, null, prev?.full_name ?? "Guest", "Guest photo updated", actor, undefined, orgId);
 
     const { data: signed } = await db.storage.from(BUCKET).createSignedUrl(path, 60 * 60 * 8);
     return { photoUrl: signed?.signedUrl ?? "" };
@@ -426,14 +464,23 @@ export const uploadVipPhoto = createServerFn({ method: "POST" })
 export const deleteVipVisit = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string; id: string }) => data)
   .handler(async ({ data }) => {
-    const { db, role, actor } = await requireDevice(data?.code);
+    const { db, role, actor, orgId } = await requireDevice(data?.code);
     if (role !== "admin") throw new Error("Only an admin device can delete a guest record");
-    const { data: visit } = await db.from("vip_visits").select("guest_id").eq("id", data?.id).maybeSingle();
+    const { data: visit } = await db
+      .from("vip_visits")
+      .select("guest_id")
+      .eq("id", data?.id)
+      .eq("organization_id", orgId)
+      .maybeSingle();
     const { data: guest } = visit
       ? await db.from("vip_guests").select("full_name").eq("id", visit.guest_id).maybeSingle()
       : { data: null as Row | null };
-    const { error } = await db.from("vip_visits").delete().eq("id", data?.id);
+    const { error } = await db
+      .from("vip_visits")
+      .delete()
+      .eq("id", data?.id)
+      .eq("organization_id", orgId);
     if (error) throw new Error("Could not delete that guest record");
-    await log(db, null, guest?.full_name ?? "Guest", "Guest record deleted", actor);
+    await log(db, null, guest?.full_name ?? "Guest", "Guest record deleted", actor, undefined, orgId);
     return { ok: true as const };
   });

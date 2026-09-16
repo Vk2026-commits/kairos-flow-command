@@ -3,6 +3,9 @@
 // spacing must not decide whether they get in: KAIROS-2026, kairos 2026 and
 // kairos2026 all resolve to the same invited device.
 
+import { WHEELER_ORG_ID } from "./org-constants";
+
+
 // TEMPORARY: access codes are switched off at the owner's request so the admin
 // and consulting areas open without a code. Set to false to turn codes back on.
 export const ACCESS_CODES_DISABLED = true;
@@ -29,19 +32,29 @@ export async function lookupDeviceRow(
   rawCode: unknown,
   select = "code, revoked",
 ): Promise<Record<string, any>> {
+  // Device rows always carry the client they belong to, so tablet access can
+  // never read another client's plans or documents.
+  const columns = /organization_id/.test(select) ? select : `${select}, organization_id`;
+
   if (ACCESS_CODES_DISABLED) {
-    return { code: "OPEN-ACCESS", revoked: false, role: "admin", label: "Command Hub (codes off)" };
+    return {
+      code: "OPEN-ACCESS",
+      revoked: false,
+      role: "admin",
+      label: "Command Hub (codes off)",
+      organization_id: WHEELER_ORG_ID,
+    };
   }
 
   const typed = normalizeCode(rawCode);
 
 
-  const exact = await db.from("device_access_codes").select(select).eq("code", typed).maybeSingle();
+  const exact = await db.from("device_access_codes").select(columns).eq("code", typed).maybeSingle();
   if (exact.error) throw new Error("Could not verify device access");
   let row: Record<string, any> | null = exact.data ?? null;
 
   if (!row) {
-    const all = await db.from("device_access_codes").select(select);
+    const all = await db.from("device_access_codes").select(columns);
     if (all.error) throw new Error("Could not verify device access");
     const key = codeKey(typed);
     row = (all.data ?? []).find((r: any) => codeKey(String(r.code ?? "")) === key) ?? null;
