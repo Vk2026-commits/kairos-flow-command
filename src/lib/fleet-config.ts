@@ -85,17 +85,18 @@ export function useFleetConfig(): [FleetConfig, (next: FleetConfig) => void] {
 
     (async () => {
       try {
-        const local = readFleetConfig();
         const res = await loadSharedState({ data: { key: CLOUD_KEY } });
-        const data = { data: res?.data ?? null };
         if (cancelled) return;
+        if (res?.orgId) activeClientId = String(res.orgId);
 
-        if (data?.data && typeof data.data === "object" && !Array.isArray(data.data)) {
-          const cloud = normalize(data.data as Partial<FleetConfig>);
+        if (res?.data && typeof res.data === "object" && !Array.isArray(res.data)) {
+          const cloud = normalize(res.data as Partial<FleetConfig>);
           writeFleetConfig(cloud);
           setConfig(cloud);
         } else {
-          await pushSharedState(CLOUD_KEY, local, { prompt: false });
+          // No saved fleet for this client yet: start from the standard defaults
+          // instead of copying whichever client was open before.
+          setConfig(writeFleetConfig(DEFAULT_FLEET_CONFIG));
         }
       } catch (e) {
         console.warn("Fleet config cloud sync is unavailable", e);
