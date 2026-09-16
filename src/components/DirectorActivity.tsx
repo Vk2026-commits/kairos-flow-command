@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import Dictate, { appendSpoken } from "./Dictate";
 import {
   DIRECTOR_CATEGORIES,
   TIME_STATUSES,
