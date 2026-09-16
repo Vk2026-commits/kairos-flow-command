@@ -34,6 +34,7 @@ import {
   MasterTimeline,
   QuickLogActivity,
 } from "./DirectorActivity";
+import Dictate, { appendSpoken } from "./Dictate";
 
 type Records = Record<EntityKey, ConsultingRecord[]>;
 type Role = "admin" | "contributor" | "viewer";
