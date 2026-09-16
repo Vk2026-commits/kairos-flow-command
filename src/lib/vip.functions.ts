@@ -481,6 +481,6 @@ export const deleteVipVisit = createServerFn({ method: "POST" })
       .eq("id", data?.id)
       .eq("organization_id", orgId);
     if (error) throw new Error("Could not delete that guest record");
-    await log(db, null, guest?.full_name ?? "Guest", "Guest record deleted", actor);
+    await log(db, null, guest?.full_name ?? "Guest", "Guest record deleted", actor, undefined, orgId);
     return { ok: true as const };
   });
