@@ -102,8 +102,13 @@ export function countDate(c: LotCount): string {
   return c.date || toDateKey(c.at);
 }
 
-export function serviceName(id?: string): string {
-  return SERVICES.find((s) => s.id === (id ?? SERVICES[0].id))?.name ?? "Service";
+export function serviceName(id?: string, services: ChurchService[] = DEFAULT_SERVICES): string {
+  const list = services.length ? services : DEFAULT_SERVICES;
+  const match = list.find((s) => s.id === (id ?? list[0]?.id));
+  if (match) return match.name;
+  // A count saved under a service time that has since been removed still needs a label.
+  const legacy = DEFAULT_SERVICES.find((s) => s.id === id);
+  return legacy?.name ?? "Service";
 }
 
 export function fmtDate(key: string): string {
@@ -121,6 +126,8 @@ export function fmtDate(key: string): string {
 export type ParkingState = {
   lots: ParkingLot[];
   counts: LotCount[];
+  /** this client's service times */
+  services?: ChurchService[];
 };
 
 
