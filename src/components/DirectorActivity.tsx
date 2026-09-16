@@ -343,15 +343,18 @@ export function QuickLogActivity({ onSave }: { onSave: SaveRecord }) {
               </label>
             </>
           )}
-          <label className="block sm:col-span-2">
-            <span className={labelCls}>Recommendation (optional — creates a recommendation record)</span>
+          <div className="block sm:col-span-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className={labelCls}>Recommendation (optional — creates a recommendation record)</span>
+              <Dictate onText={(t) => set({ recommendation: appendSpoken(f.recommendation, t) })} />
+            </div>
             <textarea
               rows={2}
               value={f.recommendation}
               onChange={(e) => set({ recommendation: e.target.value })}
               className={`${inputCls} h-auto py-2`}
             />
-          </label>
+          </div>
           <label className="flex items-center gap-2 text-xs text-slate-300 sm:col-span-2">
             <input type="checkbox" checked={f.addNote} onChange={(e) => set({ addNote: e.target.checked })} className="size-4" />
             Also add to Progress Notes
