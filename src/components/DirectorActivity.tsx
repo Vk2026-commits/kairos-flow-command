@@ -288,19 +288,25 @@ export function QuickLogActivity({ onSave }: { onSave: SaveRecord }) {
               ))}
             </select>
           </label>
-          <label className="block sm:col-span-2">
-            <span className={labelCls}>Description</span>
+          <div className="block sm:col-span-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className={labelCls}>Detailed Notes / Description</span>
+              <Dictate onText={(t) => set({ description: appendSpoken(f.description, t) })} />
+            </div>
             <textarea
               rows={3}
               value={f.description}
               onChange={(e) => set({ description: e.target.value })}
               className={`${inputCls} h-auto py-2`}
             />
-          </label>
-          <label className="block sm:col-span-2">
-            <span className={labelCls}>What was accomplished?</span>
+          </div>
+          <div className="block sm:col-span-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className={labelCls}>What was accomplished?</span>
+              <Dictate onText={(t) => set({ outcome: appendSpoken(f.outcome, t) })} />
+            </div>
             <textarea rows={2} value={f.outcome} onChange={(e) => set({ outcome: e.target.value })} className={`${inputCls} h-auto py-2`} />
-          </label>
+          </div>
           <label className="block">
             <span className={labelCls}>Status</span>
             <select value={f.status} onChange={(e) => set({ status: e.target.value })} className={inputCls}>
