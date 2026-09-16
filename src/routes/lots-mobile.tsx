@@ -1,5 +1,5 @@
 import ClientSwitcher from "@/components/ClientSwitcher";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import {
@@ -146,6 +146,11 @@ function MobileLive({ state, setState }: StateProps) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [note, setNote] = useState("");
   const [flash, setFlash] = useState("");
+
+  // Snap to a valid service if this client's times changed.
+  useEffect(() => {
+    if (!SERVICES.some((s) => s.id === serviceId)) setServiceId(SERVICES[0].id);
+  }, [SERVICES, serviceId]);
 
   const latest = useMemo(() => {
     const map: Record<string, LotCount | undefined> = {};

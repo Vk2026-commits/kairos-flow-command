@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   useParkingState,
@@ -24,6 +24,11 @@ export function LiveCountForm() {
   const [date, setDate] = useState(() => toDateKey(new Date().toISOString()));
   const [time, setTime] = useState(nowTime);
   const [flash, setFlash] = useState("");
+
+  // Snap to a valid service if this client's times changed.
+  useEffect(() => {
+    if (!SERVICES.some((s) => s.id === serviceId)) setServiceId(SERVICES[0].id);
+  }, [SERVICES, serviceId]);
 
   const activeLotId = lotId || state.lots[0]?.id || "";
   const lot = state.lots.find((l) => l.id === activeLotId);
