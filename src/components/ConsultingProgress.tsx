@@ -298,7 +298,7 @@ export default function ConsultingProgress() {
       )}
 
       {tab === "history" && <History records={records} canEdit={canEdit} onSaveRecord={saveRecord} />}
-      {tab === "report" && <ExecutiveReport project={project} records={records} />
+      {tab === "report" && <ExecutiveReport project={project} records={records} />}
     </div>
   );
 }
