@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import Dictate, { appendSpoken } from "./Dictate";
 import {
   DIRECTOR_CATEGORIES,
   TIME_STATUSES,
@@ -287,19 +288,25 @@ export function QuickLogActivity({ onSave }: { onSave: SaveRecord }) {
               ))}
             </select>
           </label>
-          <label className="block sm:col-span-2">
-            <span className={labelCls}>Description</span>
+          <div className="block sm:col-span-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className={labelCls}>Detailed Notes / Description</span>
+              <Dictate onText={(t) => set({ description: appendSpoken(f.description, t) })} />
+            </div>
             <textarea
               rows={3}
               value={f.description}
               onChange={(e) => set({ description: e.target.value })}
               className={`${inputCls} h-auto py-2`}
             />
-          </label>
-          <label className="block sm:col-span-2">
-            <span className={labelCls}>What was accomplished?</span>
+          </div>
+          <div className="block sm:col-span-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className={labelCls}>What was accomplished?</span>
+              <Dictate onText={(t) => set({ outcome: appendSpoken(f.outcome, t) })} />
+            </div>
             <textarea rows={2} value={f.outcome} onChange={(e) => set({ outcome: e.target.value })} className={`${inputCls} h-auto py-2`} />
-          </label>
+          </div>
           <label className="block">
             <span className={labelCls}>Status</span>
             <select value={f.status} onChange={(e) => set({ status: e.target.value })} className={inputCls}>
@@ -336,15 +343,18 @@ export function QuickLogActivity({ onSave }: { onSave: SaveRecord }) {
               </label>
             </>
           )}
-          <label className="block sm:col-span-2">
-            <span className={labelCls}>Recommendation (optional — creates a recommendation record)</span>
+          <div className="block sm:col-span-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className={labelCls}>Recommendation (optional — creates a recommendation record)</span>
+              <Dictate onText={(t) => set({ recommendation: appendSpoken(f.recommendation, t) })} />
+            </div>
             <textarea
               rows={2}
               value={f.recommendation}
               onChange={(e) => set({ recommendation: e.target.value })}
               className={`${inputCls} h-auto py-2`}
             />
-          </label>
+          </div>
           <label className="flex items-center gap-2 text-xs text-slate-300 sm:col-span-2">
             <input type="checkbox" checked={f.addNote} onChange={(e) => set({ addNote: e.target.checked })} className="size-4" />
             Also add to Progress Notes
