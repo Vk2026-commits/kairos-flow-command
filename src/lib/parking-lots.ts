@@ -189,7 +189,20 @@ function normalize(raw: unknown): ParkingState {
         }))
         .filter((c) => c.lotId)
     : [];
-  return { lots, counts };
+  const services = Array.isArray(obj.services)
+    ? obj.services
+        .map((s, i) => {
+          const time = String(s?.time ?? "").slice(0, 5);
+          return {
+            id: String(s?.id ?? `svc-${i}`),
+            time,
+            name: String(s?.name ?? "").trim() || serviceLabelFromTime(time),
+          };
+        })
+        .filter((s) => /^\d{1,2}:\d{2}$/.test(s.time))
+        .sort((a, b) => a.time.localeCompare(b.time))
+    : [];
+  return { lots, counts, services: services.length ? services : DEFAULT_SERVICES };
 }
 
 // Each client's board is cached separately in the browser, so switching client
