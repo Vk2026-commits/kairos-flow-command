@@ -16,21 +16,36 @@ async function admin() {
 
 async function requireAdminDevice(rawCode: unknown) {
   const db = await admin();
-  const data = await lookupDeviceRow(db, rawCode, "code, revoked, role");
-  if ((data.role ?? "admin") !== "admin") throw new Error("This device has view-only executive access");
-  return db;
+  const row = await lookupDeviceRow(db, rawCode, "code, revoked, role, organization_id");
+  if ((row.role ?? "admin") !== "admin") throw new Error("This device has view-only executive access");
+  const { deviceOrgId } = await import("./org.server");
+  return { db, orgId: deviceOrgId(row) };
 }
 
+/** Board state is stored per client, so each client sees only its own board. */
+async function orgForCode(rawCode: unknown): Promise<{ db: any; orgId: string }> {
+  const db = await admin();
+  const { deviceOrgId } = await import("./org.server");
+  if (typeof rawCode !== "string" || !rawCode) return { db, orgId: deviceOrgId(null) };
+  try {
+    const row = await lookupDeviceRow(db, rawCode, "code, revoked, organization_id");
+    return { db, orgId: deviceOrgId(row) };
+  } catch {
+    return { db, orgId: deviceOrgId(null) };
+  }
+}
 
 export const saveSharedState = createServerFn({ method: "POST" })
   .inputValidator((data: { code: string; key: string; data: unknown }) => data)
   .handler(async ({ data }) => {
-    const db = await requireAdminDevice(data?.code);
+    const { db, orgId } = await requireAdminDevice(data?.code);
     const key = String(data?.key ?? "");
     if (!ALLOWED_KEY.test(key)) throw new Error("Unknown state key");
     const payload = data?.data;
     if (payload === null || typeof payload !== "object") throw new Error("Invalid state payload");
-    const { error } = await db.from("kairos_state").upsert({ key, data: payload });
+    const { error } = await db
+      .from("kairos_state")
+      .upsert({ key, organization_id: orgId, data: payload }, { onConflict: "organization_id,key" });
     if (error) throw new Error("Could not save shared state");
     return { ok: true as const };
   });
@@ -38,14 +53,15 @@ export const saveSharedState = createServerFn({ method: "POST" })
 // Reads mirror the table's public read policy, but go through the server so the
 // browser never needs backend credentials of its own.
 export const loadSharedState = createServerFn({ method: "POST" })
-  .inputValidator((data: { key: string }) => data)
+  .inputValidator((data: { key: string; code?: string }) => data)
   .handler(async ({ data }) => {
     const key = String(data?.key ?? "");
     if (!ALLOWED_KEY.test(key)) throw new Error("Unknown state key");
-    const db = await admin();
+    const { db, orgId } = await orgForCode(data?.code);
     const { data: row, error } = await db
       .from("kairos_state")
       .select("data")
+      .eq("organization_id", orgId)
       .eq("key", key)
       .maybeSingle();
     if (error) throw new Error("Could not load shared state");
