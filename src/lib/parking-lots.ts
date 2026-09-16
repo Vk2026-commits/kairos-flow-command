@@ -135,7 +135,11 @@ export type ParkingState = {
  * A new client starts with no lots at all: they name their own lots and enter
  * the space counts. Nothing is ever inherited from another client.
  */
-export const DEFAULT_PARKING_STATE: ParkingState = { lots: [], counts: [] };
+export const DEFAULT_PARKING_STATE: ParkingState = {
+  lots: [],
+  counts: [],
+  services: DEFAULT_SERVICES,
+};
 
 function num(n: unknown, max = 100000) {
   const v = Math.floor(Number(n));
