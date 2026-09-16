@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import ConsultingProgress from "@/components/ConsultingProgress";
 import { ParkingLotsPanel } from "@/components/ParkingLotsPanel";
+import ClientSwitcher from "@/components/ClientSwitcher";
 
 export const Route = createFileRoute("/staff")({
   ssr: false,
@@ -80,6 +81,7 @@ function StaffPortal() {
           {email && <p className="text-[11px] text-slate-500 mt-0.5">{email}</p>}
         </div>
         <div className="flex items-center gap-2">
+          <ClientSwitcher />
           <nav className="flex items-center gap-1 rounded-lg bg-white/5 border border-white/10 p-1">
             {(
               [

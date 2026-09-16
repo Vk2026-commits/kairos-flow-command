@@ -7,10 +7,13 @@ import ClientWizard from "./ClientWizard";
 // for Kairos staff who work with several clients.
 
 export default function ClientSwitcher({ compact = false }: { compact?: boolean }) {
-  const { clients, activeClient, activeOrgId, isSuperAdmin, switchClient, switchingTo, refresh, loading } =
+  const { clients, activeClient, activeOrgId, isSuperAdmin, switchClient, switchingTo, refresh, loading, error } =
     useClients();
   const [open, setOpen] = useState(false);
   const [wizard, setWizard] = useState(false);
+
+  // Nothing to show on shared devices that are not signed in.
+  if (error) return null;
 
   if (loading && !activeClient) {
     return <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">Loading client…</span>;
