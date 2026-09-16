@@ -55,14 +55,16 @@ export async function resolveOrgContext(
   userId: string,
   requestedOrgId?: unknown,
 ): Promise<OrgContext> {
-  const superAdmin = await isSuperAdmin(db, userId);
   const requested = typeof requestedOrgId === "string" && requestedOrgId ? requestedOrgId : null;
 
   const { data: profile } = await db
     .from("profiles")
-    .select("active_org_id")
+    .select("active_org_id, email")
     .eq("id", userId)
     .maybeSingle();
+
+  await claimPendingMemberships(db, userId, (profile?.email as string) ?? null);
+  const superAdmin = await isSuperAdmin(db, userId);
 
   const { data: memberships } = await db
     .from("organization_members")
