@@ -29,8 +29,18 @@ export async function lookupDeviceRow(
   rawCode: unknown,
   select = "code, revoked",
 ): Promise<Record<string, any>> {
+  // Device rows always carry the client they belong to, so tablet access can
+  // never read another client's plans or documents.
+  const columns = /organization_id/.test(select) ? select : `${select}, organization_id`;
+
   if (ACCESS_CODES_DISABLED) {
-    return { code: "OPEN-ACCESS", revoked: false, role: "admin", label: "Command Hub (codes off)" };
+    return {
+      code: "OPEN-ACCESS",
+      revoked: false,
+      role: "admin",
+      label: "Command Hub (codes off)",
+      organization_id: WHEELER_ORG_ID,
+    };
   }
 
   const typed = normalizeCode(rawCode);
