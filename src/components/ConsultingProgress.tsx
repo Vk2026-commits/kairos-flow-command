@@ -51,6 +51,7 @@ const EMPTY: Records = {
   briefings: [],
   parkingCounts: [],
   decisions: [],
+  policeReports: [],
   verification: [],
 };
 
