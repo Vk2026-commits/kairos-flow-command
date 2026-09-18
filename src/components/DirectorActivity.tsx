@@ -946,6 +946,20 @@ export function DirectorReportSections({ records }: { records: Records }) {
         <Stat label="Time Not Recorded" value={String(acts.filter((a) => timeStatusLabel(a) === "Not Recorded").length)} />
       </div>
 
+      <div className="mt-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className={labelCls}>Director's Summary (appears at the top of the printed report)</span>
+          <Dictate label="Speak summary" onText={(t) => saveSummary(appendSpoken(summary, t))} className="print:hidden" />
+        </div>
+        <textarea
+          rows={4}
+          value={summary}
+          onChange={(e) => saveSummary(e.target.value)}
+          placeholder="Speak or type your summary of this period — what was accomplished, what needs attention, and what leadership should know."
+          className={`${inputCls} h-auto py-2`}
+        />
+      </div>
+
       <ReportSection title="Security Operations" items={byCat(/security operations|private security/i)} />
       <ReportSection title="Incidents & Investigations" items={byCat(/incident|investigation/i)} />
       <ReportSection title="Executive / VIP Protection" items={byCat(/executive protection/i)} />
