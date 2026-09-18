@@ -463,6 +463,50 @@ export type Database = {
           },
         ]
       }
+      consulting_police_reports: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          occurred_on: string | null
+          organization_id: string
+          owner_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          organization_id: string
+          owner_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          occurred_on?: string | null
+          organization_id?: string
+          owner_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consulting_police_reports_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consulting_project: {
         Row: {
           created_at: string

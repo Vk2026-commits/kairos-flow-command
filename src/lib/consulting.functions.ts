@@ -20,6 +20,7 @@ const ENTITIES = {
   briefings: "consulting_briefings",
   parkingCounts: "consulting_parking_counts",
   decisions: "consulting_decisions",
+  policeReports: "consulting_police_reports",
   verification: "consulting_checklist",
 } as const;
 

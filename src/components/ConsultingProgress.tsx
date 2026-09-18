@@ -51,6 +51,7 @@ const EMPTY: Records = {
   briefings: [],
   parkingCounts: [],
   decisions: [],
+  policeReports: [],
   verification: [],
 };
 
@@ -67,6 +68,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "actionItems", label: "Action Items" },
   { key: "recommendations", label: "Recommendations" },
   { key: "decisions", label: "Client Decisions" },
+  { key: "policeReports", label: "Police Reports" },
   { key: "verification", label: "Next Sunday Verification" },
   { key: "notes", label: "Progress Notes" },
   { key: "beforeAfter", label: "Before / After" },

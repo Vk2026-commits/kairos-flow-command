@@ -204,7 +204,20 @@ export type EntityKey =
   | "briefings"
   | "parkingCounts"
   | "decisions"
+  | "policeReports"
   | "verification";
+
+/** Where a police report stands with the responding agency. */
+export const POLICE_REPORT_STATUSES = [
+  "Report Needed",
+  "Report Requested",
+  "Report Filed",
+  "Report Number Received",
+  "Under Investigation",
+  "Footage Requested",
+  "Closed",
+  "NEEDS VERIFICATION",
+] as const;
 
 
 export const BRIEFING_STATUSES = ["Published", "Draft"] as const;
@@ -452,6 +465,32 @@ export const ENTITY_CONFIG: Record<EntityKey, EntityConfig> = {
       { key: "attachments", label: "Attachments", type: "docs", wide: true },
     ],
   },
+  policeReports: {
+    key: "policeReports",
+    label: "Police Reports",
+    singular: "Police Report",
+    titleLabel: "Incident",
+    statusLabel: "Report Status",
+    statusOptions: POLICE_REPORT_STATUSES,
+    dateLabel: "Incident Date",
+    fields: [
+      { key: "reportNumber", label: "Police Report Number", type: "text", hint: "Leave blank until the agency provides it." },
+      { key: "agency", label: "Agency / Department", type: "text" },
+      { key: "officer", label: "Officer / Contact", type: "text" },
+      { key: "filedOn", label: "Date Report Filed", type: "date" },
+      { key: "filedBy", label: "Filed By", type: "text" },
+      { key: "location", label: "Location", type: "text" },
+      { key: "relatedActivity", label: "Related Activity / Incident", type: "text" },
+      { key: "relatedActionItem", label: "Linked Action Item", type: "text" },
+      { key: "footageStatus", label: "Camera Footage Status", type: "text" },
+      { key: "followUpDate", label: "Follow-Up Date", type: "date" },
+      { key: "closedOn", label: "Date Closed", type: "date" },
+      { key: "summary", label: "Incident Summary", type: "textarea", wide: true },
+      { key: "followUpNotes", label: "Follow-Up Notes", type: "textarea", wide: true },
+      { key: "outcome", label: "Outcome", type: "textarea", wide: true },
+      { key: "attachments", label: "Report / Photos / Documents", type: "docs", wide: true },
+    ],
+  },
   verification: {
     key: "verification",
     label: "Next Sunday Verification",
@@ -480,6 +519,7 @@ export const ENTITY_ORDER: readonly EntityKey[] = [
   "actionItems",
   "recommendations",
   "decisions",
+  "policeReports",
   "verification",
   "notes",
   "beforeAfter",
