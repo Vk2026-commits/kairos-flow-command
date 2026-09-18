@@ -204,7 +204,20 @@ export type EntityKey =
   | "briefings"
   | "parkingCounts"
   | "decisions"
+  | "policeReports"
   | "verification";
+
+/** Where a police report stands with the responding agency. */
+export const POLICE_REPORT_STATUSES = [
+  "Report Needed",
+  "Report Requested",
+  "Report Filed",
+  "Report Number Received",
+  "Under Investigation",
+  "Footage Requested",
+  "Closed",
+  "NEEDS VERIFICATION",
+] as const;
 
 
 export const BRIEFING_STATUSES = ["Published", "Draft"] as const;
