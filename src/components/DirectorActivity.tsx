@@ -870,6 +870,22 @@ export function DirectorReportSections({ records }: { records: Records }) {
   const [period, setPeriod] = useState<(typeof PERIODS)[number]>("Monthly");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [summary, setSummary] = useState(() => {
+    try {
+      return localStorage.getItem("kairos:director-report-summary") ?? "";
+    } catch {
+      return "";
+    }
+  });
+
+  const saveSummary = (text: string) => {
+    setSummary(text);
+    try {
+      localStorage.setItem("kairos:director-report-summary", text);
+    } catch {
+      /* storage unavailable */
+    }
+  };
 
   const start = period === "Custom Date Range" ? from : periodStart(period);
   const end = period === "Custom Date Range" ? to : "";
@@ -928,6 +944,20 @@ export function DirectorReportSections({ records }: { records: Records }) {
         <Stat label="Estimated Hours" value={est.toFixed(2)} tone="text-sky-300" />
         <Stat label="Activities" value={String(acts.length)} />
         <Stat label="Time Not Recorded" value={String(acts.filter((a) => timeStatusLabel(a) === "Not Recorded").length)} />
+      </div>
+
+      <div className="mt-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className={labelCls}>Director's Summary (appears at the top of the printed report)</span>
+          <Dictate label="Speak summary" onText={(t) => saveSummary(appendSpoken(summary, t))} className="print:hidden" />
+        </div>
+        <textarea
+          rows={4}
+          value={summary}
+          onChange={(e) => saveSummary(e.target.value)}
+          placeholder="Speak or type your summary of this period — what was accomplished, what needs attention, and what leadership should know."
+          className={`${inputCls} h-auto py-2`}
+        />
       </div>
 
       <ReportSection title="Security Operations" items={byCat(/security operations|private security/i)} />
