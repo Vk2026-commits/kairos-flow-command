@@ -870,6 +870,22 @@ export function DirectorReportSections({ records }: { records: Records }) {
   const [period, setPeriod] = useState<(typeof PERIODS)[number]>("Monthly");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [summary, setSummary] = useState(() => {
+    try {
+      return localStorage.getItem("kairos:director-report-summary") ?? "";
+    } catch {
+      return "";
+    }
+  });
+
+  const saveSummary = (text: string) => {
+    setSummary(text);
+    try {
+      localStorage.setItem("kairos:director-report-summary", text);
+    } catch {
+      /* storage unavailable */
+    }
+  };
 
   const start = period === "Custom Date Range" ? from : periodStart(period);
   const end = period === "Custom Date Range" ? to : "";
