@@ -519,6 +519,7 @@ export const ENTITY_ORDER: readonly EntityKey[] = [
   "actionItems",
   "recommendations",
   "decisions",
+  "policeReports",
   "verification",
   "notes",
   "beforeAfter",
