@@ -5,16 +5,30 @@ import {
   createStaffAccount,
   getMyStaffAccount,
   listStaff,
+  setStaffClientAccess,
   setStaffRole,
   type StaffRole,
 } from "@/lib/staff.functions";
 
-// Admin panel: see every staff account and set what each person may do.
+// Admin panel: see every staff account, set what each person may do, and decide
+// which client sites they may open. A person assigned to one client can never
+// see another client's information — every read resolves the client from this
+// assignment on the server.
 const LEVELS: { value: StaffRole; label: string; hint: string }[] = [
   { value: "admin", label: "Full admin", hint: "Everything, including everyone's hours" },
   { value: "contributor", label: "Add notes & hours", hint: "Logs their own hours and notes only" },
   { value: "viewer", label: "Read only", hint: "Can look, cannot change anything" },
 ];
+
+const ACCESS_ROLES: { value: string; label: string }[] = [
+  { value: "client_admin", label: "Client admin" },
+  { value: "client_leadership", label: "Leadership / executive" },
+  { value: "client_viewer", label: "View only" },
+  { value: "field_user", label: "Field / security team" },
+  { value: "kairos_consultant", label: "Kairos consultant" },
+];
+
+type ClientOption = { id: string; name: string };
 
 type StaffRow = {
   id: string;
@@ -22,6 +36,8 @@ type StaffRow = {
   fullName: string | null;
   title: string | null;
   role: StaffRole;
+  orgIds: string[];
+  memberRole: string | null;
   isMe: boolean;
 };
 
@@ -31,14 +47,18 @@ export default function StaffAccounts() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [myRole, setMyRole] = useState<StaffRole | null>(null);
   const [rows, setRows] = useState<StaffRow[]>([]);
+  const [clients, setClients] = useState<ClientOption[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [newRole, setNewRole] = useState<StaffRole>("viewer");
+  const [newOrgId, setNewOrgId] = useState("");
+  const [newMemberRole, setNewMemberRole] = useState("client_leadership");
   const [newPass, setNewPass] = useState("");
   const [created, setCreated] = useState<string | null>(null);
+
 
   const load = async () => {
     try {
@@ -47,6 +67,8 @@ export default function StaffAccounts() {
       if (me.role !== "admin") return;
       const res: any = await listStaff({ data: {} as any });
       setRows((res?.staff ?? []) as StaffRow[]);
+      setClients((res?.clients ?? []) as ClientOption[]);
+
       setError(null);
     } catch (e) {
       setError((e as Error).message || "Could not load staff accounts");
@@ -61,7 +83,27 @@ export default function StaffAccounts() {
     })();
   }, []);
 
+  const saveAccess = async (row: StaffRow, orgIds: string[], memberRole?: string) => {
+    setBusy(row.id);
+    setError(null);
+    try {
+      await setStaffClientAccess({
+        data: {
+          userId: row.id,
+          orgIds,
+          memberRole: (memberRole ?? row.memberRole ?? "client_leadership") as any,
+        },
+      });
+      await load();
+    } catch (e) {
+      setError((e as Error).message || "Could not change which sites they can open");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const change = async (row: StaffRow, role: StaffRole) => {
+
     setBusy(row.id);
     setError(null);
     try {
@@ -89,8 +131,17 @@ export default function StaffAccounts() {
     setCreated(null);
     try {
       const res: any = await createStaffAccount({
-        data: { email: newEmail, password: newPass, fullName: newName, title: newTitle, role: newRole },
+        data: {
+          email: newEmail,
+          password: newPass,
+          fullName: newName,
+          title: newTitle,
+          role: newRole,
+          orgIds: newOrgId ? [newOrgId] : [],
+          memberRole: newMemberRole as any,
+        },
       });
+
       setCreated(`${res.email} · temporary password: ${newPass}`);
       setNewName("");
       setNewEmail("");
@@ -184,6 +235,34 @@ export default function StaffAccounts() {
                   </option>
                 ))}
               </select>
+              <select
+                value={newOrgId}
+                onChange={(e) => setNewOrgId(e.target.value)}
+                className="h-10 px-2 rounded-lg bg-surface border border-white/10 text-xs text-white"
+              >
+                <option value="">Which site? (no access yet)</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={newMemberRole}
+                onChange={(e) => setNewMemberRole(e.target.value)}
+                className="h-10 px-2 rounded-lg bg-surface border border-white/10 text-xs text-white"
+              >
+                {ACCESS_ROLES.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+              <p className="sm:col-span-2 text-[11px] text-slate-500">
+                Pick one site and they will only ever see that site's information. You can add more
+                sites for them below.
+              </p>
+
               <div className="flex gap-2 sm:col-span-2">
                 <input
                   value={newPass}
@@ -240,7 +319,57 @@ export default function StaffAccounts() {
                     </option>
                   ))}
                 </select>
+                <div className="w-full border-t border-white/5 pt-2">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
+                    Sites they can open
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {clients.map((c) => {
+                      const on = row.orgIds.includes(c.id);
+                      return (
+                        <label key={c.id} className="flex items-center gap-1.5 text-[11px] text-slate-200">
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            disabled={busy === row.id || row.isMe}
+                            onChange={() =>
+                              void saveAccess(
+                                row,
+                                on ? row.orgIds.filter((id) => id !== c.id) : [...row.orgIds, c.id],
+                              )
+                            }
+                          />
+                          {c.name}
+                        </label>
+                      );
+                    })}
+                    {!row.isMe && row.orgIds.length > 0 && (
+                      <select
+                        value={row.memberRole ?? "client_leadership"}
+                        disabled={busy === row.id}
+                        onChange={(e) => void saveAccess(row, row.orgIds, e.target.value)}
+                        className="h-7 px-2 rounded bg-surface border border-white/10 text-[10px] text-slate-200"
+                      >
+                        {ACCESS_ROLES.map((r) => (
+                          <option key={r.value} value={r.value}>
+                            {r.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  {row.isMe ? (
+                    <p className="mt-1 text-[10px] text-slate-500">
+                      You are the Kairos owner and can open every site.
+                    </p>
+                  ) : row.orgIds.length === 0 ? (
+                    <p className="mt-1 text-[10px] text-amber-400">
+                      No site assigned — they cannot see any client information yet.
+                    </p>
+                  ) : null}
+                </div>
               </div>
+
             ))}
             {rows.length === 0 && <p className="text-xs text-slate-500">No staff accounts yet.</p>}
           </div>
