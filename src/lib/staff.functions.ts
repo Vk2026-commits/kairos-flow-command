@@ -230,8 +230,17 @@ export const setStaffClientAccess = createServerFn({ method: "POST" })
 export const createStaffAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (data: { email: string; password: string; fullName?: string; title?: string; role?: StaffRole }) => data,
+    (data: {
+      email: string;
+      password: string;
+      fullName?: string;
+      title?: string;
+      role?: StaffRole;
+      orgIds?: string[];
+      memberRole?: AssignRole;
+    }) => data,
   )
+
   .handler(async ({ context, data }) => {
     const db = await adminDb();
     const myRole = await resolveRole(db, context.userId as string);
