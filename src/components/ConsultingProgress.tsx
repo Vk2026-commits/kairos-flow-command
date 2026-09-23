@@ -26,6 +26,7 @@ import {
   type ConsultingRecord,
   type EntityKey,
   type Field,
+  consultingHourTotals,
 } from "@/lib/consulting";
 import {
   DirectorLedger,
@@ -1297,7 +1298,7 @@ function History({
     (v) => inRange(v) && (!loc || String(v.data?.location ?? "").toLowerCase().includes(loc.toLowerCase())),
   );
   const hours = visits.reduce((s, v) => s + hoursBetween(v.data?.arrival, v.data?.departure), 0);
-  const workHours = activities.reduce((s, a) => s + activityHours(a), 0);
+  const workHours = consultingHourTotals(activities, visits).offSite;
   const meetings = activities.filter((a) => String(a.data?.activityType ?? "").includes("Meeting")).length;
   const assessments = activities.filter((a) => String(a.data?.activityType ?? "").includes("Assessment")).length;
   const recs = records.recommendations.filter(inRange);
@@ -1651,7 +1652,7 @@ function TimeLog({
   );
 
   const onSiteHours = siteVisits.reduce((s, v) => s + hoursBetween(v.data?.arrival, v.data?.departure), 0);
-  const workHours = entries.reduce((s, e) => s + e.hours, 0);
+  const workHours = consultingHourTotals(activities, siteVisits).offSite;
   const todayHours = entries.filter((e) => e.rec.occurred_on === today).reduce((s, e) => s + e.hours, 0);
 
   const byType = useMemo(() => {
