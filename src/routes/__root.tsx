@@ -136,18 +136,26 @@ function RootShell({ children }: { children: ReactNode }) {
 
 // Pages a signed-in client/staff login may open. Everything else is for the Kairos owner.
 const STAFF_ALLOWED = ["/staff", "/auth", "/reset-password", "/lots-mobile"];
+// Pages anyone can open without signing in. Everything else sends visitors to the login.
+const PUBLIC_PATHS = ["/auth", "/reset-password"];
 
 function StaffOnlyGuard() {
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
-    if (STAFF_ALLOWED.some((p) => pathname === p || pathname.startsWith(p + "/"))) return;
+    const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+    const isStaffOk = STAFF_ALLOWED.some((p) => pathname === p || pathname.startsWith(p + "/"));
     let cancelled = false;
     void (async () => {
       const { supabase } = await import("@/integrations/supabase/client");
       const { data } = await supabase.auth.getSession();
-      if (cancelled || !data.session) return;
+      if (cancelled) return;
+      if (!data.session) {
+        if (!isPublic) void router.navigate({ to: "/auth", replace: true });
+        return;
+      }
+      if (isStaffOk) return;
       try {
         const { listMyClients } = await import("@/lib/orgs.functions");
         const res: any = await listMyClients({ data: {} });
