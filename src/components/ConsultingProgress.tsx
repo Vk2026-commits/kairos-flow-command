@@ -924,7 +924,9 @@ function RecordSection({
           entity={entity}
           record={editing === "new" ? null : editing}
           docs={docs}
+          linkOptions={linkOptions}
           onUpload={onUpload}
+
           onClose={() => setEditing(null)}
           onSubmit={(rec) => {
             onSave(entity, editing === "new" ? null : editing.id, rec);
