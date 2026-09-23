@@ -301,10 +301,12 @@ export default function ConsultingProgress() {
           rows={records[tab as EntityKey]}
           docs={docs}
           canEdit={canEdit}
+          linkOptions={records.actionItems.map((a) => a.title)}
           onSave={saveRecord}
           onDelete={removeRecord}
           onUpload={uploadAttachment}
         />
+
       )}
 
       {tab === "history" && <History records={records} canEdit={canEdit} onSaveRecord={saveRecord} />}
@@ -775,6 +777,7 @@ function RecordSection({
   rows,
   docs,
   canEdit,
+  linkOptions = [],
   onSave,
   onDelete,
   onUpload,
@@ -783,10 +786,12 @@ function RecordSection({
   rows: ConsultingRecord[];
   docs: DocRow[];
   canEdit: boolean;
+  linkOptions?: string[];
   onSave: (entity: EntityKey, id: string | null, record: Partial<ConsultingRecord>) => void;
   onDelete: (entity: EntityKey, id: string) => void;
   onUpload: (file: File) => Promise<void>;
 }) {
+
   const cfg = ENTITY_CONFIG[entity];
   const [editing, setEditing] = useState<ConsultingRecord | "new" | null>(null);
   const [q, setQ] = useState("");
@@ -919,7 +924,9 @@ function RecordSection({
           entity={entity}
           record={editing === "new" ? null : editing}
           docs={docs}
+          linkOptions={linkOptions}
           onUpload={onUpload}
+
           onClose={() => setEditing(null)}
           onSubmit={(rec) => {
             onSave(entity, editing === "new" ? null : editing.id, rec);
@@ -1038,6 +1045,7 @@ function RecordEditor({
   entity,
   record,
   docs,
+  linkOptions = [],
   onUpload,
   onClose,
   onSubmit,
@@ -1045,10 +1053,12 @@ function RecordEditor({
   entity: EntityKey;
   record: ConsultingRecord | null;
   docs: DocRow[];
+  linkOptions?: string[];
   onUpload: (file: File) => Promise<void>;
   onClose: () => void;
   onSubmit: (rec: Partial<ConsultingRecord>) => void;
 }) {
+
   const cfg = ENTITY_CONFIG[entity];
   const [title, setTitle] = useState(record?.title ?? (cfg.titleOptions ? cfg.titleOptions[0] : ""));
   const [status, setStatus] = useState(record?.status ?? cfg.statusOptions[0]);
@@ -1136,6 +1146,21 @@ function RecordEditor({
                     onChange={(ids) => setField(f, ids)}
                     onUpload={onUpload}
                   />
+                ) : f.key === "relatedActionItem" ? (
+                  <>
+                    <input
+                      list={`link-${f.key}`}
+                      value={data[f.key] ?? ""}
+                      onChange={(e) => setField(f, e.target.value)}
+                      className={inputCls}
+                      placeholder="Pick an existing action item or type one"
+                    />
+                    <datalist id={`link-${f.key}`}>
+                      {linkOptions.map((o) => (
+                        <option key={o} value={o} />
+                      ))}
+                    </datalist>
+                  </>
                 ) : (
                   <input
                     type={f.type === "number" ? "number" : f.type === "date" ? "date" : f.type === "time" ? "time" : "text"}
@@ -1144,6 +1169,7 @@ function RecordEditor({
                     className={inputCls}
                   />
                 )}
+
               </label>
             ),
           )}
