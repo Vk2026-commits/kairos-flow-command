@@ -83,7 +83,27 @@ export default function StaffAccounts() {
     })();
   }, []);
 
+  const saveAccess = async (row: StaffRow, orgIds: string[], memberRole?: string) => {
+    setBusy(row.id);
+    setError(null);
+    try {
+      await setStaffClientAccess({
+        data: {
+          userId: row.id,
+          orgIds,
+          memberRole: (memberRole ?? row.memberRole ?? "client_leadership") as any,
+        },
+      });
+      await load();
+    } catch (e) {
+      setError((e as Error).message || "Could not change which sites they can open");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const change = async (row: StaffRow, role: StaffRole) => {
+
     setBusy(row.id);
     setError(null);
     try {
