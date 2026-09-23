@@ -276,8 +276,16 @@ export const createStaffAccount = createServerFn({ method: "POST" })
     await db.from("user_roles").delete().eq("user_id", newId);
     await db.from("user_roles").insert({ user_id: newId, role });
 
-    return { ok: true as const, id: newId, email, role };
+    // Tie the new person to the client sites they were assigned — and only those.
+    const orgIds = Array.isArray(data?.orgIds) ? data!.orgIds!.map(String).filter(Boolean) : [];
+    const memberRole: AssignRole = CLIENT_MEMBER_ROLES.includes(data?.memberRole as AssignRole)
+      ? (data!.memberRole as AssignRole)
+      : "client_leadership";
+    if (orgIds.length) await applyClientAccess(db, newId, orgIds, memberRole);
+
+    return { ok: true as const, id: newId, email, role, orgIds };
   });
+
 
 /** Admin only: change someone's permission level. */
 export const setStaffRole = createServerFn({ method: "POST" })
