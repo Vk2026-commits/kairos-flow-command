@@ -28,3 +28,4 @@
 ## Quick Hours Entry (Sep 23, 2026)
 - [x] "Log Hours" form on Executive Dashboard (date, start/end or total hours, description, Time Status) → consulting_activities
 - [ ] User enters Sunday 9/20 real hours via the new form (only they know the real times)
+- [x] Per-person site assignment on the Admin page (one client per person, enforced server-side)
