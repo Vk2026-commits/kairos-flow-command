@@ -111,7 +111,8 @@ export default function ConsultingProgress() {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { activeOrgId } = useClients();
+  const { activeOrgId, activeClient } = useClients();
+  const clientLabel = activeClient?.name ?? "";
 
   // Attachments still use the shared board code; consulting records use the
   // signed-in staff account.
