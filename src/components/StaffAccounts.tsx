@@ -235,6 +235,34 @@ export default function StaffAccounts() {
                   </option>
                 ))}
               </select>
+              <select
+                value={newOrgId}
+                onChange={(e) => setNewOrgId(e.target.value)}
+                className="h-10 px-2 rounded-lg bg-surface border border-white/10 text-xs text-white"
+              >
+                <option value="">Which site? (no access yet)</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={newMemberRole}
+                onChange={(e) => setNewMemberRole(e.target.value)}
+                className="h-10 px-2 rounded-lg bg-surface border border-white/10 text-xs text-white"
+              >
+                {ACCESS_ROLES.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+              <p className="sm:col-span-2 text-[11px] text-slate-500">
+                Pick one site and they will only ever see that site's information. You can add more
+                sites for them below.
+              </p>
+
               <div className="flex gap-2 sm:col-span-2">
                 <input
                   value={newPass}
