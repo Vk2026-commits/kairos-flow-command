@@ -35,6 +35,7 @@ import {
   QuickLogActivity,
 } from "./DirectorActivity";
 import Dictate, { appendSpoken } from "./Dictate";
+import FieldNotesAI from "./FieldNotesAI";
 
 type Records = Record<EntityKey, ConsultingRecord[]>;
 type Role = "admin" | "contributor" | "viewer";
@@ -110,7 +111,8 @@ export default function ConsultingProgress() {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { activeOrgId } = useClients();
+  const { activeOrgId, activeClient } = useClients();
+  const clientLabel = activeClient?.name ?? "";
 
   // Attachments still use the shared board code; consulting records use the
   // signed-in staff account.
@@ -276,14 +278,17 @@ export default function ConsultingProgress() {
       {error && <div className="text-[11px] text-red-400">{error}</div>}
 
       {tab === "dashboard" && (
-        <Dashboard
-          project={project}
-          records={records}
-          canEdit={canEdit}
-          onSaveProject={saveProject}
-          onSaveRecord={saveRecord}
-          onOpenBriefings={() => setTab("briefings")}
-        />
+        <>
+          <FieldNotesAI canEdit={canEdit} clientName={clientLabel} onSave={saveRecord} />
+          <Dashboard
+            project={project}
+            records={records}
+            canEdit={canEdit}
+            onSaveProject={saveProject}
+            onSaveRecord={saveRecord}
+            onOpenBriefings={() => setTab("briefings")}
+          />
+        </>
       )}
 
       {tab === "milestones" && <MasterTimeline records={records} />}
