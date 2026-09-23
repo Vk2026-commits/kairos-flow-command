@@ -111,8 +111,17 @@ export default function StaffAccounts() {
     setCreated(null);
     try {
       const res: any = await createStaffAccount({
-        data: { email: newEmail, password: newPass, fullName: newName, title: newTitle, role: newRole },
+        data: {
+          email: newEmail,
+          password: newPass,
+          fullName: newName,
+          title: newTitle,
+          role: newRole,
+          orgIds: newOrgId ? [newOrgId] : [],
+          memberRole: newMemberRole as any,
+        },
       });
+
       setCreated(`${res.email} · temporary password: ${newPass}`);
       setNewName("");
       setNewEmail("");
