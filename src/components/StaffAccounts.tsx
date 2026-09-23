@@ -67,6 +67,8 @@ export default function StaffAccounts() {
       if (me.role !== "admin") return;
       const res: any = await listStaff({ data: {} as any });
       setRows((res?.staff ?? []) as StaffRow[]);
+      setClients((res?.clients ?? []) as ClientOption[]);
+
       setError(null);
     } catch (e) {
       setError((e as Error).message || "Could not load staff accounts");
