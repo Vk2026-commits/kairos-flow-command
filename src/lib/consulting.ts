@@ -406,7 +406,7 @@ export const ENTITY_CONFIG: Record<EntityKey, EntityConfig> = {
     singular: "Improvement",
     titleLabel: "Improvement Title",
     statusLabel: "Status",
-    statusOptions: ["In Progress", "Implemented", "Verified"],
+    statusOptions: ["Pending Implementation", "In Progress", "Implemented", "Verified"],
     dateLabel: "Date Verified",
     fields: [
       { key: "location", label: "Location / Parking Lot", type: "text" },
