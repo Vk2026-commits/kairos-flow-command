@@ -590,6 +590,34 @@ export function timeStatusLabel(rec: { data?: Record<string, any> | null }): str
   return activityHours(rec) > 0 ? "Recorded" : "Not Recorded";
 }
 
+type HourRec = { occurred_on?: string | null; data?: Record<string, any> | null };
+
+/** True when an activity is the same on-site time already logged as a site visit (same date + times). */
+export function duplicatesSiteVisit(act: HourRec, visits: readonly HourRec[]): boolean {
+  const d = act.data ?? {};
+  if (!d.startTime || !d.endTime) return false;
+  return visits.some(
+    (v) =>
+      v.occurred_on === act.occurred_on &&
+      v.data?.arrival === d.startTime &&
+      v.data?.departure === d.endTime,
+  );
+}
+
+/**
+ * Single source of truth for consulting hours. On-site = site visits;
+ * off-site = recorded activity time that isn't a copy of a site visit, so
+ * nothing is counted twice.
+ */
+export function consultingHourTotals(acts: readonly HourRec[], visits: readonly HourRec[]) {
+  const onSite = visits.reduce((s, v) => s + hoursBetween(v.data?.arrival, v.data?.departure), 0);
+  const offSite = acts
+    .filter((a) => !duplicatesSiteVisit(a, visits))
+    .reduce((s, a) => s + recordedHours(a), 0);
+  const r = (n: number) => Math.round(n * 100) / 100;
+  return { onSite: r(onSite), offSite: r(offSite), total: r(onSite + offSite) };
+}
+
 
 export function fmtDay(key?: string | null): string {
   if (!key) return "—";

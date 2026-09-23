@@ -55,9 +55,11 @@ export function DirectorMetrics({ records }: { records: Records }) {
   const month = today().slice(0, 7);
   const inMonth = acts.filter((a) => String(a.occurred_on ?? "").startsWith(month));
   const completed = acts.filter((a) => /completed|implemented|verified/i.test(a.status));
-  const rec = acts.reduce((s, a) => s + recordedHours(a), 0);
+  const totals = consultingHourTotals(acts, records.siteVisits);
+  const rec = totals.total;
   const est = acts.reduce((s, a) => s + estimatedHours(a), 0);
-  const monthRec = inMonth.reduce((s, a) => s + recordedHours(a), 0);
+  const monthVisits = records.siteVisits.filter((v) => String(v.occurred_on ?? "").startsWith(month));
+  const monthRec = consultingHourTotals(inMonth, monthVisits).total;
   const byCat = (needle: RegExp) => acts.filter((a) => needle.test(catOf(a))).length;
 
   return (
@@ -74,6 +76,8 @@ export function DirectorMetrics({ records }: { records: Records }) {
         <Stat label="Completed Activities" value={String(completed.length)} />
         <Stat label="Open Activities" value={String(acts.length - completed.length)} />
         <Stat label="Total Recorded Hours" value={rec.toFixed(2)} tone="text-kairos-gold" />
+        <Stat label="On-Site Hours" value={totals.onSite.toFixed(2)} />
+        <Stat label="Off-Site Work Hours" value={totals.offSite.toFixed(2)} />
         <Stat label="Total Estimated Hours" value={est.toFixed(2)} tone="text-sky-300" />
         <Stat label="Recorded Hours This Month" value={monthRec.toFixed(2)} />
         <Stat label="Investigations Completed" value={String(acts.filter((a) => /investigation/i.test(catOf(a)) && /completed/i.test(a.status)).length)} />
