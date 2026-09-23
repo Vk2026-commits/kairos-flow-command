@@ -78,6 +78,13 @@ export const listStaff = createServerFn({ method: "POST" })
       .select("id, email, full_name, title, created_at")
       .order("created_at", { ascending: true });
     const { data: roles } = await db.from("user_roles").select("user_id, role");
+    const { data: clients } = await db
+      .from("organizations")
+      .select("id, name")
+      .order("name", { ascending: true });
+    const { data: members } = await db
+      .from("organization_members")
+      .select("user_id, organization_id, member_role, status");
 
     const byUser = new Map<string, string[]>();
     for (const r of roles ?? []) {
@@ -86,7 +93,19 @@ export const listStaff = createServerFn({ method: "POST" })
       byUser.set(String(r.user_id), list);
     }
 
+    const orgsByUser = new Map<string, string[]>();
+    const memberRoleByUser = new Map<string, string>();
+    for (const m of members ?? []) {
+      if (!m.user_id || String(m.status) !== "active") continue;
+      const key = String(m.user_id);
+      const list = orgsByUser.get(key) ?? [];
+      list.push(String(m.organization_id));
+      orgsByUser.set(key, list);
+      if (!memberRoleByUser.has(key)) memberRoleByUser.set(key, String(m.member_role));
+    }
+
     return {
+      clients: (clients ?? []).map((c: any) => ({ id: String(c.id), name: String(c.name ?? "") })),
       staff: (profiles ?? []).map((p: any) => {
         const list = byUser.get(String(p.id)) ?? [];
         const level: StaffRole = list.includes("admin")
@@ -101,11 +120,111 @@ export const listStaff = createServerFn({ method: "POST" })
           title: p.title ?? null,
           createdAt: p.created_at ?? null,
           role: level,
+          orgIds: orgsByUser.get(String(p.id)) ?? [],
+          memberRole: memberRoleByUser.get(String(p.id)) ?? null,
           isMe: String(p.id) === context.userId,
         };
       }),
     };
   });
+
+const CLIENT_MEMBER_ROLES = [
+  "client_admin",
+  "client_leadership",
+  "client_viewer",
+  "field_user",
+  "kairos_consultant",
+  "kairos_super_admin",
+] as const;
+type AssignRole = (typeof CLIENT_MEMBER_ROLES)[number];
+
+/**
+ * Admin only: decide exactly which client sites a person may open. Replacing the
+ * list is the whole permission — nothing outside these clients is ever visible
+ * to them, because every read resolves the client from this membership table.
+ */
+async function applyClientAccess(
+  db: any,
+  userId: string,
+  orgIds: string[],
+  memberRole: AssignRole,
+) {
+  const wanted = Array.from(new Set(orgIds.filter(Boolean).map(String)));
+  const { data: existing } = await db
+    .from("organization_members")
+    .select("id, organization_id")
+    .eq("user_id", userId);
+
+  for (const row of existing ?? []) {
+    if (!wanted.includes(String(row.organization_id))) {
+      await db.from("organization_members").delete().eq("id", row.id);
+    }
+  }
+  const have = new Set((existing ?? []).map((r: any) => String(r.organization_id)));
+  const { data: profile } = await db
+    .from("profiles")
+    .select("email, full_name")
+    .eq("id", userId)
+    .maybeSingle();
+
+  for (const orgId of wanted) {
+    if (have.has(orgId)) {
+      await db
+        .from("organization_members")
+        .update({ member_role: memberRole, status: "active", invitation_status: "accepted" })
+        .eq("user_id", userId)
+        .eq("organization_id", orgId);
+    } else {
+      await db.from("organization_members").insert({
+        organization_id: orgId,
+        user_id: userId,
+        email: profile?.email ?? null,
+        full_name: profile?.full_name ?? null,
+        member_role: memberRole,
+        status: "active",
+        invitation_status: "accepted",
+      });
+    }
+  }
+
+  if (wanted.length) {
+    await db.from("profiles").update({ active_org_id: wanted[0] }).eq("id", userId);
+  } else {
+    await db.from("profiles").update({ active_org_id: null }).eq("id", userId);
+  }
+}
+
+export const setStaffClientAccess = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string; orgIds: string[]; memberRole?: AssignRole }) => data)
+  .handler(async ({ context, data }) => {
+    const db = await adminDb();
+    const me = context.userId as string;
+    if ((await resolveRole(db, me)) !== "admin") {
+      throw new Error("Only a full admin can assign client sites");
+    }
+    const target = String(data?.userId ?? "");
+    if (!target) throw new Error("Missing account");
+
+    const memberRole: AssignRole = CLIENT_MEMBER_ROLES.includes(data?.memberRole as AssignRole)
+      ? (data!.memberRole as AssignRole)
+      : "client_leadership";
+    const orgIds = Array.isArray(data?.orgIds) ? data!.orgIds.map(String) : [];
+
+    // A person tied to one client must not keep platform-wide admin rights,
+    // which would let them switch into every other client.
+    if (target !== me && orgIds.length && memberRole !== "kairos_super_admin") {
+      const { data: roles } = await db.from("user_roles").select("role").eq("user_id", target);
+      if ((roles ?? []).some((r: any) => String(r.role) === "admin")) {
+        await db.from("user_roles").delete().eq("user_id", target);
+        await db.from("user_roles").insert({ user_id: target, role: "contributor" });
+      }
+    }
+
+    await applyClientAccess(db, target, orgIds, memberRole);
+    return { ok: true as const, orgIds };
+  });
+
 
 /** Admin only: create a staff account with a starting permission level. */
 export const createStaffAccount = createServerFn({ method: "POST" })
