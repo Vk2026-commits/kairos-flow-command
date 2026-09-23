@@ -19,8 +19,8 @@
 ## Field Notes Assistant (Sep 23, 2026)
 - [x] structureFieldNotes server function (AI gateway, structured output)
 - [x] FieldNotesAI panel on the Executive Dashboard (speak/type → review → save)
-- [ ] Publish live (pending)
+- [x] Published live (commandhub.kairossecurity.com)
 
 ## Open question (Sep 23, 2026)
 - [ ] Answer: where to enter hours so they count as Total Recorded Hours on the Executive Dashboard
-- [ ] Log 2h remote app-update consulting time (Sep 22, 2026) as Recorded, verify dashboard total; retry publish
+- [x] Logged 2h app-update time; dashboard shows 45.78 recorded hours; published
