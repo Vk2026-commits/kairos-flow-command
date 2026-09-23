@@ -1045,6 +1045,7 @@ function RecordEditor({
   entity,
   record,
   docs,
+  linkOptions = [],
   onUpload,
   onClose,
   onSubmit,
@@ -1052,10 +1053,12 @@ function RecordEditor({
   entity: EntityKey;
   record: ConsultingRecord | null;
   docs: DocRow[];
+  linkOptions?: string[];
   onUpload: (file: File) => Promise<void>;
   onClose: () => void;
   onSubmit: (rec: Partial<ConsultingRecord>) => void;
 }) {
+
   const cfg = ENTITY_CONFIG[entity];
   const [title, setTitle] = useState(record?.title ?? (cfg.titleOptions ? cfg.titleOptions[0] : ""));
   const [status, setStatus] = useState(record?.status ?? cfg.statusOptions[0]);
