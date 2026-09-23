@@ -280,6 +280,7 @@ export default function ConsultingProgress() {
       {tab === "dashboard" && (
         <>
           <FieldNotesAI canEdit={canEdit} clientName={clientLabel} onSave={saveRecord} />
+          <QuickHours canEdit={canEdit} onSave={saveRecord} />
           <Dashboard
             project={project}
             records={records}
