@@ -5,16 +5,30 @@ import {
   createStaffAccount,
   getMyStaffAccount,
   listStaff,
+  setStaffClientAccess,
   setStaffRole,
   type StaffRole,
 } from "@/lib/staff.functions";
 
-// Admin panel: see every staff account and set what each person may do.
+// Admin panel: see every staff account, set what each person may do, and decide
+// which client sites they may open. A person assigned to one client can never
+// see another client's information — every read resolves the client from this
+// assignment on the server.
 const LEVELS: { value: StaffRole; label: string; hint: string }[] = [
   { value: "admin", label: "Full admin", hint: "Everything, including everyone's hours" },
   { value: "contributor", label: "Add notes & hours", hint: "Logs their own hours and notes only" },
   { value: "viewer", label: "Read only", hint: "Can look, cannot change anything" },
 ];
+
+const ACCESS_ROLES: { value: string; label: string }[] = [
+  { value: "client_admin", label: "Client admin" },
+  { value: "client_leadership", label: "Leadership / executive" },
+  { value: "client_viewer", label: "View only" },
+  { value: "field_user", label: "Field / security team" },
+  { value: "kairos_consultant", label: "Kairos consultant" },
+];
+
+type ClientOption = { id: string; name: string };
 
 type StaffRow = {
   id: string;
@@ -22,6 +36,8 @@ type StaffRow = {
   fullName: string | null;
   title: string | null;
   role: StaffRole;
+  orgIds: string[];
+  memberRole: string | null;
   isMe: boolean;
 };
 
@@ -31,14 +47,18 @@ export default function StaffAccounts() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [myRole, setMyRole] = useState<StaffRole | null>(null);
   const [rows, setRows] = useState<StaffRow[]>([]);
+  const [clients, setClients] = useState<ClientOption[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [newRole, setNewRole] = useState<StaffRole>("viewer");
+  const [newOrgId, setNewOrgId] = useState("");
+  const [newMemberRole, setNewMemberRole] = useState("client_leadership");
   const [newPass, setNewPass] = useState("");
   const [created, setCreated] = useState<string | null>(null);
+
 
   const load = async () => {
     try {
