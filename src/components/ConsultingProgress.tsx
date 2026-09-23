@@ -1146,6 +1146,21 @@ function RecordEditor({
                     onChange={(ids) => setField(f, ids)}
                     onUpload={onUpload}
                   />
+                ) : f.key === "relatedActionItem" ? (
+                  <>
+                    <input
+                      list={`link-${f.key}`}
+                      value={data[f.key] ?? ""}
+                      onChange={(e) => setField(f, e.target.value)}
+                      className={inputCls}
+                      placeholder="Pick an existing action item or type one"
+                    />
+                    <datalist id={`link-${f.key}`}>
+                      {linkOptions.map((o) => (
+                        <option key={o} value={o} />
+                      ))}
+                    </datalist>
+                  </>
                 ) : (
                   <input
                     type={f.type === "number" ? "number" : f.type === "date" ? "date" : f.type === "time" ? "time" : "text"}
@@ -1154,6 +1169,7 @@ function RecordEditor({
                     className={inputCls}
                   />
                 )}
+
               </label>
             ),
           )}
