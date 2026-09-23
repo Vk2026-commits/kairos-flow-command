@@ -8,6 +8,7 @@ import {
   estimatedHours,
   fmtDay,
   recordedHours,
+  consultingHourTotals,
   statusTone,
   timeStatusLabel,
   toCsv,
