@@ -15,3 +15,11 @@
 - [x] Police report tracker section (report number, status, follow-up notes, linked action item)
 - [x] Publish live to commandhub.kairossecurity.com
 - [ ] Log Sept 19 memo to Ivy McGregor: Kubota pricing, flatbed cart repair estimate, Parking Lot Ministry rebuild, Green Room / back-office access protocol + next-step action items
+
+## Field Notes Assistant (Sep 23, 2026)
+- [x] structureFieldNotes server function (AI gateway, structured output)
+- [x] FieldNotesAI panel on the Executive Dashboard (speak/type → review → save)
+- [ ] Publish live (pending)
+
+## Open question (Sep 23, 2026)
+- [ ] Answer: where to enter hours so they count as Total Recorded Hours on the Executive Dashboard
