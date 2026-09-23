@@ -319,7 +319,57 @@ export default function StaffAccounts() {
                     </option>
                   ))}
                 </select>
+                <div className="w-full border-t border-white/5 pt-2">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
+                    Sites they can open
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {clients.map((c) => {
+                      const on = row.orgIds.includes(c.id);
+                      return (
+                        <label key={c.id} className="flex items-center gap-1.5 text-[11px] text-slate-200">
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            disabled={busy === row.id || row.isMe}
+                            onChange={() =>
+                              void saveAccess(
+                                row,
+                                on ? row.orgIds.filter((id) => id !== c.id) : [...row.orgIds, c.id],
+                              )
+                            }
+                          />
+                          {c.name}
+                        </label>
+                      );
+                    })}
+                    {!row.isMe && row.orgIds.length > 0 && (
+                      <select
+                        value={row.memberRole ?? "client_leadership"}
+                        disabled={busy === row.id}
+                        onChange={(e) => void saveAccess(row, row.orgIds, e.target.value)}
+                        className="h-7 px-2 rounded bg-surface border border-white/10 text-[10px] text-slate-200"
+                      >
+                        {ACCESS_ROLES.map((r) => (
+                          <option key={r.value} value={r.value}>
+                            {r.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  {row.isMe ? (
+                    <p className="mt-1 text-[10px] text-slate-500">
+                      You are the Kairos owner and can open every site.
+                    </p>
+                  ) : row.orgIds.length === 0 ? (
+                    <p className="mt-1 text-[10px] text-amber-400">
+                      No site assigned — they cannot see any client information yet.
+                    </p>
+                  ) : null}
+                </div>
               </div>
+
             ))}
             {rows.length === 0 && <p className="text-xs text-slate-500">No staff accounts yet.</p>}
           </div>
