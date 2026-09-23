@@ -276,14 +276,17 @@ export default function ConsultingProgress() {
       {error && <div className="text-[11px] text-red-400">{error}</div>}
 
       {tab === "dashboard" && (
-        <Dashboard
-          project={project}
-          records={records}
-          canEdit={canEdit}
-          onSaveProject={saveProject}
-          onSaveRecord={saveRecord}
-          onOpenBriefings={() => setTab("briefings")}
-        />
+        <>
+          <FieldNotesAI canEdit={canEdit} clientName={clientLabel} onSave={saveRecord} />
+          <Dashboard
+            project={project}
+            records={records}
+            canEdit={canEdit}
+            onSaveProject={saveProject}
+            onSaveRecord={saveRecord}
+            onOpenBriefings={() => setTab("briefings")}
+          />
+        </>
       )}
 
       {tab === "milestones" && <MasterTimeline records={records} />}
