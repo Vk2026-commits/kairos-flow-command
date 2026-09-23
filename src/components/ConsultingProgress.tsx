@@ -36,6 +36,7 @@ import {
 } from "./DirectorActivity";
 import Dictate, { appendSpoken } from "./Dictate";
 import FieldNotesAI from "./FieldNotesAI";
+import QuickHours from "./QuickHours";
 
 type Records = Record<EntityKey, ConsultingRecord[]>;
 type Role = "admin" | "contributor" | "viewer";
@@ -280,6 +281,7 @@ export default function ConsultingProgress() {
       {tab === "dashboard" && (
         <>
           <FieldNotesAI canEdit={canEdit} clientName={clientLabel} onSave={saveRecord} />
+          <QuickHours canEdit={canEdit} onSave={saveRecord} />
           <Dashboard
             project={project}
             records={records}
