@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -133,11 +134,43 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+// Pages a signed-in client/staff login may open. Everything else is for the Kairos owner.
+const STAFF_ALLOWED = ["/staff", "/auth", "/reset-password", "/lots-mobile"];
+
+function StaffOnlyGuard() {
+  const router = useRouter();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  useEffect(() => {
+    if (STAFF_ALLOWED.some((p) => pathname === p || pathname.startsWith(p + "/"))) return;
+    let cancelled = false;
+    void (async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data } = await supabase.auth.getSession();
+      if (cancelled || !data.session) return;
+      try {
+        const { listMyClients } = await import("@/lib/orgs.functions");
+        const res: any = await listMyClients({ data: {} });
+        if (cancelled || res?.isSuperAdmin) return;
+      } catch {
+        // If we can't confirm owner access, keep them in the staff portal.
+      }
+      if (!cancelled) void router.navigate({ to: "/staff", replace: true });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, router]);
+
+  return null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
+      <StaffOnlyGuard />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
     </QueryClientProvider>
