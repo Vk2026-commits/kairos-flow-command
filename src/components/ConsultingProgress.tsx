@@ -36,6 +36,7 @@ import {
 } from "./DirectorActivity";
 import Dictate, { appendSpoken } from "./Dictate";
 import FieldNotesAI from "./FieldNotesAI";
+import QuickHours from "./QuickHours";
 
 type Records = Record<EntityKey, ConsultingRecord[]>;
 type Role = "admin" | "contributor" | "viewer";
