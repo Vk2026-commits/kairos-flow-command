@@ -35,6 +35,7 @@ import {
   QuickLogActivity,
 } from "./DirectorActivity";
 import Dictate, { appendSpoken } from "./Dictate";
+import FieldNotesAI from "./FieldNotesAI";
 
 type Records = Record<EntityKey, ConsultingRecord[]>;
 type Role = "admin" | "contributor" | "viewer";
