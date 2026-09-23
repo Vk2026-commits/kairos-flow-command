@@ -107,6 +107,16 @@ export const OBSERVATION_STATUSES = [
   "Needs Verification",
 ] as const;
 
+// Labels used once a recommendation moves out of assessment and into phased
+// implementation. Kept separate so an item is never called complete early.
+export const IMPLEMENTATION_STATUSES = [
+  "Ready for Implementation",
+  "Implementation Started",
+  "Pending Materials",
+  "Pending Client Action",
+  "In Development",
+] as const;
+
 export const ACTION_STATUSES = [
   "Not Started",
   "In Progress",
@@ -114,9 +124,17 @@ export const ACTION_STATUSES = [
   "Completed",
   "On Hold",
   ...OBSERVATION_STATUSES,
+  ...IMPLEMENTATION_STATUSES,
 ] as const;
 export const PRIORITIES = ["Low", "Medium", "High", "Critical"] as const;
-export const MILESTONE_STATUSES = ["Not Started", "In Progress", "Completed", "Delayed", "Skipped"] as const;
+export const MILESTONE_STATUSES = [
+  "Not Started",
+  "In Progress",
+  "Completed",
+  "Delayed",
+  "Skipped",
+  ...IMPLEMENTATION_STATUSES,
+] as const;
 export const REC_STAGES = [
   "Identified",
   "Recommended",
@@ -124,6 +142,7 @@ export const REC_STAGES = [
   "Implemented",
   "Verified",
   ...OBSERVATION_STATUSES,
+  ...IMPLEMENTATION_STATUSES,
 ] as const;
 export const REC_DECISIONS = ["Under Review", "Approved", "Not Approved"] as const;
 export const DECISION_STATUSES = ["Under Review", "Approved", "Declined"] as const;
@@ -387,7 +406,7 @@ export const ENTITY_CONFIG: Record<EntityKey, EntityConfig> = {
     singular: "Improvement",
     titleLabel: "Improvement Title",
     statusLabel: "Status",
-    statusOptions: ["In Progress", "Implemented", "Verified"],
+    statusOptions: ["Pending Implementation", "In Progress", "Implemented", "Verified"],
     dateLabel: "Date Verified",
     fields: [
       { key: "location", label: "Location / Parking Lot", type: "text" },
