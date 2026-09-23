@@ -301,10 +301,12 @@ export default function ConsultingProgress() {
           rows={records[tab as EntityKey]}
           docs={docs}
           canEdit={canEdit}
+          linkOptions={records.actionItems.map((a) => a.title)}
           onSave={saveRecord}
           onDelete={removeRecord}
           onUpload={uploadAttachment}
         />
+
       )}
 
       {tab === "history" && <History records={records} canEdit={canEdit} onSaveRecord={saveRecord} />}
@@ -775,6 +777,7 @@ function RecordSection({
   rows,
   docs,
   canEdit,
+  linkOptions = [],
   onSave,
   onDelete,
   onUpload,
@@ -783,10 +786,12 @@ function RecordSection({
   rows: ConsultingRecord[];
   docs: DocRow[];
   canEdit: boolean;
+  linkOptions?: string[];
   onSave: (entity: EntityKey, id: string | null, record: Partial<ConsultingRecord>) => void;
   onDelete: (entity: EntityKey, id: string) => void;
   onUpload: (file: File) => Promise<void>;
 }) {
+
   const cfg = ENTITY_CONFIG[entity];
   const [editing, setEditing] = useState<ConsultingRecord | "new" | null>(null);
   const [q, setQ] = useState("");
