@@ -24,3 +24,7 @@
 ## Open question (Sep 23, 2026)
 - [x] Answered: where to enter hours so they count as Total Recorded Hours on the Executive Dashboard
 - [x] Logged 2h app-update time; dashboard shows 45.78 recorded hours; published
+
+## Quick Hours Entry (Sep 23, 2026)
+- [ ] "Log Hours" form on Executive Dashboard (date, start/end or total hours, description, Time Status) → consulting_activities as Recorded
+- [ ] User enters Sunday 9/20 real hours via the new form
