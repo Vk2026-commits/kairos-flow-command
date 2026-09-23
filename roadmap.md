@@ -23,3 +23,4 @@
 
 ## Open question (Sep 23, 2026)
 - [ ] Answer: where to enter hours so they count as Total Recorded Hours on the Executive Dashboard
+- [ ] Log 2h remote app-update consulting time (Sep 22, 2026) as Recorded, verify dashboard total; retry publish
