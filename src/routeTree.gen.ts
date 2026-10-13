@@ -9,67 +9,22 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as ConsultingRouteImport } from './routes/consulting'
-import { Route as LotsMobileRouteImport } from './routes/lots-mobile'
-import { Route as ParkingPlanRouteImport } from './routes/parking-plan'
-import { Route as ParkingSummaryRouteImport } from './routes/parking-summary'
-import { Route as PortfolioRouteImport } from './routes/portfolio'
-import { Route as PresentationRouteImport } from './routes/presentation'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as StaffRouteImport } from './routes/staff'
 import { Route as StatusRouteImport } from './routes/status'
+import { Route as StaffRouteImport } from './routes/staff'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as PresentationRouteImport } from './routes/presentation'
+import { Route as PortfolioRouteImport } from './routes/portfolio'
+import { Route as ParkingSummaryRouteImport } from './routes/parking-summary'
+import { Route as ParkingPlanRouteImport } from './routes/parking-plan'
+import { Route as LotsMobileRouteImport } from './routes/lots-mobile'
+import { Route as ConsultingRouteImport } from './routes/consulting'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as IndexRouteImport } from './routes/index'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ConsultingRoute = ConsultingRouteImport.update({
-  id: '/consulting',
-  path: '/consulting',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LotsMobileRoute = LotsMobileRouteImport.update({
-  id: '/lots-mobile',
-  path: '/lots-mobile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ParkingPlanRoute = ParkingPlanRouteImport.update({
-  id: '/parking-plan',
-  path: '/parking-plan',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ParkingSummaryRoute = ParkingSummaryRouteImport.update({
-  id: '/parking-summary',
-  path: '/parking-summary',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PortfolioRoute = PortfolioRouteImport.update({
-  id: '/portfolio',
-  path: '/portfolio',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PresentationRoute = PresentationRouteImport.update({
-  id: '/presentation',
-  path: '/presentation',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
+const StatusRoute = StatusRouteImport.update({
+  id: '/status',
+  path: '/status',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StaffRoute = StaffRouteImport.update({
@@ -77,9 +32,54 @@ const StaffRoute = StaffRouteImport.update({
   path: '/staff',
   getParentRoute: () => rootRouteImport,
 } as any)
-const StatusRoute = StatusRouteImport.update({
-  id: '/status',
-  path: '/status',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PresentationRoute = PresentationRouteImport.update({
+  id: '/presentation',
+  path: '/presentation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortfolioRoute = PortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ParkingSummaryRoute = ParkingSummaryRouteImport.update({
+  id: '/parking-summary',
+  path: '/parking-summary',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ParkingPlanRoute = ParkingPlanRouteImport.update({
+  id: '/parking-plan',
+  path: '/parking-plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LotsMobileRoute = LotsMobileRouteImport.update({
+  id: '/lots-mobile',
+  path: '/lots-mobile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConsultingRoute = ConsultingRouteImport.update({
+  id: '/consulting',
+  path: '/consulting',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -188,74 +188,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/consulting': {
-      id: '/consulting'
-      path: '/consulting'
-      fullPath: '/consulting'
-      preLoaderRoute: typeof ConsultingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lots-mobile': {
-      id: '/lots-mobile'
-      path: '/lots-mobile'
-      fullPath: '/lots-mobile'
-      preLoaderRoute: typeof LotsMobileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/parking-plan': {
-      id: '/parking-plan'
-      path: '/parking-plan'
-      fullPath: '/parking-plan'
-      preLoaderRoute: typeof ParkingPlanRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/parking-summary': {
-      id: '/parking-summary'
-      path: '/parking-summary'
-      fullPath: '/parking-summary'
-      preLoaderRoute: typeof ParkingSummaryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/portfolio': {
-      id: '/portfolio'
-      path: '/portfolio'
-      fullPath: '/portfolio'
-      preLoaderRoute: typeof PortfolioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/presentation': {
-      id: '/presentation'
-      path: '/presentation'
-      fullPath: '/presentation'
-      preLoaderRoute: typeof PresentationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
+    '/status': {
+      id: '/status'
+      path: '/status'
+      fullPath: '/status'
+      preLoaderRoute: typeof StatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/staff': {
@@ -265,11 +202,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/status': {
-      id: '/status'
-      path: '/status'
-      fullPath: '/status'
-      preLoaderRoute: typeof StatusRouteImport
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/presentation': {
+      id: '/presentation'
+      path: '/presentation'
+      fullPath: '/presentation'
+      preLoaderRoute: typeof PresentationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portfolio': {
+      id: '/portfolio'
+      path: '/portfolio'
+      fullPath: '/portfolio'
+      preLoaderRoute: typeof PortfolioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/parking-summary': {
+      id: '/parking-summary'
+      path: '/parking-summary'
+      fullPath: '/parking-summary'
+      preLoaderRoute: typeof ParkingSummaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/parking-plan': {
+      id: '/parking-plan'
+      path: '/parking-plan'
+      fullPath: '/parking-plan'
+      preLoaderRoute: typeof ParkingPlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lots-mobile': {
+      id: '/lots-mobile'
+      path: '/lots-mobile'
+      fullPath: '/lots-mobile'
+      preLoaderRoute: typeof LotsMobileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/consulting': {
+      id: '/consulting'
+      path: '/consulting'
+      fullPath: '/consulting'
+      preLoaderRoute: typeof ConsultingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
