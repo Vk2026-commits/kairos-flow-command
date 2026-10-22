@@ -40,11 +40,22 @@ function AuthPage() {
 
   useEffect(() => {
     let done = false;
+    const go = async () => {
+      let dest: "/" | "/staff" = "/staff";
+      try {
+        const { listMyClients } = await import("@/lib/orgs.functions");
+        const res: any = await listMyClients({ data: {} });
+        if (res?.isSuperAdmin) dest = "/";
+      } catch {
+        // default to staff portal
+      }
+      if (!done) void navigate({ to: dest, replace: true });
+    };
     void supabase.auth.getUser().then(({ data }) => {
-      if (!done && data.user) void navigate({ to: "/staff", replace: true });
+      if (!done && data.user) void go();
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") void navigate({ to: "/staff", replace: true });
+      if (event === "SIGNED_IN") setTimeout(() => void go(), 0);
     });
     return () => {
       done = true;
