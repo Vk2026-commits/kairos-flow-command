@@ -1087,13 +1087,11 @@ export function MapPanel({ service, onServiceChange, onFullscreenChange }: Props
       if (e.key === "Escape") setFullscreen(false);
     };
     window.addEventListener("keydown", onKey);
-    const onFullscreen = () => {
-      if (!document.fullscreenElement) setFullscreen(false);
-    };
-    document.addEventListener("fullscreenchange", onFullscreen);
+    // Native label/confirmation dialogs can make the browser leave fullscreen.
+    // Keep our map-only viewport open instead of treating that as an exit.
+    // Only the user's Exit Full control or an Escape key in the map closes it.
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.removeEventListener("fullscreenchange", onFullscreen);
     };
   }, [fullscreen]);
 
