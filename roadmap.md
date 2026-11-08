@@ -1,5 +1,9 @@
 # Roadmap
 
+## Current requests (Nov 8, 2026)
+- [ ] Map-only fullscreen with layers, annotations, personnel, signs and playback; verify entry, exit and large-screen sizing.
+- [ ] Log actual daily app work in Wheeler — blocked on actual dates and durations, not supplied yet.
+
 ## Lighthouse login (Nov 8, 2026)
 - [x] Created Stephen Taylor's Lighthouse-only client-admin account; signed in, saved an existing action item unchanged and read it back, confirmed only Lighthouse appears and /admin redirects to /staff; live portal accepted password setup email request. Full consulting edit permission update still needs publishing.
 
