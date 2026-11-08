@@ -2,7 +2,8 @@
 
 ## Map alignment (Nov 8, 2026)
 - [x] Keep saved aerial routes, personnel, and playback aligned across screen sizes; verified signed-in desktop/fullscreen playback and phone sizing; 3 tests pass, build OK.
-- [ ] Publish map alignment correction (awaiting permission to publish); user validates live Google Maps on the authorized custom domain.
+- [x] Published map alignment correction; signed-in custom-domain aerial image and overlays verified at desktop/phone sizes, fullscreen, 1×/1.25×/2× zoom and ingress/egress playback, with no runtime errors.
+- [ ] Verify saved aerial shuttle playback (no aerial shuttle routes exist in the current plan); Google Maps-dependent checks require user validation on the authorized domain.
 
 - [x] Staff login: individual accounts for executives/consultants; own hours and assessments visible only to them
 - [x] Account permission levels assignable by admin: full admin, add-notes/own-hours, read-only
