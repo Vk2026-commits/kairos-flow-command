@@ -1,5 +1,8 @@
 # Roadmap
 
+## Map alignment (Nov 8, 2026)
+- [ ] Keep saved aerial routes, personnel, and playback aligned across screen sizes; verify and publish.
+
 - [x] Staff login: individual accounts for executives/consultants; own hours and assessments visible only to them
 - [x] Account permission levels assignable by admin: full admin, add-notes/own-hours, read-only
 - [x] Phone count entries feed Weekly summary + utilization trends automatically (live push + 30s refresh)
