@@ -1,5 +1,8 @@
 # Roadmap
 
+## Lighthouse login (Nov 8, 2026)
+- [x] Created Stephen Taylor's Lighthouse-only client-admin account; signed in, saved an existing action item unchanged and read it back, confirmed only Lighthouse appears and /admin redirects to /staff; live portal accepted password setup email request. Full consulting edit permission update still needs publishing.
+
 ## Map alignment (Nov 8, 2026)
 - [x] Keep saved aerial routes, personnel, and playback aligned across screen sizes; verified signed-in desktop/fullscreen playback and phone sizing; 3 tests pass, build OK.
 - [x] Published map alignment correction; signed-in custom-domain aerial image and overlays verified at desktop/phone sizes, fullscreen, 1×/1.25×/2× zoom and ingress/egress playback, with no runtime errors.
