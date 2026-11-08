@@ -1,7 +1,7 @@
 # Roadmap
 
 ## Current requests (Nov 8, 2026)
-- [ ] Map-only fullscreen with layers, annotations, personnel, signs and playback; verify entry, exit and large-screen sizing.
+- [x] Map-only fullscreen with layers, annotations, personnel, signs and playback; verified 1920×1080 and phone sizing, zoom, playback, browser fullscreen, button exit and Escape; dashboard panels hidden, map ratio preserved; 5 tests pass.
 - [ ] Log actual daily app work in Wheeler — blocked on actual dates and durations, not supplied yet.
 
 ## Lighthouse login (Nov 8, 2026)

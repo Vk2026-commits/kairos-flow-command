@@ -11,3 +11,4 @@
 
 - Image-backed maps use the original 1358 × 843 annotation canvas, fitted uniformly inside the viewport; keep imagery, paths, playback, and HTML pins in that same wrapper so saved plans do not drift when viewers resize or zoom.
 - Derive full consulting permissions for client admins only after resolving their authorized organization; never store global admin for a client-only login, because it bypasses site isolation.
+- Fullscreen presentation belongs to the map element, with viewport fallback and dashboard-panel hiding; preserve the mounted map so playback and saved overlay state survive entry and exit.
