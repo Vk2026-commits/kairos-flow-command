@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveRole, type StaffRole } from "./staff.functions";
+import { consultingRole } from "./consulting-access";
 import { lookupDeviceRow, normalizeCode } from "./device-codes.server";
 
 // Consulting Progress records are tied to staff accounts. Everyone signs in
@@ -54,7 +55,11 @@ function assertCanWrite(role: StaffRole, entity: ConsultingEntity) {
 /** Resolves which client workspace this request belongs to. */
 async function orgFor(db: any, userId: string, orgId?: unknown) {
   const { resolveOrgContext } = await import("./org.server");
-  return resolveOrgContext(db, userId, orgId);
+  const org = await resolveOrgContext(db, userId, orgId);
+  if (typeof orgId === "string" && orgId && org.orgId !== orgId) {
+    throw new Error("You do not have access to that client workspace");
+  }
+  return org;
 }
 
 export const loadConsulting = createServerFn({ method: "POST" })
@@ -63,8 +68,8 @@ export const loadConsulting = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const db = await admin();
     const userId = context.userId as string;
-    const role = await resolveRole(db, userId);
     const org = await orgFor(db, userId, data?.orgId);
+    const role = consultingRole(await resolveRole(context.supabase, userId), org.memberRole);
 
     const { data: profile } = await db
       .from("profiles")
@@ -119,9 +124,9 @@ export const saveConsultingProject = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const db = await admin();
     const userId = context.userId as string;
-    const role = await resolveRole(db, userId);
-    if (role !== "admin") throw new Error("Only a full admin can edit the project summary");
     const org = await orgFor(db, userId, data?.orgId);
+    const role = consultingRole(await resolveRole(context.supabase, userId), org.memberRole);
+    if (role !== "admin") throw new Error("Only a client admin can edit the project summary");
     const p = data?.project ?? {};
     const patch: Row = {
       id: "default",
@@ -156,10 +161,10 @@ export const saveConsultingRecord = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const db = await admin();
     const userId = context.userId as string;
-    const role = await resolveRole(db, userId);
     const entity = String(data?.entity ?? "") as ConsultingEntity;
-    assertCanWrite(role, entity);
     const org = await orgFor(db, userId, data?.orgId);
+    const role = consultingRole(await resolveRole(context.supabase, userId), org.memberRole);
+    assertCanWrite(role, entity);
     const t = table(entity);
     const r = data?.record ?? {};
     const patch: Row = {
@@ -197,10 +202,10 @@ export const deleteConsultingRecord = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const db = await admin();
     const userId = context.userId as string;
-    const role = await resolveRole(db, userId);
     const entity = String(data?.entity ?? "") as ConsultingEntity;
-    assertCanWrite(role, entity);
     const org = await orgFor(db, userId, data?.orgId);
+    const role = consultingRole(await resolveRole(context.supabase, userId), org.memberRole);
+    assertCanWrite(role, entity);
     let q = db
       .from(table(entity))
       .delete()

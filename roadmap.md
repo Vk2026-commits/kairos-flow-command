@@ -1,5 +1,8 @@
 # Roadmap
 
+## Lighthouse login (Nov 8, 2026)
+- [ ] Create Stephen Taylor's Lighthouse-only client-admin account, verify action-item editing and Wheeler isolation, and send password setup instructions.
+
 ## Map alignment (Nov 8, 2026)
 - [x] Keep saved aerial routes, personnel, and playback aligned across screen sizes; verified signed-in desktop/fullscreen playback and phone sizing; 3 tests pass, build OK.
 - [x] Published map alignment correction; signed-in custom-domain aerial image and overlays verified at desktop/phone sizes, fullscreen, 1×/1.25×/2× zoom and ingress/egress playback, with no runtime errors.
