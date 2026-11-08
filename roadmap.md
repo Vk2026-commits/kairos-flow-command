@@ -1,7 +1,7 @@
 # Roadmap
 
 ## Current requests (Nov 8, 2026)
-- [ ] Keep fullscreen map editing open through annotation, personnel and sign label dialogs, including browser fullscreen loss.
+- [x] Fullscreen map editing stays open through annotation, personnel and sign labels even when browser fullscreen ends; verified label dialogs, personnel/sign placement and explicit exit, with test additions blocked from saving.
 - [x] Map-only fullscreen with layers, annotations, personnel, signs and playback; verified 1920×1080 and phone sizing, zoom, playback, browser fullscreen, button exit and Escape; dashboard panels hidden, map ratio preserved; 5 tests pass.
 - [ ] Log actual daily app work in Wheeler — blocked on actual dates and durations, not supplied yet.
 
