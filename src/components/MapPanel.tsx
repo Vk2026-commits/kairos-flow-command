@@ -15,6 +15,8 @@ import { ensureDeviceCode, getDeviceCode, setDeviceCode } from "@/lib/device-acc
 import { pushSharedState } from "@/lib/shared-state";
 import { loadSharedState } from "@/lib/shared-state.functions";
 import { fitImageMapFrame } from "@/lib/map-frame";
+import { Button } from "@/components/ui/button";
+import { Maximize, Minimize } from "lucide-react";
 
 // Keep the map usable in previews where Lovable Cloud build variables have not
 // been injected yet. Local persistence remains available until cloud sync is.
@@ -272,9 +274,10 @@ function CarGlyph({ x, y, angle, color, scale = 1 }: { x: number; y: number; ang
 type Props = {
   service: "7:00 AM" | "10:00 AM" | "1:00 PM";
   onServiceChange: (s: "7:00 AM" | "10:00 AM" | "1:00 PM") => void;
+  onFullscreenChange?: (fullscreen: boolean) => void;
 };
 
-export function MapPanel({ service, onServiceChange }: Props) {
+export function MapPanel({ service, onServiceChange, onFullscreenChange }: Props) {
   const [base, setBase] = useState<BaseKey>("street");
   const [customUrl, setCustomUrl] = useState<string | null>(null);
   const LAYERS_KEY = "kairos:map-layers:v1";
@@ -1054,13 +1057,44 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
   // Fullscreen (presentation) mode — map fills the viewport.
   const [fullscreen, setFullscreen] = useState(false);
+  const presentationRef = useRef<HTMLDivElement>(null);
+  const toggleFullscreen = async () => {
+    if (fullscreen) {
+      if (document.fullscreenElement === presentationRef.current) {
+        await document.exitFullscreen().catch(() => undefined);
+      }
+      setFullscreen(false);
+      return;
+    }
+    setFullscreen(true);
+    // Browser fullscreen removes browser chrome on presentation screens.
+    // Keep viewport fullscreen as a fallback in embedded previews.
+    await presentationRef.current?.requestFullscreen?.().catch(() => undefined);
+  };
+  useEffect(() => {
+    onFullscreenChange?.(fullscreen);
+    if (!fullscreen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      onFullscreenChange?.(false);
+    };
+  }, [fullscreen, onFullscreenChange]);
   useEffect(() => {
     if (!fullscreen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setFullscreen(false);
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const onFullscreen = () => {
+      if (!document.fullscreenElement) setFullscreen(false);
+    };
+    document.addEventListener("fullscreenchange", onFullscreen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("fullscreenchange", onFullscreen);
+    };
   }, [fullscreen]);
 
   function collapsePanel(setOpen: (v: boolean) => void, setOff: (p: { x: number; y: number }) => void) {
@@ -1824,6 +1858,8 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
   return (
     <div
+      ref={presentationRef}
+      data-map-fullscreen={fullscreen}
       className={
         fullscreen
           ? "fixed inset-0 z-50 bg-surface flex flex-col overflow-hidden"
@@ -1833,14 +1869,17 @@ export function MapPanel({ service, onServiceChange }: Props) {
       {/* ============ Docked toolbar (above the map, never on it) ============ */}
       <div className="relative z-40 shrink-0 border-b border-white/10 bg-surface/95 backdrop-blur-md">
         <div className="flex flex-wrap items-center gap-1.5 px-3 py-2">
-          <button
+          <Button
             type="button"
-            onClick={() => setFullscreen((v) => !v)}
-            className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded border border-white/10 bg-white/5 text-white hover:bg-white/10 transition"
+            variant="outline"
+            size="sm"
+            onClick={() => void toggleFullscreen()}
+            aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen map"}
             title={fullscreen ? "Exit fullscreen (Esc)" : "Fullscreen map"}
           >
-            {fullscreen ? "⤢ Exit Full" : "⤢ Fullscreen"}
-          </button>
+            {fullscreen ? <Minimize /> : <Maximize />}
+            {fullscreen ? "Exit Full" : "Fullscreen"}
+          </Button>
 
           <div className="mx-1 h-5 w-px bg-white/10" />
 
@@ -3340,7 +3379,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
                 label: fullscreen ? "⤡" : "⤢",
                 title: fullscreen ? "Exit fullscreen" : "Fullscreen",
                 active: fullscreen,
-                onClick: () => setFullscreen((v) => !v),
+                onClick: () => void toggleFullscreen(),
               },
             ] as const
           ).map((b) => (

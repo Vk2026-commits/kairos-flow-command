@@ -19,6 +19,10 @@ export const Route = createFileRoute("/")({
         content:
           "Executive command center for Wheeler Avenue Baptist Church transportation, parking, and shuttle operations.",
       },
+      { property: "og:title", content: "Kairos Command — Live Operations Dashboard" },
+      { property: "og:description", content: "Wheeler Avenue transportation, parking, and map operations in Kairos Command." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: CommandDashboard,
@@ -52,6 +56,7 @@ function useClock() {
 function CommandDashboard() {
   const [active, setActive] = useState<NavKey>("DASH");
   const [presentation, setPresentation] = useState(false);
+  const [mapFullscreen, setMapFullscreen] = useState(false);
   const [service, setService] = useState<"7:00 AM" | "10:00 AM" | "1:00 PM">(
     "10:00 AM",
   );
@@ -92,7 +97,7 @@ function CommandDashboard() {
     <div
       className={`min-h-screen bg-bg-deep text-slate-200 font-sans selection:bg-kairos-blue/30 flex ${presentation ? "presentation-mode" : ""}`}
     >
-      {!presentation && (
+      {!presentation && !mapFullscreen && (
         <aside className="w-[72px] flex-none border-r border-white/5 flex flex-col items-center py-6 gap-8 bg-surface">
           <div className="size-10 bg-kairos-blue rounded-lg flex items-center justify-center font-bold text-white tracking-tighter shadow-[0_0_20px_rgba(0,98,255,0.4)]">
             KC
@@ -201,6 +206,7 @@ function CommandDashboard() {
         ) : (
 
         <div className="flex-1 p-4 lg:p-6 grid grid-cols-12 auto-rows-min lg:grid-rows-6 gap-4 lg:gap-6 overflow-y-auto lg:overflow-hidden">
+          {!mapFullscreen && <>
           <KpiCard
             label="Total Parking Capacity"
             value={String(parkingMetrics.totalSpaces)}
@@ -227,17 +233,19 @@ function CommandDashboard() {
             statusNominal={live.incidentsOpen === 0}
             incidentsOpen={live.incidentsOpen}
           />
+          </>}
 
 
           <MapPanel
             service={service}
             onServiceChange={setService}
+            onFullscreenChange={setMapFullscreen}
           />
 
-          <div className="col-span-12 lg:col-span-4 lg:row-span-5 flex flex-col gap-4 lg:gap-6">
+          {!mapFullscreen && <div className="col-span-12 lg:col-span-4 lg:row-span-5 flex flex-col gap-4 lg:gap-6">
             <PersonnelPanel />
             <AlertsPanel />
-          </div>
+          </div>}
         </div>
         )}
       </main>
