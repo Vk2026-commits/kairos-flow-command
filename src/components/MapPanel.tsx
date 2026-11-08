@@ -14,6 +14,7 @@ import {
 import { ensureDeviceCode, getDeviceCode, setDeviceCode } from "@/lib/device-access";
 import { pushSharedState } from "@/lib/shared-state";
 import { loadSharedState } from "@/lib/shared-state.functions";
+import { fitImageMapFrame } from "@/lib/map-frame";
 
 // Keep the map usable in previews where Lovable Cloud build variables have not
 // been injected yet. Local persistence remains available until cloud sync is.
@@ -1167,6 +1168,19 @@ export function MapPanel({ service, onServiceChange }: Props) {
 
   const fileRef = useRef<HTMLInputElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const [surfaceSize, setSurfaceSize] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    const measure = () => {
+      setSurfaceSize({ width: surface.clientWidth, height: surface.clientHeight });
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(surface);
+    measure();
+    return () => observer.disconnect();
+  }, []);
+  const imageFrame = fitImageMapFrame(surfaceSize.width, surfaceSize.height);
   const liveMapRef = useRef<LiveMapHandle>(null);
   const annotationsCloudReady = useRef(false);
   const annotationsLastSaved = useRef("");
@@ -1405,10 +1419,13 @@ export function MapPanel({ service, onServiceChange }: Props) {
     const el = contentRef.current ?? surfaceRef.current;
     if (!el) return null;
     const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
     const pt: Pt = {
       x: ((e.clientX - r.left) / r.width) * 100,
       y: ((e.clientY - r.top) / r.height) * 100,
     };
+    // Letterboxed margins are not part of the saved map canvas.
+    if (base !== "live" && (pt.x < 0 || pt.x > 100 || pt.y < 0 || pt.y > 100)) return null;
     if (base === "live") {
       const ll = liveMapRef.current?.clientToLatLng(e.clientX, e.clientY);
       if (ll) {
@@ -1432,8 +1449,8 @@ export function MapPanel({ service, onServiceChange }: Props) {
     const surf = surfaceRef.current;
     if (!surf) return;
     const r = surf.getBoundingClientRect();
-    const dx = ((e.clientX - panDrag.current.x) / r.width) * 100;
-    const dy = ((e.clientY - panDrag.current.y) / r.height) * 100;
+    const dx = ((e.clientX - panDrag.current.x) / imageFrame.width) * 100;
+    const dy = ((e.clientY - panDrag.current.y) / imageFrame.height) * 100;
     // Limit pan so scaled content stays over the map.
     const maxPan = ((imgZoom - 1) / imgZoom) * 50;
     const nx = Math.max(-maxPan, Math.min(maxPan, panDrag.current.ox + dx));
@@ -1726,7 +1743,7 @@ export function MapPanel({ service, onServiceChange }: Props) {
     },
     // liveEpoch intentionally invalidates the projection on every map move.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [base, liveEpoch],
+    [base, liveEpoch, surfaceSize.width, surfaceSize.height],
   );
 
   const projectAnnotation = useCallback(
@@ -2946,11 +2963,15 @@ export function MapPanel({ service, onServiceChange }: Props) {
       >
         <div
           ref={contentRef}
-          className="absolute inset-0"
+          className={base === "live" ? "absolute inset-0" : "absolute"}
           style={
             base === "live"
               ? undefined
               : {
+                  left: imageFrame.left,
+                  top: imageFrame.top,
+                  width: imageFrame.width,
+                  height: imageFrame.height,
                   transform: `translate(${imgPan.x}%, ${imgPan.y}%) scale(${imgZoom})`,
                   transformOrigin: "center",
                   transition: panDrag.current ? "none" : "transform 150ms ease-out",

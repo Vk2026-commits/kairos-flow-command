@@ -56,6 +56,10 @@ export const Route = createFileRoute("/presentation")({
     meta: [
       { title: "Kairos Executive Presentation — Wheeler Avenue Baptist Church" },
       { name: "description", content: "Interactive executive proposal presentation for Wheeler Avenue Baptist Church." },
+      { property: "og:title", content: "Kairos Executive Presentation — Wheeler Avenue Baptist Church" },
+      { property: "og:description", content: "Interactive executive proposal presentation for Wheeler Avenue Baptist Church." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "robots", content: "noindex" },
     ],
   }),

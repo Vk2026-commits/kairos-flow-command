@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Image-backed maps use the original 1358 × 843 annotation canvas, fitted uniformly inside the viewport; keep imagery, paths, playback, and HTML pins in that same wrapper so saved plans do not drift when viewers resize or zoom.
