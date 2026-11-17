@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { Mail, LoaderCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   createStaffAccount,
+  emailStaffLogin,
   getMyStaffAccount,
   listStaff,
   setStaffClientAccess,
@@ -58,6 +61,31 @@ export default function StaffAccounts() {
   const [newMemberRole, setNewMemberRole] = useState("client_leadership");
   const [newPass, setNewPass] = useState("");
   const [created, setCreated] = useState<string | null>(null);
+  const [emailNotice, setEmailNotice] = useState<string | null>(null);
+  const [emailRequests, setEmailRequests] = useState<Record<string, string>>({});
+
+  const emailLogin = async (row: StaffRow) => {
+    setBusy(row.id);
+    setError(null);
+    setEmailNotice(null);
+    const requestId = emailRequests[row.id] ?? crypto.randomUUID();
+    setEmailRequests((current) => ({ ...current, [row.id]: requestId }));
+    try {
+      const result = await emailStaffLogin({ data: { userId: row.id, requestId } });
+      setEmailNotice(result.sent
+        ? `Sign-in details sent to ${row.email}. Their password and site access are unchanged.`
+        : `Email not sent to ${row.email}: this recipient is blocked from receiving app emails.`);
+      setEmailRequests((current) => {
+        const next = { ...current };
+        delete next[row.id];
+        return next;
+      });
+    } catch (e) {
+      setError((e as Error).message || 'Could not send sign-in details');
+    } finally {
+      setBusy(null);
+    }
+  };
 
 
   const load = async () => {
@@ -191,6 +219,7 @@ export default function StaffAccounts() {
       </div>
 
       {error && <div className="text-[11px] text-red-400 mb-3">{error}</div>}
+      {emailNotice && <div role="status" className="text-xs text-foreground mb-3">{emailNotice}</div>}
 
       {myRole !== "admin" ? (
         <p className="text-xs text-slate-400">
@@ -307,6 +336,15 @@ export default function StaffAccounts() {
                   </div>
                   <div className="text-[11px] text-slate-500">{row.email}</div>
                 </div>
+                <Button
+                  variant="outline" size="icon" type="button"
+                  title={`Email sign-in details to ${row.fullName || row.email || 'staff member'}`}
+                  aria-label={`Email sign-in details to ${row.fullName || row.email || 'staff member'}`}
+                  disabled={busy !== null || !row.email}
+                  onClick={() => void emailLogin(row)}
+                >
+                  {busy === row.id ? <LoaderCircle className="animate-spin" /> : <Mail />}
+                </Button>
                 <select
                   value={row.role}
                   disabled={busy === row.id}

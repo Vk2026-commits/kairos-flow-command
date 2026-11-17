@@ -16,6 +16,10 @@ export const Route = createFileRoute("/admin")({
     meta: [
       { title: "Kairos Command™ — Admin Settings" },
       { name: "description", content: "Configure fleet counts and operational parameters for the Kairos Command dashboard." },
+      { property: 'og:title', content: 'Kairos Command™ — Admin Settings' },
+      { property: 'og:description', content: 'Manage staff accounts, site access and fleet settings in Kairos Command.' },
+      { property: 'og:type', content: 'website' },
+      { name: 'twitter:card', content: 'summary' },
     ],
   }),
   component: AdminSettings,

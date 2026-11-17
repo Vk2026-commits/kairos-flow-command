@@ -144,6 +144,7 @@ function StaffOnlyGuard() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
+    if (pathname.startsWith('/lovable/')) return;
     const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
     const isStaffOk = STAFF_ALLOWED.some((p) => pathname === p || pathname.startsWith(p + "/"));
     let cancelled = false;

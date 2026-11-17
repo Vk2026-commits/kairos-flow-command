@@ -8,6 +8,39 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 //   viewer      — read-only
 export type StaffRole = "admin" | "contributor" | "viewer";
 
+/** Send one existing account its sign-in details without changing credentials or permissions. */
+export const emailStaffLogin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string; requestId: string }) => {
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuid.test(data?.userId ?? '') || !uuid.test(data?.requestId ?? '')) throw new Error('Invalid account email request');
+    return data;
+  })
+  .handler(async ({ context, data }) => {
+    if ((await resolveRole(context.supabase, context.userId)) !== 'admin') {
+      throw new Error('Only a full admin can email staff sign-in details');
+    }
+    const db = await adminDb();
+    const { sendStaffLoginDetails } = await import('./staff-login-email.server');
+    const { sendTemplateEmail } = await import('./email-templates/send-email');
+    try {
+      return await sendStaffLoginDetails(data.userId, data.requestId, {
+        loadAccount: async (userId) => {
+          const { data: result, error } = await db.auth.admin.getUserById(userId);
+          if (error || !result?.user) throw new Error('Could not find that staff account');
+          return { email: result.user.email, name: result.user.user_metadata?.full_name };
+        },
+        send: sendTemplateEmail,
+      });
+    } catch (error) {
+      const failure = error as { code?: string; status?: number; retryAfterSeconds?: number };
+      if (failure.code === 'domain_not_verified') throw new Error('The sender domain is still being verified. Check More → Emails and try again after verification.');
+      if (failure.code === 'emails_disabled') throw new Error('Email sending is turned off. Enable it in More → Emails.');
+      if (failure.status === 429) throw new Error(`Email sending is temporarily limited. Try again in ${failure.retryAfterSeconds ?? 60} seconds.`);
+      throw error;
+    }
+  });
+
 export const ROLE_LABELS: Record<StaffRole, string> = {
   admin: "Full admin",
   contributor: "Add notes & log own hours",

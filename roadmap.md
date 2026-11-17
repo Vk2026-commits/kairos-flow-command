@@ -1,7 +1,8 @@
 # Roadmap
 
 ## Staff login emails (Nov 17, 2026)
-- [ ] Add a per-account email button for username and portal sign-in link, keeping current passwords and site permissions unchanged — blocked on sender-domain setup.
+- [x] Configure managed sending for notify.commandhub.kairossecurity.com and add per-account sign-in email buttons without password or site-permission changes.
+- [ ] Verify real staff-email delivery — waiting on sender-domain DNS verification; monitor More → Emails.
 
 ## Current requests (Nov 8, 2026)
 - [x] Fullscreen map editing stays open through annotation, personnel and sign labels even when browser fullscreen ends; verified label dialogs, personnel/sign placement and explicit exit, with test additions blocked from saving.
