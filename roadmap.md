@@ -1,5 +1,10 @@
 # Roadmap
 
+## Wheeler hours (Nov 17, 2026)
+- [x] Preserve November 1 visit; add November 8 5:30–8:00 AM (2.5 recorded hours); no November 15 or future visits.
+- [x] Log 4.5 combined estimated phone hours with call dates not recorded, excluded from verified totals.
+- [ ] Log app-work hours — actual dates and durations still unresolved; five/seven-hour statements were clarified as on-site rather than app work.
+
 ## Staff login emails (Nov 17, 2026)
 - [x] Configure managed sending for notify.commandhub.kairossecurity.com and add per-account sign-in email buttons without password or site-permission changes.
 - [ ] Verify real staff-email delivery — waiting on sender-domain DNS verification; monitor More → Emails.
