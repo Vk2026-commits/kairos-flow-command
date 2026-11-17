@@ -2,6 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { consultingHourTotals, estimatedHours } from './consulting';
 
+test('November 13 call with Mr. Moore at 10 AM contributes one recorded off-site hour', () => {
+  const call = {
+    occurred_on: '2026-11-13',
+    data: { activityType: 'Phone Call', timeStatus: 'Recorded', startTime: '10:00', endTime: '11:00', hours: 1 },
+  };
+  assert.deepEqual(consultingHourTotals([call], []), { onSite: 0, offSite: 1, total: 1 });
+});
+
 test('November 8 Wheeler visit from 5:30 AM to 8:00 AM contributes 2.5 recorded hours', () => {
   assert.equal(consultingHourTotals([], [{ occurred_on: '2026-11-08', data: { arrival: '05:30', departure: '08:00' } }]).onSite, 2.5);
 });

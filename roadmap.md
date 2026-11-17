@@ -1,5 +1,9 @@
 # Roadmap
 
+## Moore signage recommendations and call (Nov 17, 2026)
+- [x] Add ten Wheeler Client Decisions separating remaining contract deliverables from proposed additions; date the email November 14 and originating conversation November 13; confirmed signed-in Wheeler records.
+- [x] Log Stephen Taylor’s November 13, 10–11 AM call with Rev. David Moore as one recorded off-site hour; verified Work Activity and dashboard showing 55.75 off-site / 90.45 total recorded hours; four hours tests pass.
+
 ## Wheeler hours (Nov 17, 2026)
 - [x] Preserve November 1 visit; add November 8 5:30–8:00 AM (2.5 recorded hours); no November 15 or future visits.
 - [x] Log 4.5 combined estimated phone hours with call dates not recorded, excluded from verified totals.
