@@ -1,5 +1,8 @@
 # Roadmap
 
+## Staff login emails (Nov 17, 2026)
+- [ ] Add a per-account email button for username and portal sign-in link, keeping current passwords and site permissions unchanged — blocked on sender-domain setup.
+
 ## Current requests (Nov 8, 2026)
 - [x] Fullscreen map editing stays open through annotation, personnel and sign labels even when browser fullscreen ends; verified label dialogs, personnel/sign placement and explicit exit, with test additions blocked from saving.
 - [x] Map-only fullscreen with layers, annotations, personnel, signs and playback; verified 1920×1080 and phone sizing, zoom, playback, browser fullscreen, button exit and Escape; dashboard panels hidden, map ratio preserved; 5 tests pass.
