@@ -1589,6 +1589,46 @@ export function MapPanel({ service, onServiceChange, onFullscreenChange }: Props
     editAnnotations(() => []);
   }
 
+  // Press-and-drag to reposition personnel and sign markers. A tiny movement
+  // still counts as a click (delete prompt); a real drag saves the new spot
+  // as one undoable edit.
+  const markerDrag = useRef<{ id: string; x: number; y: number; moved: boolean; snap: Annotation[] } | null>(null);
+  const suppressMarkerClick = useRef(false);
+  function markerDragProps(id: string, editable: boolean) {
+    if (!editable) return {};
+    return {
+      onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
+        e.stopPropagation();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        markerDrag.current = { id, x: e.clientX, y: e.clientY, moved: false, snap: annotationsRef.current };
+      },
+      onPointerMove: (e: React.PointerEvent<HTMLElement>) => {
+        const d = markerDrag.current;
+        if (!d || d.id !== id) return;
+        if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 4) return;
+        d.moved = true;
+        const parent = e.currentTarget.parentElement;
+        if (!parent) return;
+        const r = parent.getBoundingClientRect();
+        const x = Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100));
+        const y = Math.max(0, Math.min(100, ((e.clientY - r.top) / r.height) * 100));
+        setAnnotations((prev) =>
+          prev.map((a) => (a.id === id && (a.kind === "personnel" || a.kind === "sign") ? { ...a, point: { x, y } } : a)),
+        );
+      },
+      onPointerUp: (e: React.PointerEvent<HTMLElement>) => {
+        const d = markerDrag.current;
+        markerDrag.current = null;
+        e.stopPropagation();
+        if (d?.moved) {
+          suppressMarkerClick.current = true;
+          undoStack.current = [...undoStack.current.slice(-49), d.snap];
+          setUndoCount((c) => Math.min(50, c + 1));
+        }
+      },
+    };
+  }
+
   function removeAnnotation(id: string) {
     editAnnotations((a) => a.filter((x) => x.id !== id));
   }
@@ -3230,16 +3270,18 @@ export function MapPanel({ service, onServiceChange, onFullscreenChange }: Props
             return (
               <div
                 key={a.id}
+                {...markerDragProps(a.id, editable)}
                 onClick={(e) => {
                   if (!editable) return;
                   e.stopPropagation();
+                  if (suppressMarkerClick.current) { suppressMarkerClick.current = false; return; }
                   if (window.confirm(`Delete this ${meta.label} marker?`)) removeAnnotation(a.id);
                 }}
                 className={`absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 group ${
-                  editable ? "cursor-pointer" : "pointer-events-none"
+                  editable ? "cursor-grab touch-none" : "pointer-events-none"
                 }`}
                 style={{ left: `${a.point.x}%`, top: `${a.point.y}%` }}
-                title={editable ? `Click to delete this ${meta.label} marker` : meta.label}
+                title={editable ? `Drag to move · click to delete this ${meta.label} marker` : meta.label}
               >
                 <div
                   className="size-6 rounded-full border-2 border-white shadow-lg flex items-center justify-center group-hover:ring-2 group-hover:ring-white/60"
@@ -3265,16 +3307,18 @@ export function MapPanel({ service, onServiceChange, onFullscreenChange }: Props
             return (
               <div
                 key={a.id}
+                {...markerDragProps(a.id, editable)}
                 onClick={(e) => {
                   if (!editable) return;
                   e.stopPropagation();
+                  if (suppressMarkerClick.current) { suppressMarkerClick.current = false; return; }
                   if (window.confirm(`Delete this ${meta.label}?`)) removeAnnotation(a.id);
                 }}
                 className={`absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5 group ${
-                  editable ? "cursor-pointer" : "pointer-events-none"
+                  editable ? "cursor-grab touch-none" : "pointer-events-none"
                 }`}
                 style={{ left: `${a.point.x}%`, top: `${a.point.y}%` }}
-                title={editable ? `Click to delete this ${meta.label}` : meta.label}
+                title={editable ? `Drag to move · click to delete this ${meta.label}` : meta.label}
               >
                 <div className="rounded group-hover:ring-2 group-hover:ring-white/60">
                   <SignGlyph sign={a.sign} />
