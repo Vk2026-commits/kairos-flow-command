@@ -1,5 +1,8 @@
 # Roadmap
 
+## North Campus camera review (Nov 16, 2026)
+- [x] Recorded Lighthouse North Campus camera review, 10:30–11:45 AM and 3:00–5:30 PM, including reports for Craig Hawkins and Ivy McGregor; both sessions verified in signed-in Work Activity and timeline, with tests confirming 3.75 on-site hours counted once.
+
 ## Moore signage recommendations and call (Nov 17, 2026)
 - [x] Add ten Wheeler Client Decisions separating remaining contract deliverables from proposed additions; date the email November 14 and originating conversation November 13; confirmed signed-in Wheeler records.
 - [x] Log Stephen Taylor’s November 13, 10–11 AM call with Rev. David Moore as one recorded off-site hour; verified Work Activity and dashboard showing 55.75 off-site / 90.45 total recorded hours; four hours tests pass.
